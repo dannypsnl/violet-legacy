@@ -1,7 +1,7 @@
 use std::fs;
 
-mod parser;
 mod ast;
+mod parser;
 
 #[macro_use]
 extern crate lalrpop_util;
