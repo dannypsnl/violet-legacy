@@ -1,6 +1,8 @@
 use std::fs;
 
 mod parser;
+mod ast;
+
 #[macro_use]
 extern crate lalrpop_util;
 lalrpop_mod!(pub violet);
@@ -16,9 +18,4 @@ fn main() -> std::io::Result<()> {
         }
     }
     return Ok(());
-}
-
-#[test]
-fn calculator1() {
-    assert!(violet::TermParser::new().parse("22").is_ok());
 }
