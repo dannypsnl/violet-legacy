@@ -45,6 +45,10 @@ fn module_simple_case() {
 
 #[test]
 fn define_variable() {
-    println!("{:?}", violet::TopParser::new().parse("(define x 1)"));
     assert!(violet::TopParser::new().parse("(define x 1)").is_ok());
+}
+
+#[test]
+fn define_procedure() {
+    assert!(violet::TopParser::new().parse("(define (id x) x)").is_ok());
 }

@@ -15,6 +15,7 @@ pub struct Mod {
 #[derive(Debug)]
 pub enum Top {
     TypeDecl(Type),
+    DefineProc(Identifier, Vec<Identifier>, Expr),
     DefineVar(Identifier, Expr),
 }
 
@@ -27,4 +28,5 @@ pub enum Type {
 #[derive(Debug)]
 pub enum Expr {
     Int(i64),
+    Id(Identifier),
 }
