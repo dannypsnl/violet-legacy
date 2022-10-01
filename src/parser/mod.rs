@@ -16,23 +16,23 @@ pub fn parse_file(path: &str) -> Result<(), PError> {
         Err(e) => match e {
             InvalidToken { location } => Err(ParseError {
                 src: NamedSource::new(path, s[location..location + 1].to_string()),
-                bad_bit: (location, 1).into(),
+                bad_token: (0, 1).into(),
             })?,
             UnrecognizedEOF { location, expected } => Err(ParseError {
                 src: NamedSource::new(path, s[location - 1..location].to_string()),
-                bad_bit: (location - 1, 1).into(),
+                bad_token: (0, 1).into(),
             })?,
             UnrecognizedToken { token, expected } => Err(ParseError {
                 src: NamedSource::new(path, s[token.0..token.2].to_string()),
-                bad_bit: (token.0, token.2 - token.0).into(),
+                bad_token: (0, token.2 - token.0).into(),
             })?,
             ExtraToken { token } => Err(ParseError {
                 src: NamedSource::new(path, s[token.0..token.2].to_string()),
-                bad_bit: (token.0, token.2 - token.0).into(),
+                bad_token: (0, token.2 - token.0).into(),
             })?,
             User { error } => Err(ParseError {
                 src: NamedSource::new(path, s[0..1].to_string()),
-                bad_bit: (0, 1).into(),
+                bad_token: (0, 1).into(),
             })?,
         },
     }

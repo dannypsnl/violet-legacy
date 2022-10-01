@@ -18,6 +18,6 @@ pub enum PError {
 pub struct ParseError {
     #[source_code]
     pub src: NamedSource,
-    #[label("location")]
-    pub bad_bit: SourceSpan,
+    #[label("bad token")]
+    pub bad_token: SourceSpan,
 }
