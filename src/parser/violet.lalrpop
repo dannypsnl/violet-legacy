@@ -20,10 +20,5 @@ pub Top : Top = {
     "(" ":" <n:Id> ":"  ")" => Top::TypeDecl()
 }
 
-pub Term: i32 = {
-    <n:Num> => n,
-    "(" <t:Term> ")" => t,
-};
-
 Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
 Id: String = <s:r"[a-zA-Z_%!*+=?]+"> => s.into();
