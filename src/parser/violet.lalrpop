@@ -1,10 +1,23 @@
 use std::str::FromStr;
-use super::super::ast::{Mod};
+use crate::ast::*;
 
 grammar;
 
+pub File : File = {
+    <m:Mod>
+    <ts:Top*> => File {
+        module: m,
+        top_list: ts
+    }
+}
+
 pub Mod : Mod = {
     "(" "module" <n:Id> ")" => Mod { name: n, export_list: vec![] }
+}
+
+pub Top : Top = {
+    "(" "define" <n:Id> ")" => Top::DefineVar(n),
+    "(" ":" <n:Id> ":"  ")" => Top::TypeDecl()
 }
 
 pub Term: i32 = {
