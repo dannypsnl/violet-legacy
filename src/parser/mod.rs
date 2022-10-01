@@ -42,3 +42,9 @@ pub fn parse_file(path: &str) -> Result<(), PError> {
 fn module_simple_case() {
     assert!(violet::ModParser::new().parse("(module hello)").is_ok());
 }
+
+#[test]
+fn define_variable() {
+    println!("{:?}", violet::TopParser::new().parse("(define x 1)"));
+    assert!(violet::TopParser::new().parse("(define x 1)").is_ok());
+}
