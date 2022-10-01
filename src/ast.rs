@@ -14,6 +14,17 @@ pub struct Mod {
 
 #[derive(Debug)]
 pub enum Top {
-    TypeDecl(),
-    DefineVar(Identifier),
+    TypeDecl(Type),
+    DefineVar(Identifier, Expr),
+}
+
+#[derive(Debug)]
+pub enum Type {
+    Base(Identifier),
+    Arrow(Box<Type>, Box<Type>),
+}
+
+#[derive(Debug)]
+pub enum Expr {
+    Int(i64),
 }

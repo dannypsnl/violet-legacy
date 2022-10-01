@@ -16,9 +16,18 @@ pub Mod : Mod = {
 }
 
 pub Top : Top = {
-    "(" "define" <n:Id> ")" => Top::DefineVar(n),
-    "(" ":" <n:Id> ":"  ")" => Top::TypeDecl()
+    "(" "define" <n:Id> <e:Expr> ")" => Top::DefineVar(n, e),
+    "(" ":" <n:Id> ":" <t1:Type> "->" <t2:Type> ")" => Top::TypeDecl(Type::Arrow(Box::new(t1), Box::new(t2))),
+    "(" ":" <n:Id> ":" <ty:Type> ")" => Top::TypeDecl(ty)
 }
 
-Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
+pub Type : Type = {
+    <n:Id> => Type::Base(n),
+}
+
+pub Expr : Expr  = {
+    <n:Int> => Expr::Int(n)
+}
+
+Int: i64 = <s:r"[0-9]+"> => i64::from_str(s).unwrap();
 Id: String = <s:r"[a-zA-Z_%!*+=?]+"> => s.into();
