@@ -1,6 +1,6 @@
 use crate::ast::*;
 use miette::Result;
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::HashMap;
 pub mod error;
 use error::{IdMissing, TyMismatch, TyckError};
 
