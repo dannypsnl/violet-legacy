@@ -1,12 +1,13 @@
 use std::str::FromStr;
 use crate::ast::*;
+use crate::ast::Range::R;
 
 grammar;
 
 pub File : File = {
     <module:Mod>
     <top_list:Top*>
-    => File {<>}
+    => File {source: String::new(), module, top_list}
 }
 
 pub Mod : Mod = {
@@ -14,12 +15,12 @@ pub Mod : Mod = {
 }
 
 pub Top : Top = {
-    "(" "define" <n:Id> <e:Expr> ")" => Top::DefineVar(<>),
-    "(" "define" "(" <n:Id> <p:Id*> ")"
-      <e:Expr>
-      ")" => Top::DefineProc(<>),
-    "(" ":" <n:Id> ":" <t1:Type*> "->" <t2:Type> ")" => Top::TypeDecl(n, Type::Arrow(t1, Box::new(t2))),
-    "(" ":" <n:Id> ":" <ty:Type> ")" => Top::TypeDecl(<>)
+    <l:@L> "(" "define" <n:Id> <e:Expr> ")" <r:@R> => Top::DefineVar(R(l, r), n, e),
+    <l:@L> "(" "define" "(" <n:Id> <p:Id*> ")"
+      <e:Expr> ")"
+      <r:@R> => Top::DefineProc(R(l, r), n, p, e),
+    <l:@L> "(" ":" <n:Id> ":" <t1:Type*> "->" <t2:Type> ")" <r:@R> => Top::TypeDecl(R(l, r), n, Type::Arrow(t1, Box::new(t2))),
+    <l:@L> "(" ":" <n:Id> ":" <ty:Type> ")" <r:@R> => Top::TypeDecl(R(l, r), n, ty)
 }
 
 pub Type : Type = {
@@ -27,8 +28,8 @@ pub Type : Type = {
 }
 
 pub Expr : Expr  = {
-    <n:Int> => Expr::Int(<>),
-    <n:Id> => Expr::Id(<>)
+    <l:@L> <n:Int> <r:@R> => Expr::Int(R(l, r), n),
+    <l:@L> <n:Id> <r:@R> => Expr::Id(R(l, r), n)
 }
 
 Int: i64 = <s:r"[0-9]+"> => i64::from_str(s).unwrap();

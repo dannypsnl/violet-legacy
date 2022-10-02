@@ -1,7 +1,26 @@
-type Identifier = String;
+use miette::{NamedSource, SourceSpan};
+
+pub type Identifier = String;
+
+#[derive(Debug, Clone)]
+pub enum Range {
+    R(usize, usize),
+}
+impl Range {
+    pub fn to_span(self: &Self) -> SourceSpan {
+        let Range::R(l, r) = self;
+        (0, r - l).into()
+    }
+
+    pub fn src(self: &Self, path: &str, source: &str) -> NamedSource {
+        let Range::R(l, r) = self;
+        NamedSource::new(path, source[l.clone()..r.clone()].to_string())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct File {
+    pub source: String,
     pub module: Mod,
     pub top_list: Vec<Top>,
 }
@@ -14,9 +33,9 @@ pub struct Mod {
 
 #[derive(Debug, Clone)]
 pub enum Top {
-    TypeDecl(Identifier, Type),
-    DefineProc(Identifier, Vec<Identifier>, Expr),
-    DefineVar(Identifier, Expr),
+    TypeDecl(Range, Identifier, Type),
+    DefineProc(Range, Identifier, Vec<Identifier>, Expr),
+    DefineVar(Range, Identifier, Expr),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -42,7 +61,7 @@ impl std::fmt::Display for Type {
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Int(i64),
-    Id(Identifier),
-    Lambda(Vec<String>, Box<Expr>),
+    Int(Range, i64),
+    Id(Range, Identifier),
+    Lambda(Range, Vec<String>, Box<Expr>),
 }

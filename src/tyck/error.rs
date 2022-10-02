@@ -1,26 +1,25 @@
 use crate::ast::*;
-use miette::Diagnostic;
+use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
 #[derive(Diagnostic, Error, Debug)]
-#[error(transparent)]
-#[diagnostic(transparent)]
 pub enum TyckError {
-    M(#[from] TyMismatch),
-    I(#[from] IdMissing),
-}
+    #[diagnostic(code(violet::type_check))]
+    #[error("type mismatched expected `{expected}`, got `{actual}`")]
+    TyMismatch {
+        #[source_code]
+        src: NamedSource,
+        expected: Type,
+        actual: Type,
+        #[label("at here")]
+        span: SourceSpan,
+    },
 
-#[derive(Diagnostic, Error, Debug)]
-#[error("type mismatched expected `{expected}`, got `{actual}`")]
-#[diagnostic(code(violet::type_check))]
-pub struct TyMismatch {
-    pub expected: Type,
-    pub actual: Type,
-}
-
-#[derive(Diagnostic, Error, Debug)]
-#[error("no identifier `{name}` can be found in the current context")]
-#[diagnostic(code(violet::identifier_missing))]
-pub struct IdMissing {
-    pub name: String,
+    #[diagnostic(code(violet::identifier_missing))]
+    #[error("no identifier `{name}` can be found in the current context")]
+    IdMissing {
+        name: String,
+        #[label("at here")]
+        span: SourceSpan,
+    },
 }
