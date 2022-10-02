@@ -1,6 +1,6 @@
 use crate::ast::*;
 use miette::Result;
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 pub mod error;
 use error::{IdMissing, TyMismatch, TyckError};
 
@@ -20,17 +20,30 @@ pub fn check_module(top_list: &Vec<Top>) -> Result<(), TyckError> {
     }
     for to_c in to_check_list {
         match to_c {
-            Top::DefineProc(name, p_list, body) => {}
-            Top::DefineVar(name, expr) => {
-                let actual_ty = infer(&ctx, expr)?;
+            Top::DefineProc(name, p_list, body) => {
                 let expect_ty = match ctx.get(name) {
                     Some(ty) => ty.clone(),
                     None => Err(IdMissing { name: name.clone() })?,
                 };
-                if actual_ty == expect_ty.clone() {
+                let actual_ty = infer(&ctx, &Expr::Lambda(p_list.clone(), Box::new(body.clone())))?;
+                if actual_ty == expect_ty {
                 } else {
                     return Err(TyMismatch {
-                        expected: expect_ty.clone(),
+                        expected: expect_ty,
+                        actual: actual_ty,
+                    })?;
+                }
+            }
+            Top::DefineVar(name, expr) => {
+                let expect_ty = match ctx.get(name) {
+                    Some(ty) => ty.clone(),
+                    None => Err(IdMissing { name: name.clone() })?,
+                };
+                let actual_ty = infer(&ctx, expr)?;
+                if actual_ty == expect_ty {
+                } else {
+                    return Err(TyMismatch {
+                        expected: expect_ty,
                         actual: actual_ty,
                     })?;
                 }
@@ -48,5 +61,17 @@ fn infer(ctx: &Context, expr: &Expr) -> Result<Type, TyckError> {
             None => Err(IdMissing { name: n.clone() })?,
         },
         Expr::Int(_) => Ok(Type::Base("i64".to_string())),
+        Expr::Lambda(p_list, body) => {
+            let mut lam_ctx = Context::new();
+            lam_ctx.extend(ctx.clone());
+            for p in p_list {
+                lam_ctx.insert(p.clone(), Type::Free());
+            }
+            let result_ty = infer(&lam_ctx, body)?;
+            Ok(Type::Arrow(
+                p_list.into_iter().map(|_| Type::Free()).collect(),
+                Box::new(result_ty.clone()),
+            ))
+        }
     }
 }

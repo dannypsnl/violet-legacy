@@ -18,7 +18,7 @@ pub Top : Top = {
     "(" "define" "(" <n:Id> <p:Id*> ")"
       <e:Expr>
       ")" => Top::DefineProc(<>),
-    "(" ":" <n:Id> ":" <t1:Type> "->" <t2:Type> ")" => Top::TypeDecl(n, Type::Arrow(Box::new(t1), Box::new(t2))),
+    "(" ":" <n:Id> ":" <t1:Type*> "->" <t2:Type> ")" => Top::TypeDecl(n, Type::Arrow(t1, Box::new(t2))),
     "(" ":" <n:Id> ":" <ty:Type> ")" => Top::TypeDecl(<>)
 }
 

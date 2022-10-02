@@ -22,13 +22,20 @@ pub enum Top {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Base(Identifier),
-    Arrow(Box<Type>, Box<Type>),
+    Arrow(Vec<Type>, Box<Type>),
+    Free(),
 }
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::Base(id) => write!(f, "{}", id),
-            Self::Arrow(a, b) => write!(f, "{} -> {}", a, b),
+            Self::Arrow(a_list, b) => {
+                for a in a_list {
+                    write!(f, "{} ", a);
+                }
+                write!(f, "-> {}", b)
+            }
+            Self::Free() => write!(f, "?"),
         }
     }
 }
@@ -37,4 +44,5 @@ impl std::fmt::Display for Type {
 pub enum Expr {
     Int(i64),
     Id(Identifier),
+    Lambda(Vec<String>, Box<Expr>),
 }
