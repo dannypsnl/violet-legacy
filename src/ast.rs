@@ -12,14 +12,18 @@ impl Range {
         (0, r - l).into()
     }
 
-    pub fn src(self: &Self, path: &str, source: &str) -> NamedSource {
+    pub fn src(self: &Self, mod_file: &File) -> NamedSource {
         let Range::R(l, r) = self;
-        NamedSource::new(path, source[l.clone()..r.clone()].to_string())
+        NamedSource::new(
+            mod_file.path.as_str(),
+            mod_file.source[l.clone()..r.clone()].to_string(),
+        )
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct File {
+    pub path: String,
     pub source: String,
     pub module: Mod,
     pub top_list: Vec<Top>,
@@ -42,7 +46,7 @@ pub enum Top {
 pub enum Type {
     Base(Identifier),
     Arrow(Vec<Type>, Box<Type>),
-    Free(),
+    Free(i64),
 }
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -54,7 +58,7 @@ impl std::fmt::Display for Type {
                 }
                 write!(f, "-> {}", b)
             }
-            Self::Free() => write!(f, "?"),
+            Self::Free(i) => write!(f, "?{}", i.to_owned()),
         }
     }
 }

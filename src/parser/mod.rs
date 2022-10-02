@@ -8,6 +8,7 @@ use std::fs;
 pub fn parse_module_path(path: &str) -> Result<crate::ast::File, PError> {
     let input = fs::read_to_string(path)?;
     let mut r = parse_module(path, input.as_str())?;
+    r.path = path.to_string();
     r.source = input;
     Ok(r)
 }

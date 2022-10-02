@@ -7,7 +7,7 @@ grammar;
 pub File : File = {
     <module:Mod>
     <top_list:Top*>
-    => File {source: String::new(), module, top_list}
+    => File {path: String::new(), source: String::new(), module, top_list}
 }
 
 pub Mod : Mod = {
