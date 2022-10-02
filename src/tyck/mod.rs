@@ -6,6 +6,17 @@ use error::{IdMissing, TyMismatch, TyckError};
 
 type Context = HashMap<String, Type>;
 
+fn unify(t1: Type, t2: Type) -> Result<(), TyckError> {
+    if t1 == t2 {
+    } else {
+        return Err(TyMismatch {
+            expected: t2,
+            actual: t1,
+        })?;
+    }
+    Ok(())
+}
+
 pub fn check_module(top_list: &Vec<Top>) -> Result<(), TyckError> {
     let mut ctx = Context::new();
     let mut to_check_list: Vec<&Top> = vec![];
@@ -26,13 +37,7 @@ pub fn check_module(top_list: &Vec<Top>) -> Result<(), TyckError> {
                     None => Err(IdMissing { name: name.clone() })?,
                 };
                 let actual_ty = infer(&ctx, &Expr::Lambda(p_list.clone(), Box::new(body.clone())))?;
-                if actual_ty == expect_ty {
-                } else {
-                    return Err(TyMismatch {
-                        expected: expect_ty,
-                        actual: actual_ty,
-                    })?;
-                }
+                unify(actual_ty, expect_ty)?
             }
             Top::DefineVar(name, expr) => {
                 let expect_ty = match ctx.get(name) {
@@ -40,13 +45,7 @@ pub fn check_module(top_list: &Vec<Top>) -> Result<(), TyckError> {
                     None => Err(IdMissing { name: name.clone() })?,
                 };
                 let actual_ty = infer(&ctx, expr)?;
-                if actual_ty == expect_ty {
-                } else {
-                    return Err(TyMismatch {
-                        expected: expect_ty,
-                        actual: actual_ty,
-                    })?;
-                }
+                unify(actual_ty, expect_ty)?
             }
             _ => unreachable!(),
         }
