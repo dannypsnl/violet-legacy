@@ -14,13 +14,16 @@ pub fn parse_file(path: &str) -> Result<crate::ast::File, PError> {
                 src: NamedSource::new(path, s[location..location + 1].to_string()),
                 bad_token: (0, 1).into(),
             })?,
-            UnrecognizedEOF { location, expected } => Err(ParseError {
+            UnrecognizedEOF { location, expected } => Err(PError::UnrecognizedEOF {
                 src: NamedSource::new(path, s[location - 1..location].to_string()),
-                bad_token: (0, 1).into(),
+                expected: normalize(expected),
+                span: (0, 1).into(),
             })?,
-            UnrecognizedToken { token, expected } => Err(ParseError {
+            UnrecognizedToken { token, expected } => Err(PError::UnrecognizedToken {
                 src: NamedSource::new(path, s[token.0..token.2].to_string()),
-                bad_token: (0, token.2 - token.0).into(),
+                expected: normalize(expected),
+                actual: token.1.to_string(),
+                span: (0, token.2 - token.0).into(),
             })?,
             ExtraToken { token } => Err(ParseError {
                 src: NamedSource::new(path, s[token.0..token.2].to_string()),
@@ -32,6 +35,19 @@ pub fn parse_file(path: &str) -> Result<crate::ast::File, PError> {
             })?,
         },
     }
+}
+
+fn normalize(expected: Vec<String>) -> Vec<String> {
+    expected
+        .into_iter()
+        .map(|s| {
+            s.strip_prefix("\"")
+                .unwrap()
+                .strip_suffix("\"")
+                .unwrap()
+                .to_string()
+        })
+        .collect::<Vec<String>>()
 }
 
 #[test]
