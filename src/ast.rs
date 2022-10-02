@@ -14,7 +14,7 @@ pub struct Mod {
 
 #[derive(Debug)]
 pub enum Top {
-    TypeDecl(Type),
+    TypeDecl(Identifier, Type),
     DefineProc(Identifier, Vec<Identifier>, Expr),
     DefineVar(Identifier, Expr),
 }

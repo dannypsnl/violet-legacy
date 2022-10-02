@@ -4,33 +4,31 @@ use crate::ast::*;
 grammar;
 
 pub File : File = {
-    <m:Mod>
-    <ts:Top*> => File {
-        module: m,
-        top_list: ts
-    }
+    <module:Mod>
+    <top_list:Top*>
+    => File {<>}
 }
 
 pub Mod : Mod = {
-    "(" "module" <n:Id> ")" => Mod { name: n, export_list: vec![] }
+    "(" "module" <name:Id> ")" => Mod {name: name, export_list: vec![]}
 }
 
 pub Top : Top = {
-    "(" "define" <n:Id> <e:Expr> ")" => Top::DefineVar(n, e),
+    "(" "define" <n:Id> <e:Expr> ")" => Top::DefineVar(<>),
     "(" "define" "(" <n:Id> <p:Id*> ")"
       <e:Expr>
-      ")" => Top::DefineProc(n, p, e),
-    "(" ":" <n:Id> ":" <t1:Type> "->" <t2:Type> ")" => Top::TypeDecl(Type::Arrow(Box::new(t1), Box::new(t2))),
-    "(" ":" <n:Id> ":" <ty:Type> ")" => Top::TypeDecl(ty)
+      ")" => Top::DefineProc(<>),
+    "(" ":" <n:Id> ":" <t1:Type> "->" <t2:Type> ")" => Top::TypeDecl(n, Type::Arrow(Box::new(t1), Box::new(t2))),
+    "(" ":" <n:Id> ":" <ty:Type> ")" => Top::TypeDecl(<>)
 }
 
 pub Type : Type = {
-    <n:Id> => Type::Base(n),
+    <n:Id> => Type::Base(<>),
 }
 
 pub Expr : Expr  = {
-    <n:Int> => Expr::Int(n),
-    <n:Id> => Expr::Id(n)
+    <n:Int> => Expr::Int(<>),
+    <n:Id> => Expr::Id(<>)
 }
 
 Int: i64 = <s:r"[0-9]+"> => i64::from_str(s).unwrap();
