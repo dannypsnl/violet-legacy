@@ -1,6 +1,9 @@
 use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
+pub static ERROR_UNRECOGNIZED_EOF: usize = 1000;
+pub static ERROR_UNRECOGNIZED_TOKEN: usize = 1001;
+
 #[derive(Diagnostic, Error, Debug)]
 
 pub enum PError {
@@ -11,7 +14,10 @@ pub enum PError {
     #[diagnostic(transparent)]
     P(#[from] ParseError),
 
-    #[diagnostic(code(ERROR_UNRECOGNIZED_EOF))]
+    #[diagnostic(
+        code(ERROR_UNRECOGNIZED_EOF),
+        url("https://violet-lang.org/errors/{}", ERROR_UNRECOGNIZED_EOF)
+    )]
     #[error("unexpected EOF, expected {expected:?}")]
     UnrecognizedEOF {
         #[source_code]
@@ -21,7 +27,10 @@ pub enum PError {
         span: SourceSpan,
     },
 
-    #[diagnostic(code(ERROR_UNRECOGNIZED_TOKEN))]
+    #[diagnostic(
+        code(ERROR_UNRECOGNIZED_TOKEN),
+        url("https://violet-lang.org/errors/{}", ERROR_UNRECOGNIZED_TOKEN)
+    )]
     #[error("unexpected token, expected {expected:?}, but got {actual}")]
     UnrecognizedToken {
         #[source_code]
