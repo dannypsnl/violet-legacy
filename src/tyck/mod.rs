@@ -37,13 +37,16 @@ pub fn check_module(path: &str, source: &str, top_list: &Vec<Top>) -> Result<(),
                 let expect_ty = match ctx.get(name) {
                     Some(ty) => ty.clone(),
                     None => Err(IdMissing {
+                        src: range.src(path, source),
                         name: name.clone(),
                         span: range.to_span(),
                     })?,
                 };
                 let actual_ty = infer(
+                    path,
+                    source,
                     &ctx,
-                    &Expr::Lambda(Range::R(0, 0), p_list.clone(), Box::new(body.clone())),
+                    &Expr::Lambda(range.clone(), p_list.clone(), Box::new(body.clone())),
                 )?;
                 unify(path, source, range, actual_ty, expect_ty)?
             }
@@ -51,11 +54,12 @@ pub fn check_module(path: &str, source: &str, top_list: &Vec<Top>) -> Result<(),
                 let expect_ty = match ctx.get(name) {
                     Some(ty) => ty.clone(),
                     None => Err(IdMissing {
+                        src: range.src(path, source),
                         name: name.clone(),
                         span: range.to_span(),
                     })?,
                 };
-                let actual_ty = infer(&ctx, expr)?;
+                let actual_ty = infer(path, source, &ctx, expr)?;
                 unify(path, source, range, actual_ty, expect_ty)?
             }
             _ => unreachable!(),
@@ -64,11 +68,12 @@ pub fn check_module(path: &str, source: &str, top_list: &Vec<Top>) -> Result<(),
     Ok(())
 }
 
-fn infer(ctx: &Context, expr: &Expr) -> Result<Type, TyckError> {
+fn infer(path: &str, source: &str, ctx: &Context, expr: &Expr) -> Result<Type, TyckError> {
     match expr {
         Expr::Id(range, n) => match ctx.get(n) {
             Some(ty) => Ok(ty.clone()),
             None => Err(IdMissing {
+                src: range.src(path, source),
                 name: n.clone(),
                 span: range.to_span(),
             })?,
@@ -80,7 +85,7 @@ fn infer(ctx: &Context, expr: &Expr) -> Result<Type, TyckError> {
             for p in p_list {
                 lam_ctx.insert(p.clone(), Type::Free());
             }
-            let result_ty = infer(&lam_ctx, body)?;
+            let result_ty = infer(path, source, &lam_ctx, body)?;
             Ok(Type::Arrow(
                 p_list.into_iter().map(|_| Type::Free()).collect(),
                 Box::new(result_ty.clone()),

@@ -18,6 +18,8 @@ pub enum TyckError {
     #[diagnostic(code(violet::identifier_missing))]
     #[error("no identifier `{name}` can be found in the current context")]
     IdMissing {
+        #[source_code]
+        src: NamedSource,
         name: String,
         #[label("at here")]
         span: SourceSpan,
