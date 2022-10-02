@@ -1,18 +1,14 @@
-use lalrpop_util::ParseError::*;
-use miette::{Context, IntoDiagnostic, NamedSource, Result};
-use std::fs;
-
 pub mod error;
 pub mod violet;
 use error::{PError, ParseError};
+use lalrpop_util::ParseError::*;
+use miette::{NamedSource, Result};
+use std::fs;
 
-pub fn parse_file(path: &str) -> Result<(), PError> {
+pub fn parse_file(path: &str) -> Result<crate::ast::File, PError> {
     let s = fs::read_to_string(path)?;
     match violet::FileParser::new().parse(s.as_str()) {
-        Ok(_) => {
-            println!("parse ok");
-            Ok(())
-        }
+        Ok(result) => Ok(result),
         Err(e) => match e {
             InvalidToken { location } => Err(ParseError {
                 src: NamedSource::new(path, s[location..location + 1].to_string()),
