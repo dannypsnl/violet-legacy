@@ -31,7 +31,7 @@ impl std::fmt::Display for Type {
             Self::Base(id) => write!(f, "{}", id),
             Self::Arrow(a_list, b) => {
                 for a in a_list {
-                    write!(f, "{} ", a);
+                    write!(f, "{} ", a)?;
                 }
                 write!(f, "-> {}", b)
             }
