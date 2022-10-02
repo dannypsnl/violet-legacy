@@ -1,9 +1,9 @@
+pub mod error;
 use crate::ast::*;
+use error::{TyckError, TyckError::*};
 use itertools::multizip;
 use miette::Result;
 use std::collections::HashMap;
-pub mod error;
-use error::{TyckError, TyckError::*};
 
 type Context = HashMap<String, Type>;
 
