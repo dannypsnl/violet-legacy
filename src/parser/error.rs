@@ -2,12 +2,11 @@ use miette::{Diagnostic, NamedSource, SourceSpan};
 use thiserror::Error;
 
 #[derive(Diagnostic, Error, Debug)]
+#[error(transparent)]
 
 pub enum PError {
-    #[error(transparent)]
     IO(#[from] std::io::Error),
 
-    #[error(transparent)]
     #[diagnostic(transparent)]
     P(#[from] ParseError),
 }
