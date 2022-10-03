@@ -18,23 +18,23 @@ pub fn parse_module(path: &str, input: &str) -> Result<crate::ast::File, PError>
         Ok(result) => Ok(result),
         Err(e) => match e {
             InvalidToken { location } => Err(ParseError {
-                src: NamedSource::new(path, input[location..location + 1].to_string()),
-                bad_token: (0, 1).into(),
+                src: NamedSource::new(path, input.to_string()),
+                bad_token: (location, 1).into(),
             })?,
             UnrecognizedEOF { location, expected } => Err(PError::UnrecognizedEOF {
-                src: NamedSource::new(path, input[location - 1..location].to_string()),
+                src: NamedSource::new(path, input.to_string()),
                 expected: normalize(expected),
-                span: (0, 1).into(),
+                span: (location - 1, 1).into(),
             })?,
             UnrecognizedToken { token, expected } => Err(PError::UnrecognizedToken {
-                src: NamedSource::new(path, input[token.0..token.2].to_string()),
+                src: NamedSource::new(path, input.to_string()),
                 expected: normalize(expected),
                 actual: token.1.to_string(),
-                span: (0, token.2 - token.0).into(),
+                span: (token.0, token.2 - token.0).into(),
             })?,
             ExtraToken { token } => Err(ParseError {
-                src: NamedSource::new(path, input[token.0..token.2].to_string()),
-                bad_token: (0, token.2 - token.0).into(),
+                src: NamedSource::new(path, input.to_string()),
+                bad_token: (token.0, token.2 - token.0).into(),
             })?,
             User { error } => Err(ParseError {
                 src: NamedSource::new(path, input[0..1].to_string()),
