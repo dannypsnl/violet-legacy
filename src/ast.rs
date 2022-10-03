@@ -9,24 +9,22 @@ pub enum Range {
 impl Range {
     pub fn to_span(self: &Self) -> SourceSpan {
         let Range::R(l, r) = self;
-        (0, r - l).into()
-    }
-
-    pub fn src(self: &Self, mod_file: &File) -> NamedSource {
-        let Range::R(l, r) = self;
-        NamedSource::new(
-            mod_file.path.as_str(),
-            mod_file.source[l.clone()..r.clone()].to_string(),
-        )
+        (l.clone(), r - l).into()
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct File {
+pub struct ModFile {
     pub path: String,
-    pub source: String,
+    pub source: &'static str,
     pub module: Mod,
     pub top_list: Vec<Top>,
+}
+
+impl ModFile {
+    pub fn as_src(self: &Self) -> NamedSource {
+        NamedSource::new(self.path.as_str(), self.source)
+    }
 }
 
 #[derive(Debug, Clone)]

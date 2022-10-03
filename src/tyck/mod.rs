@@ -7,11 +7,11 @@ use std::collections::HashMap;
 
 type Context = HashMap<String, Type>;
 
-fn unify(mod_file: &File, range: &Range, t1: Type, t2: Type) -> Result<(), TyckError> {
+fn unify(mod_file: &ModFile, range: &Range, t1: Type, t2: Type) -> Result<(), TyckError> {
     if t1 == t2 {
     } else {
         return Err(TyMismatch {
-            src: range.src(mod_file),
+            src: mod_file.as_src(),
             expected: t2,
             actual: t1,
             span: range.to_span(),
@@ -20,7 +20,7 @@ fn unify(mod_file: &File, range: &Range, t1: Type, t2: Type) -> Result<(), TyckE
     Ok(())
 }
 
-pub fn check_module(mod_file: &File) -> Result<(), TyckError> {
+pub fn check_module(mod_file: &ModFile) -> Result<(), TyckError> {
     let mut ctx = Context::new();
     let mut to_check_list: Vec<&Top> = vec![];
     for top in &mod_file.top_list {
@@ -38,7 +38,7 @@ pub fn check_module(mod_file: &File) -> Result<(), TyckError> {
                 let expect_ty = match ctx.get(name) {
                     Some(ty) => ty.clone(),
                     None => Err(IdMissing {
-                        src: range.src(mod_file),
+                        src: mod_file.as_src(),
                         name: name.clone(),
                         span: range.to_span(),
                     })?,
@@ -54,7 +54,7 @@ pub fn check_module(mod_file: &File) -> Result<(), TyckError> {
                 let expect_ty = match ctx.get(name) {
                     Some(ty) => ty.clone(),
                     None => Err(IdMissing {
-                        src: range.src(mod_file),
+                        src: mod_file.as_src(),
                         name: name.clone(),
                         span: range.to_span(),
                     })?,
@@ -68,12 +68,12 @@ pub fn check_module(mod_file: &File) -> Result<(), TyckError> {
     Ok(())
 }
 
-fn infer(mod_file: &File, ctx: &Context, expr: &Expr) -> Result<Type, TyckError> {
+fn infer(mod_file: &ModFile, ctx: &Context, expr: &Expr) -> Result<Type, TyckError> {
     match expr {
         Expr::Id(range, n) => match ctx.get(n) {
             Some(ty) => Ok(ty.clone()),
             None => Err(IdMissing {
-                src: range.src(mod_file),
+                src: mod_file.as_src(),
                 name: n.clone(),
                 span: range.to_span(),
             })?,

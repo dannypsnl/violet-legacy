@@ -4,10 +4,10 @@ use crate::ast::Range::R;
 
 grammar;
 
-pub File : File = {
+pub File : ModFile = {
     <module:Mod>
     <top_list:Top*>
-    => File {path: String::new(), source: String::new(), module, top_list}
+    => ModFile {path: String::new(), source: "", module, top_list}
 }
 
 pub Mod : Mod = {

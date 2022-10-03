@@ -5,40 +5,40 @@ use lalrpop_util::ParseError::*;
 use miette::{NamedSource, Result};
 use std::fs;
 
-pub fn parse_module_path(path: &str) -> Result<crate::ast::File, PError> {
-    let input = fs::read_to_string(path)?;
-    let mut r = parse_module(path, input.as_str())?;
-    r.path = path.to_string();
-    r.source = input;
-    Ok(r)
+pub fn parse_module_path(path: &str) -> Result<crate::ast::ModFile, PError> {
+    let input: &'static str = Box::leak(fs::read_to_string(path)?.into_boxed_str());
+    let mut mod_file = parse_module(path, input)?;
+    mod_file.path = path.to_string();
+    mod_file.source = input;
+    Ok(mod_file)
 }
 
-pub fn parse_module(path: &str, input: &str) -> Result<crate::ast::File, PError> {
+pub fn parse_module(path: &str, input: &'static str) -> Result<crate::ast::ModFile, PError> {
     match violet::FileParser::new().parse(input) {
         Ok(result) => Ok(result),
         Err(e) => match e {
             InvalidToken { location } => Err(ParseError {
-                src: NamedSource::new(path, input.to_string()),
+                src: NamedSource::new(path, input),
                 bad_token: (location, 1).into(),
             })?,
             UnrecognizedEOF { location, expected } => Err(PError::UnrecognizedEOF {
-                src: NamedSource::new(path, input.to_string()),
+                src: NamedSource::new(path, input),
                 expected: normalize(expected),
                 span: (location - 1, 1).into(),
             })?,
             UnrecognizedToken { token, expected } => Err(PError::UnrecognizedToken {
-                src: NamedSource::new(path, input.to_string()),
+                src: NamedSource::new(path, input),
                 expected: normalize(expected),
                 actual: token.1.to_string(),
                 span: (token.0, token.2 - token.0).into(),
             })?,
             ExtraToken { token } => Err(ParseError {
-                src: NamedSource::new(path, input.to_string()),
+                src: NamedSource::new(path, input),
                 bad_token: (token.0, token.2 - token.0).into(),
             })?,
             User { error } => Err(ParseError {
-                src: NamedSource::new(path, input[0..1].to_string()),
-                bad_token: (0, 1).into(),
+                src: NamedSource::new(path, input),
+                bad_token: (0, input.len() - 1).into(),
             })?,
         },
     }

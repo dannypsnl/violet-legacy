@@ -9,6 +9,8 @@ pub static ERROR_UNRECOGNIZED_TOKEN: usize = 1001;
 pub enum PError {
     #[error(transparent)]
     IO(#[from] std::io::Error),
+    #[error(transparent)]
+    Utf8(#[from] std::str::Utf8Error),
 
     #[error(transparent)]
     #[diagnostic(transparent)]
