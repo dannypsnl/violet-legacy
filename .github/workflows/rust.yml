@@ -19,18 +19,17 @@ jobs:
       id: cache-llvm
       uses: actions/cache@v2
       with:
-        path: |
-          ./llvm
+        path: ${{ runner.temp }}/llvm
         key: llvm-14
     - uses: KyleMayes/install-llvm-action@v1
       with:
         version: "14.0"
+        directory: ${{ runner.temp }}/llvm
         cached: ${{ steps.cache-llvm.outputs.cache-hit }}
     - uses: actions/checkout@v3
     - name: Build
       run: |
-        export LLVM_SYS_140_PREFIX=$LLVM_PATH
-        echo ${LLVM_SYS_140_PREFIX}
+        export LLVM_SYS_140_PREFIX=${{ runner.temp }}/llvm
         cargo build --verbose
     - name: Run tests
       run: |
