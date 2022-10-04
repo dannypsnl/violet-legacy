@@ -15,8 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Cache LLVM and Clang
+      id: cache-llvm
+      uses: actions/cache@v2
+      with:
+        path: |
+          ./llvm
+      key: llvm-14
+    - uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: "14.0"
+        cached: ${{ steps.cache-llvm.outputs.cache-hit }}
     - uses: actions/checkout@v3
     - name: Build
-      run: cargo build --verbose
+      run: |
+        export LLVM_SYS_140_PREFIX=$(./llvm/bin/llvm-config --prefix)
+        cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: |
+        cargo test --verbose
