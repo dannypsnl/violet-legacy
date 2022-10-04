@@ -7,17 +7,32 @@ use std::collections::HashMap;
 
 type Context = HashMap<String, Type>;
 
-fn unify(mod_file: &ModFile, range: &Range, t1: Type, t2: Type) -> Result<(), TyckError> {
-    if t1 == t2 {
-    } else {
-        return Err(TyMismatch {
-            src: mod_file.as_src(),
-            expected: t2,
-            actual: t1,
-            span: range.to_span(),
-        })?;
+fn unify(mod_file: &ModFile, range: &Range, t1: &Type, t2: &Type) -> Result<(), TyckError> {
+    match (&t1, &t2) {
+        (Type::Free(c), t2) => {
+            // record unification
+            Ok(())
+        }
+        (_, Type::Free(_)) => unify(mod_file, range, t2, t1),
+        (Type::Arrow(t11, t12), Type::Arrow(t21, t22)) => {
+            for (t1, t2) in multizip((t11, t21)) {
+                unify(mod_file, range, t1, t2)?;
+            }
+            unify(mod_file, range, t12, t22)
+        }
+        (&t1, &t2) => {
+            if t1 != t2 {
+                Err(TyMismatch {
+                    src: mod_file.as_src(),
+                    expected: t2.clone(),
+                    actual: t1.clone(),
+                    span: range.to_span(),
+                })?
+            } else {
+                Ok(())
+            }
+        }
     }
-    Ok(())
 }
 
 pub fn check_module(mod_file: &ModFile) -> Result<(), TyckError> {
@@ -48,7 +63,7 @@ pub fn check_module(mod_file: &ModFile) -> Result<(), TyckError> {
                     &ctx,
                     &Expr::Lambda(range.clone(), p_list.clone(), Box::new(body.clone())),
                 )?;
-                unify(mod_file, range, actual_ty, expect_ty)?
+                unify(mod_file, range, &actual_ty, &expect_ty)?
             }
             Top::DefineVar(range, name, expr) => {
                 let expect_ty = match ctx.get(name) {
@@ -60,7 +75,7 @@ pub fn check_module(mod_file: &ModFile) -> Result<(), TyckError> {
                     })?,
                 };
                 let actual_ty = infer(mod_file, &ctx, expr)?;
-                unify(mod_file, range, actual_ty, expect_ty)?
+                unify(mod_file, range, &actual_ty, &expect_ty)?
             }
             _ => unreachable!(),
         }
