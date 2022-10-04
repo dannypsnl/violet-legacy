@@ -27,11 +27,9 @@ jobs:
         directory: ${{ runner.temp }}/llvm
         cached: ${{ steps.cache-llvm.outputs.cache-hit }}
     - uses: actions/checkout@v3
-    - name: Build
       env:
         LLVM_SYS_140_PREFIX: ${{ runner.temp }}/llvm
+    - name: Build
       run: cargo build --verbose
     - name: Run tests
-      env:
-        LLVM_SYS_140_PREFIX: ${{ runner.temp }}/llvm
       run: cargo test --verbose
