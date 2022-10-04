@@ -30,6 +30,7 @@ jobs:
     - name: Build
       run: |
         export LLVM_SYS_140_PREFIX=$LLVM_PATH
+        echo ${LLVM_SYS_140_PREFIX}
         cargo build --verbose
     - name: Run tests
       run: |
