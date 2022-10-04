@@ -28,9 +28,10 @@ jobs:
         cached: ${{ steps.cache-llvm.outputs.cache-hit }}
     - uses: actions/checkout@v3
     - name: Build
-      run: |
-        export LLVM_SYS_140_PREFIX=${{ runner.temp }}/llvm
-        cargo build --verbose
+      env:
+        LLVM_SYS_140_PREFIX: ${{ runner.temp }}/llvm
+      run: cargo build --verbose
     - name: Run tests
-      run: |
-        cargo test --verbose
+      env:
+        LLVM_SYS_140_PREFIX: ${{ runner.temp }}/llvm
+      run: cargo test --verbose
