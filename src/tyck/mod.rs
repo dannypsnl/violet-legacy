@@ -106,3 +106,14 @@ fn infer(mod_file: &ModFile, ctx: &Context, expr: &Expr) -> Result<Type, TyckErr
         }
     }
 }
+
+#[test]
+fn base_type() {
+    unify(
+        &ModFile::new(),
+        &Range::R(0, 0),
+        &Type::Base("A".to_string()),
+        &Type::Base("A".to_string()),
+    )
+    .unwrap()
+}

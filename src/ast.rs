@@ -22,6 +22,15 @@ pub struct ModFile {
 }
 
 impl ModFile {
+    pub fn new() -> ModFile {
+        ModFile {
+            path: "".to_string(),
+            source: "",
+            module: Mod::new(),
+            top_list: vec![],
+        }
+    }
+
     pub fn as_src(self: &Self) -> NamedSource {
         NamedSource::new(self.path.as_str(), self.source)
     }
@@ -31,6 +40,15 @@ impl ModFile {
 pub struct Mod {
     pub name: Identifier,
     pub export_list: Vec<Identifier>,
+}
+
+impl Mod {
+    pub fn new() -> Mod {
+        Mod {
+            name: "".to_string(),
+            export_list: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
