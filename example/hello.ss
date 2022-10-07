@@ -1,7 +1,7 @@
 (module hello)
 
-(: v : i64)
+(: v : int64)
 (define v 1)
 
-(: hello : i64 -> i64)
+(: hello : int64 -> int64)
 (define (hello a) a)
