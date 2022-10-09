@@ -12,7 +12,7 @@ A scheme-like language focuses on
 You will need to install LLVM, via any package manager would be fine, here is an example for macOS.
 
 ```shell
-brew install llvm@14
+brew install llvm
 ```
 
 Git hooks
