@@ -1,7 +1,8 @@
 #lang racket
 (require racket/runtime-path
          reporter)
-(require "parse.rkt")
+(require "parse.rkt"
+         "tyck.rkt")
 
 (define-runtime-path test-example "example/hello.ss")
 
@@ -19,4 +20,5 @@
   (port-count-lines! in)
   (define sexp-list (collect in))
   (with-handlers ([Report? displayln])
-    (parse-mod-file sexp-list)))
+    ((compose type-check-module
+              parse-mod-file) sexp-list)))
