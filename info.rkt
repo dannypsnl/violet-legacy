@@ -1,6 +1,7 @@
 #lang info
 (define collection "violet")
 (define deps '("base"
+               "syntax-extension"
                "reporter"
                "racket-llvm"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib"))

@@ -30,9 +30,7 @@
       (syntax-parse top
         #:datum-literals (: define)
         [(: name:id : ty:type)
-         (hash-set! name=>type
-                    (syntax->datum #'name)
-                    (syntax->datum #'ty))
+         (hash-set! name=>type (syntax->datum #'name) #'ty)
          #f]
         [(define name:id exp) top]
         [(define (name:id p*:id ...) body ...+) top]
@@ -42,4 +40,4 @@
                       #:target top
                       #:labels (list (label top "here" #:color 'red))
                       #:hint "help: read the formal description of the top level syntax"))])))
-  (stage0-mod name name=>type to-check-list))
+  (stage0-mod name name=>type (filter-map identity to-check-list)))
