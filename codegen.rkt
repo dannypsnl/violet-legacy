@@ -14,6 +14,10 @@
      (llvm-function-type
       (->llvmty #'t)
       (stx-map ->llvmty #'(t* ...)))]
+    ; polymorphic type get rejected by frontend for now
+    ; once it get enabled, functions can be separated to
+    ; 1. we can compile now(mono type)
+    ; 2. we have to wait invoking to the function(poly type)
     [otherwise (raise (report #:error-code "E0004"
                               #:message "not a mono-type"
                               #:target #'otherwise
