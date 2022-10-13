@@ -2,6 +2,7 @@
 (provide compile-mod)
 (require syntax/parse
          syntax/stx
+         syntax/identifier
          reporter
          racket-llvm)
 (require "ast.rkt")
@@ -32,20 +33,27 @@
   (for ([to-compile to-compile-list])
     (match to-compile
       [(def-var name ty exp)
-       (llvm-add-global mod
-                        (->llvmty ty)
-                        name)
+       (llvm-add-global mod (->llvmty ty) name)
        ; TODO: compile
        ]
       [(def-func name p-list ty body-list)
-       (define f (llvm-add-function mod
-                                    name
-                                    (->llvmty ty)))
+       (define f (llvm-add-function mod name (->llvmty ty)))
+       (define local-ctx (make-hash))
+       (for ([p p-list]
+             [i (length p-list)])
+         (hash-set! local-ctx p (llvm-get-param f i)))
+
        (define entry (llvm-append-basic-block f))
        ; shift builder insertion point to the end of the basic block
        (llvm-builder-position-at-end builder entry)
-       ; TODO: compile
-       ]))
 
-  (display (llvm-module->string mod))
-  )
+       (define return-value
+         (last (for/list ([body body-list])
+                 (compile-expr local-ctx body))))
+       (llvm-build-ret builder return-value)]))
+
+  (display (llvm-module->string mod)))
+
+(define (compile-expr local-ctx expr)
+  (syntax-parse expr
+    [x:id (hash-ref local-ctx (identifier->string #'x))]))

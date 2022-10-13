@@ -17,10 +17,12 @@
   (reverse sexp-list))
 
 (module+ main
+  ; TODO: multiple modules, parallel compilation
   (define in (open-input-file test-example))
   (port-count-lines! in)
   (define sexp-list (collect in))
   (with-handlers ([Report? displayln])
     ((compose compile-mod
               type-check-module
-              parse-mod-file) sexp-list)))
+              parse-mod-file)
+     sexp-list)))
