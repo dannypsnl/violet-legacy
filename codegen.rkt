@@ -33,10 +33,11 @@
   (for ([to-compile to-compile-list])
     (match to-compile
       [(def-var name ty exp)
-       (llvm-add-global mod (->llvmty ty) name)
-       ; TODO: compile
-       ]
+       ; TODO: mangling
+       (define g (llvm-add-global mod (->llvmty ty) name))
+       (llvm-set-initializer g (compile-expr (make-hash) exp))]
       [(def-func name p-list ty body-list)
+       ; TODO: mangling
        (define f (llvm-add-function mod name (->llvmty ty)))
        (define local-ctx (make-hash))
        (for ([p p-list]
@@ -56,4 +57,5 @@
 
 (define (compile-expr local-ctx expr)
   (syntax-parse expr
+    [n:integer (llvm-const-int (llvm-int64-type) (syntax->datum #'n) #t)]
     [x:id (hash-ref local-ctx (identifier->string #'x))]))
