@@ -1,5 +1,5 @@
 #lang racket
-(provide compile-mod)
+(provide codegen-mod)
 (require syntax/parse
          syntax/stx
          syntax/identifier
@@ -7,24 +7,7 @@
          racket-llvm)
 (require "ast.rkt")
 
-(define (->llvmty ty)
-  (syntax-parse ty
-    #:datum-literals (int64)
-    [int64 (llvm-int64-type)]
-    [(t* ... -> t)
-     (llvm-function-type
-      (->llvmty #'t)
-      (stx-map ->llvmty #'(t* ...)))]
-    ; polymorphic type get rejected by frontend for now
-    ; once it get enabled, functions can be separated to
-    ; 1. we can compile now(mono type)
-    ; 2. we have to wait invoking to the function(poly type)
-    [otherwise (raise (report #:error-code "E0004"
-                              #:message "not a mono-type"
-                              #:target #'otherwise
-                              #:labels (list (label #'otherwise "here" #:color 'red))))]))
-
-(define (compile-mod s1mod)
+(define (codegen-mod s1mod)
   (match-define (stage1-mod name to-compile-list) s1mod)
   (define mod (llvm-module name))
   (define ctx (llvm-get-module-context mod))
@@ -53,7 +36,24 @@
                  (compile-expr local-ctx body))))
        (llvm-build-ret builder return-value)]))
 
-  (display (llvm-module->string mod)))
+  mod)
+
+(define (->llvmty ty)
+  (syntax-parse ty
+    #:datum-literals (int64)
+    [int64 (llvm-int64-type)]
+    [(t* ... -> t)
+     (llvm-function-type
+      (->llvmty #'t)
+      (stx-map ->llvmty #'(t* ...)))]
+    ; polymorphic type get rejected by frontend for now
+    ; once it get enabled, functions can be separated to
+    ; 1. we can compile now(mono type)
+    ; 2. we have to wait invoking to the function(poly type)
+    [otherwise (raise (report #:error-code "E0004"
+                              #:message "not a mono-type"
+                              #:target #'otherwise
+                              #:labels (list (label #'otherwise "here" #:color 'red))))]))
 
 (define (compile-expr local-ctx expr)
   (syntax-parse expr
