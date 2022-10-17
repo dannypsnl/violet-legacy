@@ -6,14 +6,14 @@
 
 (struct stage0-mod
   (name ; (module name)
-   export-list ; (export id ...)
+   export-identifier-list ; (export id ...)
    name=>type ; internal: map from name to type
    to-check-list)
   #:transparent)
 
 (struct stage1-mod
   (name ; (module name)
-   export-list ; (export id ...)
+   export-identifier-list ; (export id ...)
    to-compile-list)
   #:transparent)
 

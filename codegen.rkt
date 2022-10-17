@@ -16,8 +16,8 @@
       (symbol->string (gensym name))))
 
 (define (codegen-mod s1mod)
-  (match-define (stage1-mod mod-name export-list to-compile-list) s1mod)
-  (define export-set (map identifier->string export-list))
+  (match-define (stage1-mod mod-name export-identifier-list to-compile-list) s1mod)
+  (define export-set (map identifier->string export-identifier-list))
 
   (define mod (llvm-module mod-name))
   (define ctx (llvm-get-module-context mod))

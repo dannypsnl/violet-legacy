@@ -7,10 +7,10 @@
 (require "ast.rkt")
 
 (define (type-check-module s0mod)
-  (match-define (stage0-mod name export-list name=>type to-check-list) s0mod)
+  (match-define (stage0-mod name export-identifier-list name=>type to-check-list) s0mod)
   (stage1-mod
    name
-   export-list
+   export-identifier-list
    (for/list ([top to-check-list])
      (syntax-parse top
        #:datum-literals (define)
