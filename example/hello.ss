@@ -1,4 +1,5 @@
-(module hello)
+(module hello
+  (export hello))
 
 (: v : int64)
 (define v 1)

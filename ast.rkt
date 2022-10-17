@@ -5,13 +5,15 @@
          (struct-out def-func))
 
 (struct stage0-mod
-  (name
-   name=>type
+  (name ; (module name)
+   export-list ; (export id ...)
+   name=>type ; internal: map from name to type
    to-check-list)
   #:transparent)
 
 (struct stage1-mod
-  (name
+  (name ; (module name)
+   export-list ; (export id ...)
    to-compile-list)
   #:transparent)
 

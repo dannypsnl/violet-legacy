@@ -13,10 +13,14 @@
 (define (parse-mod-file sexp-list)
   (match-define (cons mod top-list) sexp-list)
   (define name #f)
+  (define export-list '())
   (syntax-parse mod
-    #:datum-literals (module)
-    [(module n:id)
-     (set! name (symbol->string (syntax->datum #'n)))]
+    #:datum-literals (module export)
+    [(module n:id
+       (~optional (export export-ids:id ...)))
+     (set! name ((compose symbol->string syntax->datum) #'n))
+     (when (attribute export-ids)
+       (set! export-list (syntax->list #'(export-ids ...))))]
     [else (raise (report
                   #:error-code "E0001"
                   #:message "invalid module syntax"
@@ -40,4 +44,4 @@
                       #:target top
                       #:labels (list (label top "here" #:color 'red))
                       #:hint "help: read the formal description of the top level syntax"))])))
-  (stage0-mod name name=>type (filter-map identity to-check-list)))
+  (stage0-mod name export-list name=>type (filter-map identity to-check-list)))

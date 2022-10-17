@@ -7,9 +7,19 @@
          racket-llvm)
 (require "ast.rkt")
 
+(define (mangle-name mod-name name export-set)
+  (if (set-member? export-set name)
+      ; to export function needs a stable name
+      (format "~a_~a" mod-name name)
+      ; or it should not be stable
+      ; TODO: record the name for reference to this new name
+      (symbol->string (gensym name))))
+
 (define (codegen-mod s1mod)
-  (match-define (stage1-mod name to-compile-list) s1mod)
-  (define mod (llvm-module name))
+  (match-define (stage1-mod mod-name export-list to-compile-list) s1mod)
+  (define export-set (map identifier->string export-list))
+
+  (define mod (llvm-module mod-name))
   (define ctx (llvm-get-module-context mod))
   (define builder (llvm-builder-create))
 
@@ -17,11 +27,15 @@
     (match to-compile
       [(def-var name ty exp)
        ; TODO: mangling
-       (define g (llvm-add-global mod (->llvmty ty) name))
+       (define g (llvm-add-global mod
+                                  (->llvmty ty)
+                                  (mangle-name mod-name name export-set)))
        (llvm-set-initializer g (compile-expr (make-hash) exp))]
       [(def-func name p-list ty body-list)
        ; TODO: mangling
-       (define f (llvm-add-function mod name (->llvmty ty)))
+       (define f (llvm-add-function mod
+                                    (mangle-name mod-name name export-set)
+                                    (->llvmty ty)))
        (define local-ctx (make-hash))
        (for ([p p-list]
              [i (length p-list)])
