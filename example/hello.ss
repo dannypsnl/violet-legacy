@@ -1,5 +1,6 @@
 (module hello
-  (export hello))
+  (export hello
+          world))
 
 (: v : int64)
 (define v 1)
