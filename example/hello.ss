@@ -6,3 +6,7 @@
 
 (: hello : (int64 -> int64))
 (define (hello a) a)
+
+(: world : (int64 -> int64))
+(define (world a)
+  (+ a v))
