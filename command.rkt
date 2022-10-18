@@ -1,7 +1,8 @@
 #lang racket
 (require racket/cmdline)
+(require "build.rkt")
 
-(define violet
+(define command
   (command-line
     #:program "violet"
     #:args (subcommand . rest)
@@ -13,4 +14,6 @@
         (cons subcommand dir-path)
       )])))
 
-(println violet)
+(match command
+[(cons "build" dir-path)
+  (build dir-path)])
