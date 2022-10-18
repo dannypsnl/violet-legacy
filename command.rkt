@@ -1,6 +1,7 @@
 #lang racket
 (require racket/cmdline)
-(require "build.rkt")
+(require "build.rkt"
+         "compile.rkt")
 
 (define command
   (command-line
@@ -23,4 +24,4 @@
 [(cons "build" dir-path)
   (build dir-path)]
 [(cons "compile" file-path)
-  (println file-path)])
+  (compile file-path)])
