@@ -11,9 +11,16 @@
       (command-line
         #:argv rest
         #:args (dir-path)
-        (cons subcommand dir-path)
-      )])))
+        (cons "build" dir-path)
+      )]
+    ["compile"
+      (command-line
+        #:argv rest
+        #:args (file-path)
+        (cons "compile" file-path))])))
 
 (match command
 [(cons "build" dir-path)
-  (build dir-path)])
+  (build dir-path)]
+[(cons "compile" file-path)
+  (println file-path)])
