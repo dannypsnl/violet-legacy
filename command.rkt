@@ -1,12 +1,13 @@
 #lang racket
-(provide run-command)
+(provide parse-command
+         handle-command)
 
 (require racket/cmdline)
 (require "build.rkt"
          "compile.rkt")
 
-(define (run-command)
-  (define command
+(define (parse-command)
+  (define usecase
     (command-line
       #:program "violet"
       #:args (subcommand . rest)
@@ -22,7 +23,10 @@
           #:argv rest
           #:args (file-path)
           (cons "compile" file-path))])))
-  (match command
+    usecase)
+
+(define (handle-command usecase)
+  (match usecase
   [(cons "build" dir-path)
     (build dir-path)]
   [(cons "compile" file-path)

@@ -4,4 +4,5 @@
          "codegen.rkt")
 
 (module+ main
-  (run-command))
+  (define usecase (parse-command))
+  (handle-command usecase))
