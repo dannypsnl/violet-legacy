@@ -24,4 +24,4 @@
 [(cons "build" dir-path)
   (build dir-path)]
 [(cons "compile" file-path)
-  (compile file-path)])
+  (compile-all file-path)])
