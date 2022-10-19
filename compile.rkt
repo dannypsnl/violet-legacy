@@ -1,5 +1,5 @@
 #lang racket
-(provide compile-all)
+(provide compile-to-object)
 
 (require racket/runtime-path
          racket-llvm
@@ -17,7 +17,7 @@
             (loop (read-syntax (object-name in) in))]))
   (reverse sexp-list))
 
-(define (compile-all path)
+(define (compile-to-object path)
   (define in (open-input-file path))
   (port-count-lines! in)
   (define sexp-list (collect in))
