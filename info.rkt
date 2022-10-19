@@ -10,4 +10,6 @@
 (define license '(BSD3))
 (define pkg-authors '(dannypsnl))
 
+(define compile-omit-paths '("example"))
 (define test-omit-paths '("example"))
+
