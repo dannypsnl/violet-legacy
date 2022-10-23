@@ -1,8 +1,6 @@
 #lang racket
-(provide compile-to-object)
-
-(require racket/runtime-path
-         racket-llvm
+(provide compile-to-obj/exe)
+(require racket-llvm
          reporter)
 (require "parse.rkt"
          "tyck.rkt"
@@ -17,7 +15,7 @@
             (loop (read-syntax (object-name in) in))]))
   (reverse sexp-list))
 
-(define (compile-to-object path)
+(define (compile-to-obj/exe path)
   (define in (open-input-file path))
   (port-count-lines! in)
   (define sexp-list (collect in))
