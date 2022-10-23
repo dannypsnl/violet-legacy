@@ -2,7 +2,8 @@
 (provide compile-to-obj/exe)
 (require racket-llvm
          reporter)
-(require "parse.rkt"
+(require "ast.rkt"
+         "parse.rkt"
          "tyck.rkt"
          "codegen.rkt")
 
@@ -20,16 +21,27 @@
   (port-count-lines! in)
   (define sexp-list (collect in))
   (with-handlers ([Report? displayln])
-    ((compose (lambda (llvm-file-path)
-                (system* (find-executable-path "llc") llvm-file-path "-filetype=obj"))
-              (lambda (mod)
-                (define llvm-file-path (path-replace-extension path #".bc"))
-                (llvm-write-bitcode-to-file mod llvm-file-path)
-                llvm-file-path)
-              (lambda (mod)
-                (display (llvm-module->string mod))
-                mod)
-              codegen-mod
-              type-check-module
-              parse-mod-file)
-     sexp-list)))
+    (define pmod (parse-file sexp-list))
+    (cond
+      [(stage0-app? pmod)
+       ((compose (lambda (obj-path)
+                   (system* (find-executable-path "clang") obj-path))
+                 (lambda (bc-path)
+                   (system* (find-executable-path "llc") bc-path "-filetype=obj")
+                   (path-replace-extension bc-path ".o"))
+                 (dump-llvm-mod path)
+                 codegen-app
+                 type-check-app)
+        pmod)]
+      [(stage0-mod? pmod)
+       ((compose (lambda (bc-path)
+                   (system* (find-executable-path "llc") bc-path "-filetype=obj"))
+                 (dump-llvm-mod path)
+                 codegen-mod
+                 type-check-module)
+        pmod)])))
+
+(define ((dump-llvm-mod path) mod)
+  (define bc-path (path-replace-extension path #".bc"))
+  (llvm-write-bitcode-to-file mod bc-path)
+  bc-path)

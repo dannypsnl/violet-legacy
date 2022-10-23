@@ -1,5 +1,6 @@
 #lang racket
 (provide (struct-out stage0-mod)
+         (struct-out stage0-app)
          (struct-out stage1-mod)
          (struct-out def-var)
          (struct-out def-func))
@@ -10,6 +11,10 @@
    name=>type ; internal: map from name to type
    to-check-list)
   #:transparent)
+(struct stage0-app ; (app name)
+  (name
+   import-identifier-list ; (import id ...)
+   expr-list))
 
 (struct stage1-mod
   (name ; (module name)

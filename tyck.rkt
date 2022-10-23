@@ -1,10 +1,18 @@
 #lang racket
-(provide type-check-module)
+(provide type-check-app
+         type-check-module)
 (require syntax/parse
          syntax/stx
          syntax/identifier
          reporter)
 (require "ast.rkt")
+
+(define (type-check-app s0app)
+  (match-define (stage0-app name import-list expr-list) s0app)
+  (for/list ([expr expr-list])
+    ; TODO: check expression like `apply`(function call) has correct typing
+    (void))
+  s0app)
 
 (define (type-check-module s0mod)
   (match-define (stage0-mod name export-identifier-list name=>type to-check-list) s0mod)
