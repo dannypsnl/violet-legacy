@@ -16,7 +16,8 @@
             (loop (read-syntax (object-name in) in))]))
   (reverse sexp-list))
 
-(define (compile-to-obj/exe path)
+(define (compile-to-obj/exe path
+                            #:debug-llvm? [debug-llvm? #f])
   (define in (open-input-file path))
   (port-count-lines! in)
   (define sexp-list (collect in))
@@ -30,6 +31,7 @@
                    (system* (find-executable-path "llc") bc-path "-filetype=obj")
                    (path-replace-extension bc-path ".o"))
                  (dump-llvm-mod path)
+                 (if debug-llvm? print-llvm-mod identity)
                  codegen-app
                  type-check-app)
         pmod)]
@@ -37,9 +39,14 @@
        ((compose (lambda (bc-path)
                    (system* (find-executable-path "llc") bc-path "-filetype=obj"))
                  (dump-llvm-mod path)
+                 (if debug-llvm? print-llvm-mod identity)
                  codegen-mod
                  type-check-module)
         pmod)])))
+
+(define (print-llvm-mod mod)
+  (displayln (llvm-module->string mod))
+  mod)
 
 (define ((dump-llvm-mod path) mod)
   (define bc-path (path-replace-extension path #".bc"))

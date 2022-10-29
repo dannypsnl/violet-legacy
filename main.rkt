@@ -14,10 +14,12 @@
        #:args (dir-path)
        (build dir-path))]
      ["compile"
+      ; TODO: add options to decide debug llvm or not
       (command-line
        #:argv rest
        #:args (file-path)
-       (compile-to-obj/exe file-path))])))
+       (compile-to-obj/exe file-path
+                           #:debug-llvm? #t))])))
 
 (module+ main
   (run-command))
