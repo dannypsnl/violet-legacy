@@ -16,6 +16,7 @@
 (define (type-check-module s0mod)
   (match-define (stage0-mod name export-identifier-list name=>type to-check-list) s0mod)
 
+  ;; install primitive type
   (hash-set! name=>type '+ #'(int64 int64 -> int64))
 
   (stage1-mod
@@ -25,13 +26,9 @@
      (syntax-parse top
        #:datum-literals (define)
        [(define name:id exp)
-        (define expected-type (hash-ref name=>type (syntax->datum #'name) #f))
-        (unless expected-type
-          (raise (report #:error-code "E0003"
-                         #:message "cannot find type"
-                         #:target #'name
-                         #:labels (list (label #'name "here" #:color 'red))
-                         #:hint "help: please declare type for this definition")))
+        (define expected-type
+          (dict-ref name=>type (syntax->datum #'name)
+                    (raise-cannot-find-type-for-top-level #'name)))
 
         (check (hash->list name=>type) expected-type #'exp)
 
@@ -39,13 +36,9 @@
           expected-type
           #'exp)]
        [(define (name:id p*:id ...) body)
-        (define expected-type (hash-ref name=>type (syntax->datum #'name) #f))
-        (unless expected-type
-          (raise (report #:error-code "E0003"
-                         #:message "cannot find type"
-                         #:target #'name
-                         #:labels (list (label #'name "here" #:color 'red))
-                         #:hint "help: please declare type for this definition")))
+        (define expected-type
+          (dict-ref name=>type (syntax->datum #'name)
+                    (raise-cannot-find-type-for-top-level #'name)))
 
         (define params (stx-map identifier->symbol #'(p* ...)))
         (define params-type
@@ -99,3 +92,10 @@
                    #:labels (list (label ty (format "expected: ~a" (identifier->string ty)) #:color 'red)
                                   (label exp (format "actual: ~a" (identifier->string (synth ctx exp))) #:color 'red))
                    #:hint "help: "))))
+
+(define ((raise-cannot-find-type-for-top-level name))
+  (raise (report #:error-code "E0003"
+                 #:message "cannot find type"
+                 #:target name
+                 #:labels (list (label name "here" #:color 'red))
+                 #:hint "help: please declare type for this definition")))
