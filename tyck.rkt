@@ -10,8 +10,7 @@
 (define (type-check-app s0app)
   (match-define (stage0-app name import-list expr-list) s0app)
   (for/list ([expr expr-list])
-    ; TODO: check expression like `apply`(function call) has correct typing
-    (void))
+    (synth '() expr))
   s0app)
 
 (define (type-check-module s0mod)
