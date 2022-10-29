@@ -35,6 +35,7 @@
 
   app-mod)
 
+(struct global-var (llvm-ty global-ref))
 (define (codegen-mod s1mod)
   (match-define (stage1-mod mod-name export-identifier-list to-compile-list) s1mod)
   (define export-set (map identifier->string export-identifier-list))
@@ -54,9 +55,8 @@
                                     mangled-name))
          (llvm-set-initializer g (compile-expr builder (make-hash) exp))
          ; acc
-         (cons (cons name
-                     (list 'global (->llvmty ty) (llvm-get-named-global mod mangled-name)))
-               module-ctx)]
+         `((,name . ,(global-var (->llvmty ty) (llvm-get-named-global mod mangled-name)))
+           ,@module-ctx)]
         [else module-ctx])))
 
   (for ([to-compile to-compile-list])
@@ -83,17 +83,18 @@
   mod)
 
 (define (lookup builder ctx name)
-  (define value? (assoc (identifier->string name) ctx))
-  (unless value?
-    (raise (report #:error-code "E0006"
-                   #:message "cannot find variable"
-                   #:target name
-                   #:labels (list (label name "here" #:color 'red))
-                   #:hint "help: please define this definition")))
-  (define value (cdr value?))
+  (define value
+    (dict-ref ctx
+              (identifier->string name)
+              (lambda ()
+                (raise (report #:error-code "E0006"
+                               #:message "cannot find variable"
+                               #:target name
+                               #:labels (list (label name "here" #:color 'red))
+                               #:hint "help: please define this definition")))))
   (match value
     ; global variable need to load for computation, hence, stored in a verbose way
-    [(list 'global ty v) (llvm-build-load2 builder ty v)]
+    [(global-var ty v) (llvm-build-load2 builder ty v)]
     [v v]))
 
 (define (compile-expr builder ctx exp)
@@ -122,11 +123,10 @@
 
 (define (->llvmty ty)
   (syntax-parse ty
-    #:datum-literals (int64)
-    [int8 (llvm-int8-type)]
-    [int16 (llvm-int16-type)]
-    [int32 (llvm-int32-type)]
-    [int64 (llvm-int64-type)]
+    [(~datum int8) (llvm-int8-type)]
+    [(~datum int16) (llvm-int16-type)]
+    [(~datum int32) (llvm-int32-type)]
+    [(~datum int64) (llvm-int64-type)]
     [(t* ... -> t)
      (llvm-function-type
       (->llvmty #'t)
