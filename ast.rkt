@@ -26,4 +26,4 @@
 (struct def-func (name
                   param-list
                   mono-type
-                  body-list))
+                  body))

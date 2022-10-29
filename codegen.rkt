@@ -61,23 +61,22 @@
 
   (for ([to-compile to-compile-list])
     (match to-compile
-      [(def-func name p-list ty body-list)
-       (define f (llvm-add-function mod
-                                    (mangle-name mod-name name export-set)
-                                    (->llvmty ty)))
+      [(def-func name p-list ty body)
+       (define func (llvm-add-function mod
+                                       (mangle-name mod-name name export-set)
+                                       (->llvmty ty)))
        (define local-ctx
          (for/list ([param-name p-list]
                     [i (length p-list)])
            ; map param to llvm expression via offset
-           (cons param-name (llvm-get-param f i))))
+           (cons param-name (llvm-get-param func i))))
 
-       (define entry (llvm-append-basic-block f))
+       (define entry (llvm-append-basic-block func))
        ; shift builder insertion point to the end of the basic block
        (llvm-builder-position-at-end builder entry)
 
        (define return-value
-         (last (for/list ([body body-list])
-                 (compile-expr builder (append local-ctx module-ctx) body))))
+         (compile-expr builder (append local-ctx module-ctx) body))
        (llvm-build-ret builder return-value)]
       [else (void)]))
 

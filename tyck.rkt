@@ -67,7 +67,7 @@
         (def-func (identifier->string #'name)
           (stx-map identifier->string #'(p* ...))
           expected-type
-          (list #'body))]))))
+          #'body)]))))
 
 ; (: lookup : Context Id -> Type)
 (define (lookup ctx var)
