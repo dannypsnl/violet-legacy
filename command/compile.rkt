@@ -2,10 +2,10 @@
 (provide compile-to-obj/exe)
 (require racket-llvm
          reporter)
-(require "ast.rkt"
-         "parse.rkt"
-         "tyck.rkt"
-         "codegen.rkt")
+(require violet/ast
+         violet/parse
+         violet/tyck
+         violet/codegen)
 
 (define (collect in)
   (define sexp-list '())

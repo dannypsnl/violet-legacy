@@ -1,7 +1,7 @@
 #lang racket
 (require racket/cmdline)
 (require "command/build.rkt"
-         "compile.rkt")
+         "command/compile.rkt")
 
 (define (run-command)
   (command-line
