@@ -9,7 +9,7 @@ A programming language focuses on
 
 ### Example
 
-> *NOTE* The project still in early stage, so everything in this section might not sync with source code
+> **Warning** The project still in early stage, so everything in this section might not sync with source code
 
 ```scm
 (: inc : int -> int)
