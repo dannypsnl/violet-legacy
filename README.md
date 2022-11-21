@@ -1,11 +1,20 @@
 # violet
 
-A scheme-like language focuses on
+A programming language focuses on
 
 - separate compilation
 - semantic versioning
 - static typing
 - typed macro
+
+### Example
+
+> *NOTE* The project still in early stage, so everything in this section might not sync with source code
+
+```scm
+(: inc : int -> int)
+(define (inc n) (+ 1 n))
+```
 
 ### Develop
 
