@@ -1,0 +1,9 @@
+module hello
+
+let v = 1
+
+let hello : int -> int =
+fun hello x => x
+
+let world : int -> int =
+fun world x => v + x
