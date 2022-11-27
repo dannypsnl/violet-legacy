@@ -11,12 +11,10 @@
    #:args (subcommand . rest)
    (match subcommand
      ["build"
-      ; TODO: add options to decide debug llvm or not
       (command-line
        #:argv rest
        #:args (dir-path)
-       (build dir-path
-              #:debug-llvm? #t))]
+       (build dir-path))]
      ["compile"
       (command-line
        #:argv rest
