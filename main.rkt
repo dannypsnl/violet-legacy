@@ -3,6 +3,8 @@
 (require "command/build.rkt"
          "command/compile.rkt")
 
+(define debug-llvm? (make-parameter #f))
+
 (define (run-command)
   (command-line
    #:program "violet"
@@ -14,12 +16,14 @@
        #:args (dir-path)
        (build dir-path))]
      ["compile"
-      ; TODO: add options to decide debug llvm or not
       (command-line
        #:argv rest
+       #:once-any
+       ["--debug-llvm" ("compile with llvm debug output")
+                       (debug-llvm? #t)]
        #:args (file-path)
        (compile-to-obj/exe file-path
-                           #:debug-llvm? #t))])))
+                           #:debug-llvm? (debug-llvm?)))])))
 
 (module+ main
   (run-command))
