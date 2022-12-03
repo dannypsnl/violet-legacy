@@ -1,7 +1,2 @@
-compiled/
-doc/
-# violet output
-*.bc
-*.s
-*.o
-*.out
+*.ibc
+violet

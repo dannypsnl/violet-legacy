@@ -1,30 +1,17 @@
 # violet
 
+> **Warning** The project still in early stage.
+
 A programming language focuses on
 
 - separate compilation
 - semantic versioning
-- static typing
-- typed macro
-
-### Example
-
-> **Warning** The project still in early stage, so everything in this section might not sync with source code
-
-```scm
-(: inc : int -> int)
-(define (inc n) (+ 1 n))
-```
+- dependent type
 
 ### Develop
 
-You will need to install LLVM, via any package manager would be fine, here is an example for macOS.
+You will need to install idris, via any package manager would be fine, here is an example for macOS.
 
 ```shell
-brew install llvm
+brew install idris
 ```
-
-And you might like to install the following racket libraries manually
-
-1. https://github.com/dannypsnl/racket-llvm
-2. https://github.com/dannypsnl/reporter
