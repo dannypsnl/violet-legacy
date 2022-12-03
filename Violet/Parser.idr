@@ -2,6 +2,7 @@ module Violet.Parser
 
 import public Lightyear
 import public Lightyear.Char
+import public Lightyear.Combinators
 import public Lightyear.Strings
 
 import Violet.Syntax
@@ -10,29 +11,38 @@ withPos : (Position -> a -> a) -> Parser a -> Parser a
 withPos f p = f <$> getPosition <*> p
 
 keyword : String -> Parser ()
-keyword s = do
-  (lexeme $ string s) <?> "keyword: " ++ s
-  pure ()
+keyword s = (lexeme (skip (string s))) <?> "keyword \"" ++ s ++ "\""
 symbol : String -> Parser ()
-symbol s = keyword s <?> s
+symbol s = (lexeme (skip (string s))) <?> "symbol \"" ++ s ++ "\""
 arrowSymbol : Parser ()
 arrowSymbol = symbol "->" <|> symbol "→"
 
 violetU : Parser Tm
-violetU = (keyword "U" <?> "Universe") *>| pure U
+violetU = (keyword "U" <?> "universe") *> pure U
 
 violetIdentifier : Parser Name
-violetIdentifier = (pack <$> lexeme letter >! many alphaNum) <?> "identifier"
+violetIdentifier = lexeme inner <?> "identifier"
+  where inner : Parser Name
+        inner = do
+          c <- letter
+          cs <- many alphaNum
+          pure $ pack (c::cs)
 
 violetVar : Parser Tm
 violetVar = Var <$> violetIdentifier
 
 mutual
   violetTm : Parser Tm
-  violetTm = violetLet <|> violetPostulate <|> violetLam <|> violetPi <|> funOrSpine
+  violetTm = choice alts
+    where alts : List (Parser Tm)
+          alts = [ violetLet
+                 , violetPostulate
+                 , violetLam
+                 , violetPi <|>| funOrSpine
+                 ]
 
   violetAtom : Parser Tm
-  violetAtom = violetVar <|> violetU <|> parens violetTm
+  violetAtom = violetVar <|> violetU <|> (parens violetTm)
 
   funOrSpine : Parser Tm
   funOrSpine = do
@@ -76,7 +86,7 @@ mutual
     u <- violetTm
     pure $ Let x a t u
 
-  bind : Parser (Name, Tm)
+  bind : Parser (Name, Ty)
   bind = do
     x <- violetIdentifier
     symbol ":"

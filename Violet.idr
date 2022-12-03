@@ -15,13 +15,13 @@ data FuseError
   | ParseE String String
 
 Show FuseError where
-  show (FileE _ _) = "file error"
-  show (ParseE filename msg) = filename ++ "\n" ++ msg
+  show (FileE filename _) = "fail to read" ++ filename
+  show (ParseE filename msg) = filename ++ " " ++ msg
 
 export
 handle : List String -> Eff () [FILE(), STDIO]
 handle ["check", filename] = do
   case !(parseFile FileE ParseE violetSrc filename) of
-    Left err => putStrLn $ show err
-    Right tm => putStrLn "checking"
+    Left err => putStrLn $ "error: " ++ show err
+    Right tm => putStrLn $ show tm
 handle _ = pure ()
