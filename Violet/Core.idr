@@ -99,10 +99,10 @@ mutual
         then pure ()
         else report $ unlines
           [ "type mismatched"
-          , "\nexpected type:\n"
-          , show $ quote env a
-          , "\nactual type:\n\n"
-          , show $ quote env tty
+          , "expected type:\n"
+          , "  " ++ (show $ quote env a)
+          , "\nactual type:\n"
+          , "  " ++ (show $ quote env tty)
           ]
   
   conv : Env -> Val -> Val -> Bool

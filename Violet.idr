@@ -27,9 +27,17 @@ handle ["check", filename] = do
     Right tm =>
       case (infer emptyEnv emptyCtx tm) of
         Left ce => do
-          putStrLn $ show tm
-          putStrLn $ show ce
+          putStr $ unlines
+            [ "term:\n"
+            , show tm
+            , "\nhas error:\n"
+            , show ce
+            ]
         Right vty => do
-          putStrLn $ show tm
-          putStrLn $ show $ quote emptyEnv vty
+          putStr $ unlines
+            [ "term:\n"
+            , show tm
+            , "\nhas type:\n"
+            , show $ quote emptyEnv vty
+            ]
 handle _ = pure ()
