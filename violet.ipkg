@@ -9,6 +9,7 @@ modules = Violet
         , Violet.Parser
         , Violet.Core
         , Violet.Syntax
+        , Violet.Val
 
 -- application
 executable = violetc
