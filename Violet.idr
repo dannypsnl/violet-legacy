@@ -27,5 +27,7 @@ handle ["check", filename] = do
     Right tm =>
       case (infer emptyEnv emptyCtx tm) of
         Left ce => putStrLn $ show ce
-        Right _ => putStrLn $ show tm
+        Right vty => do
+          putStrLn $ show tm
+          putStrLn $ show $ quote emptyEnv vty
 handle _ = pure ()

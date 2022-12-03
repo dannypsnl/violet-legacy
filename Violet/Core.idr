@@ -6,20 +6,6 @@ import Violet.Syntax
 import public Violet.Val
 
 export
-Env : Type
-Env = List (Name, Val)
-export
-emptyEnv : Env
-emptyEnv = []
-
-export
-Ctx : Type
-Ctx = List (Name, VTy)
-export
-emptyCtx : Ctx
-emptyCtx = []
-
-export
 data CheckError = MkCheckError (Maybe Position) String
 export
 Show CheckError where
@@ -31,13 +17,12 @@ addPos _ ma = ma
 report : String -> Either CheckError a
 report msg = Left (MkCheckError Nothing msg)
 
-extend : Env -> Name -> Val -> Env
-extend env x v = (x, v) :: env
-
 eval : Env -> Tm -> Val
 eval env tm = case tm of
   SrcPos pos tm => eval env tm
-  Var x => ?a
+  Var x => case lookup x env of
+    Nothing => ?unreachable
+    Just a => a
   App t u => case (eval env t, eval env u) of
     (VLam _ t, u) => t u
     (t, u) => VApp t u
@@ -47,8 +32,24 @@ eval env tm = case tm of
   Let x a t u => eval (extend env x (eval env t)) u
   Postulate x a u => eval (extend env x (VVar x)) u
 
-fresh : Env -> Name -> Name
-fresh env n = n
+export
+quote : Env -> Val -> Tm
+quote env v = case v of
+  VVar x => Var x
+  VApp t u => App (quote env t) (quote env u)
+  VLam x t =>
+    let x = fresh env x
+    in Lam x (quote (extend env x $ VVar x) (t (VVar x)))
+  VPi x a b =>
+    let x = fresh env x
+    in Pi x (quote env a) (quote (extend env x $ VVar x) (b (VVar x)))
+  VU => U
+
+nf : Env -> Tm -> Tm
+nf env tm = quote env (eval env tm)
+
+nf0 : Tm -> Tm
+nf0 = nf emptyEnv
 
 mutual
   export
@@ -99,4 +100,21 @@ mutual
         else report "type mismatched"
   
   conv : Env -> Val -> Val -> Bool
-  conv env _ _ = True
+  conv env t u = case (t, u) of
+    (VU, VU) => True
+    (VPi x a b, VPi _ a' b') =>
+      let x = fresh env x
+      in conv env a a' && conv (extend env x $ VVar x) (b (VVar x)) (b' (VVar x))
+    (VLam x t, VLam _ t') =>
+      let x = fresh env x
+      in conv (extend env x $ VVar x) (t (VVar x)) (t' (VVar x))
+    -- checking eta conversion for Lam
+    (VLam x t, u) =>
+      let x = fresh env x
+      in conv (extend env x $ VVar x) (t (VVar x)) (VApp u (VVar x))
+    (u, VLam x t) =>
+      let x = fresh env x
+      in conv (extend env x $ VVar x) (VApp u (VVar x)) (t (VVar x))
+    (VVar x, VVar x') => x == x'
+    (VApp t u, VApp t' u') => conv env t t' && conv env u u'
+    _ => False
