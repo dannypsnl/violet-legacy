@@ -8,5 +8,5 @@ pkgs = effects, lightyear
 modules = Violet
 
 -- application
-executable = violet
+executable = violetc
 main = Main

@@ -1,2 +1,0 @@
-(app hi
-  (import hello))

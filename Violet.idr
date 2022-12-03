@@ -1,38 +1,27 @@
 module Violet
 
-Name : Type
-Name = String
-data Tm
-  = SrcPos Tm
-  | Var Name             -- x
-  | Lam Name Tm          -- λ x . t
-  | App Tm Tm            -- t u
-  | U                    -- U
-  | Pi Name Tm Tm        -- Π (x : a) → b
-  | Let Name Tm Tm Tm    -- let x : a = t; u
-  -- FIXME?: maybe constructor should be treated special
-  | Postulate Name Tm Tm -- posulate x : a; u
-Ty : Type
-Ty = Tm
+import Effects
+import Effect.StdIO
+import Effect.File
 
-data Val
-  = VVar Name
-  | VApp Val Val
-  | VLam Name (Val -> Val)
-  | VPi Name Val (Val -> Val)
-  | VU
-VTy : Type
-VTy = Val
+import public Lightyear.StringFile
 
-Env : Type
-Env = List (Name, Val)
-Ctx : Type
-Ctx = List (Name, VTy)
+import Violet.Syntax
+import Violet.Parser
 
-eval : Env -> Tm -> Val
-eval env tm = case tm of
-  Var x => ?a
-  App t u => case (eval env t, eval env u) of
-    (VLam _ t, u) => t u
-    (t, u) => VApp t u
-  _ => ?undefined
+data FuseError
+    -- filename, error
+  = FileE String FileError
+  | ParseE String String
+
+Show FuseError where
+  show (FileE _ _) = "file error"
+  show (ParseE filename msg) = filename ++ "\n" ++ msg
+
+export
+handle : List String -> Eff () [FILE(), STDIO]
+handle ["check", filename] = do
+  case !(parseFile FileE ParseE violetSrc filename) of
+    Left err => putStrLn $ show err
+    Right tm => putStrLn "checking"
+handle _ = pure ()
