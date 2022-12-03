@@ -19,16 +19,16 @@ report msg = Left (MkCheckError Nothing msg)
 
 eval : Env -> Tm -> Val
 eval env tm = case tm of
-  SrcPos pos tm => eval env tm
+  SrcPos _ tm => eval env tm
   Var x => case lookup x env of
-    Nothing => ?unreachable
     Just a => a
+    _ => ?unreachable
   App t u => case (eval env t, eval env u) of
     (VLam _ t, u) => t u
     (t, u) => VApp t u
   U => VU
-  Lam x t => VLam x $ \u => eval (extend env x u) t
-  Pi x a b => VPi x (eval env a) $ \u => eval (extend env x u) b
+  Lam x t => VLam x (\u => eval (extend env x u) t)
+  Pi x a b => VPi x (eval env a) (\u => eval (extend env x u) b)
   Let x a t u => eval (extend env x (eval env t)) u
   Postulate x a u => eval (extend env x (VVar x)) u
 
@@ -57,7 +57,7 @@ mutual
   infer env ctx tm = case tm of
     SrcPos pos t => addPos pos (infer env ctx t)
     Var x => case lookup x ctx of
-      Nothing => report "variable not found"
+      Nothing => report $ "variable: " ++ x ++ " not found"
       Just a => pure a
     U => pure VU
     App t u => do
@@ -67,7 +67,7 @@ mutual
           check env ctx u a
           pure (b (eval env u))
         _ => report "bad app"
-    Lam => report "cannot inference lambda"
+    Lam _ _ => report $ "cannot inference lambda: " ++ show tm
     Pi x a b => do
       check env ctx a VU
       check (extend env x $ VVar x) ((x, eval env a) :: ctx) b VU
@@ -97,7 +97,13 @@ mutual
       tty <- infer env ctx t
       if (conv env tty a)
         then pure ()
-        else report "type mismatched"
+        else report $ unlines
+          [ "type mismatched"
+          , "\nexpected type:\n"
+          , show $ quote env a
+          , "\nactual type:\n\n"
+          , show $ quote env tty
+          ]
   
   conv : Env -> Val -> Val -> Bool
   conv env t u = case (t, u) of
