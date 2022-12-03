@@ -42,7 +42,7 @@ mutual
                  ]
 
   violetAtom : Parser Tm
-  violetAtom = violetVar <|> violetU <|> (parens violetTm)
+  violetAtom = violetU <|> violetVar <|> (parens violetTm)
 
   funOrSpine : Parser Tm
   funOrSpine = do

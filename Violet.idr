@@ -26,7 +26,9 @@ handle ["check", filename] = do
     Left err => putStrLn $ "error: " ++ show err
     Right tm =>
       case (infer emptyEnv emptyCtx tm) of
-        Left ce => putStrLn $ show ce
+        Left ce => do
+          putStrLn $ show tm
+          putStrLn $ show ce
         Right vty => do
           putStrLn $ show tm
           putStrLn $ show $ quote emptyEnv vty

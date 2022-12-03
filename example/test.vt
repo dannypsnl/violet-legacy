@@ -2,4 +2,4 @@ postulate Nat : U;
 postulate zero : Nat;
 postulate suc : Nat → Nat;
 let id : (A : U) → A → A = λ A x . x;
-id (suc zero)
+id Nat (suc zero)
