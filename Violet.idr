@@ -7,6 +7,7 @@ import Effect.File
 import public Lightyear.StringFile
 
 import Violet.Syntax
+import Violet.Lexer
 import Violet.Parser
 import Violet.Core
 

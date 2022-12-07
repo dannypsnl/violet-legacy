@@ -3,13 +3,14 @@ package violet
 sourceloc  = git://git@github.com:dannypsnl/violet.git
 bugtracker = http://www.github.com/dannypsnl/violet/issues
 
-pkgs = effects, lightyear
+pkgs = contrib, effects, lightyear
 
 modules = Violet
         , Violet.Parser
         , Violet.Core
         , Violet.Syntax
         , Violet.Val
+        , Violet.Lexer
 
 -- application
 executable = violetc
