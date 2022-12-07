@@ -4,9 +4,10 @@
 
 A programming language focuses on
 
-- separate compilation
-- semantic versioning
 - dependent type
+- effect system
+- semantic versioning
+- separate compilation
 
 ### Develop
 
