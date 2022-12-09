@@ -22,13 +22,6 @@ export
 emptyEnv : Env
 emptyEnv = []
 
-public export
-Ctx : Type
-Ctx = List (Name, VTy)
-export
-emptyCtx : Ctx
-emptyCtx = []
-
 export
 fresh : Env -> Name -> Name
 fresh _ "_" = "_"
@@ -39,3 +32,15 @@ fresh env x = case lookup x env of
 export
 extend : Env -> Name -> Val -> Env
 extend env x v = (x, v) :: env
+
+-- context
+public export
+Ctx : Type
+Ctx = List (Name, VTy)
+export
+emptyCtx : Ctx
+emptyCtx = []
+
+export
+extendCtx : Ctx -> Name -> VTy -> Ctx
+extendCtx ctx x v = (x, v) :: ctx

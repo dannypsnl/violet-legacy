@@ -41,10 +41,10 @@ quote env v = case v of
   VApp t u => App (quote env t) (quote env u)
   VLam x t =>
     let x = fresh env x
-    in Lam x (quote (extend env x $ VVar x) (t (VVar x)))
+    in Lam x (quote (extend env x (VVar x)) (t (VVar x)))
   VPi x a b =>
     let x = fresh env x
-    in Pi x (quote env a) (quote (extend env x $ VVar x) (b (VVar x)))
+    in Pi x (quote env a) (quote (extend env x (VVar x)) (b (VVar x)))
   VU => U
 
 nf : Env -> Tm -> Tm
@@ -72,29 +72,29 @@ mutual
     Lam _ _ => report $ "cannot inference lambda: " ++ show tm
     Pi x a b => do
       check env ctx a VU
-      check (extend env x $ VVar x) ((x, eval env a) :: ctx) b VU
+      check (extend env x (VVar x)) (extendCtx ctx x (eval env a)) b VU
       pure VU
     Postulate x a u => do
       check env ctx a VU
       let a' = eval env a
-      infer (extend env x $ VVar x) ((x, a') :: ctx) u
+      infer (extend env x (VVar x)) (extendCtx ctx x a') u
     Let x a t u => do
       check env ctx a VU
       let a' = eval env a
       check env ctx t a'
-      infer (extend env x $ eval env t) ((x, a') :: ctx) u
+      infer (extend env x (eval env t)) (extendCtx ctx x a') u
 
   check : Env -> Ctx -> Tm -> VTy -> Either CheckError ()
   check env ctx t a = case (t, a) of
     (SrcPos pos t, a) => addPos pos (check env ctx t a)
     (Lam x t, VPi x' a b) =>
       let x' = fresh env x'
-      in check (extend env x $ VVar x) ((x, a) :: ctx) t (b (VVar x'))
+      in check (extend env x (VVar x)) (extendCtx ctx x a) t (b (VVar x'))
     (Let x a t u, _) => do
       check env ctx a VU
       let a' = eval env a
       check env ctx t a'
-      check (extend env x $ eval env t) ((x, a') :: ctx) u a'
+      check (extend env x (eval env t)) (extendCtx ctx x a') u a'
     _ => do
       tty <- infer env ctx t
       if (conv env tty a)
@@ -112,17 +112,17 @@ mutual
     (VU, VU) => True
     (VPi x a b, VPi _ a' b') =>
       let x = fresh env x
-      in conv env a a' && conv (extend env x $ VVar x) (b (VVar x)) (b' (VVar x))
+      in conv env a a' && conv (extend env x (VVar x)) (b (VVar x)) (b' (VVar x))
     (VLam x t, VLam _ t') =>
       let x = fresh env x
-      in conv (extend env x $ VVar x) (t (VVar x)) (t' (VVar x))
+      in conv (extend env x (VVar x)) (t (VVar x)) (t' (VVar x))
     -- checking eta conversion for Lam
     (VLam x t, u) =>
       let x = fresh env x
-      in conv (extend env x $ VVar x) (t (VVar x)) (VApp u (VVar x))
+      in conv (extend env x (VVar x)) (t (VVar x)) (VApp u (VVar x))
     (u, VLam x t) =>
       let x = fresh env x
-      in conv (extend env x $ VVar x) (VApp u (VVar x)) (t (VVar x))
+      in conv (extend env x (VVar x)) (VApp u (VVar x)) (t (VVar x))
     (VVar x, VVar x') => x == x'
     (VApp t u, VApp t' u') => conv env t t' && conv env u u'
     _ => False
