@@ -15,6 +15,9 @@ data VToken
   | Semicolon         -- ;
   | OpenP             -- (
   | CloseP            -- )
+  | Arrow             -- →
+  | Lambda            -- λ
+  | Dot               -- .
   | Comment String    -- single line comment or whitespace
   | EndInput          -- end of input
 
@@ -45,6 +48,9 @@ violetTokens =
   , (is ';', \_ => Semicolon)
   , (is '(', \_ => OpenP)
   , (is ')', \_ => CloseP)
+  , (is '→', \_ => Arrow)
+  , (is 'λ', \_ => Lambda)
+  , (is '.', \_ => Dot)
   , (identifier, \x => case x of
       "let" => Let
       "postulate" => Postulate
