@@ -6,10 +6,10 @@ import Effect.File
 
 import public Lightyear.StringFile
 
+import Violet.Core
 import Violet.Syntax
 import Violet.CParser
 import Violet.Parser
-import Violet.Core
 
 data FuseError
     -- filename, error

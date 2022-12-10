@@ -20,7 +20,8 @@ checkM a = Either CheckError a
 addPos : Position -> checkM a -> checkM a
 addPos pos (Left (MkCheckError Nothing msg)) = (Left (MkCheckError (Just pos) msg))
 addPos _ ma = ma
-report : String -> Either CheckError a
+
+report : String -> checkM a
 report msg = Left (MkCheckError Nothing msg)
 
 eval : Env -> Tm -> Val
