@@ -77,6 +77,9 @@ Eq VToken where
   Semicolon == Semicolon = True
   OpenP == OpenP = True
   CloseP == CloseP = True
+  Arrow == Arrow = True
+  Lambda == Lambda = True
+  Dot == Dot = True
   EndInput == EndInput = True
   _ == _ = False
 
@@ -91,6 +94,9 @@ Show VToken where
   show Semicolon      = ";"
   show OpenP          = "("
   show CloseP         = ")"
+  show Arrow          = "→"
+  show Lambda         = "λ"
+  show Dot            = "."
   show (Comment x)    = "comment: " ++ show x
   show EndInput       = "<end of input>"
 
