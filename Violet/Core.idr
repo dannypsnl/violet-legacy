@@ -13,7 +13,11 @@ Show CheckError where
   show (MkCheckError (Just pos) msg) = concat [ display pos, "\n", msg]
   show (MkCheckError _ msg) = msg
 
-addPos : Position -> Either CheckError a -> Either CheckError a
+public export
+checkM : Type -> Type
+checkM a = Either CheckError a
+
+addPos : Position -> checkM a -> checkM a
 addPos pos (Left (MkCheckError Nothing msg)) = (Left (MkCheckError (Just pos) msg))
 addPos _ ma = ma
 report : String -> Either CheckError a
@@ -55,7 +59,7 @@ nf0 = nf emptyEnv
 
 mutual
   export
-  infer : Env -> Ctx -> Tm -> Either CheckError VTy
+  infer : Env -> Ctx -> Tm -> checkM VTy
   infer env ctx tm = case tm of
     SrcPos pos t => addPos pos (infer env ctx t)
     Var x => case lookup x ctx of
@@ -84,7 +88,7 @@ mutual
       check env ctx t a'
       infer (extend env x (eval env t)) (extendCtx ctx x a') u
 
-  check : Env -> Ctx -> Tm -> VTy -> Either CheckError ()
+  check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
     (SrcPos pos t, a) => addPos pos (check env ctx t a)
     (Lam x t, VPi x' a b) =>
