@@ -1,10 +1,10 @@
 package violet
 version = 0.0.1
 
-sourceloc  = git://git@github.com:dannypsnl/violet.git
-bugtracker = http://www.github.com/dannypsnl/violet/issues
+sourceloc  = "git://git@github.com:dannypsnl/violet.git"
+bugtracker = "http://www.github.com/dannypsnl/violet/issues"
 
-depends = contrib, effects
+depends = contrib
 
 modules = Violet
         , Violet.Parser
