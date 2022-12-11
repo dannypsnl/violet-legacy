@@ -39,8 +39,18 @@ mutual
   atom : Rule Tm
   atom = tmU <|> tmVar -- <|> (parens tm)
 
+  spine : Rule Tm
+  spine = foldl1 App <$> some atom
+
+  -- a -> b -> c
+  --
+  -- or
+  --
+  -- a b c
   funOrSpine : Rule Tm
-  funOrSpine = ?todo
+  funOrSpine = do
+    sp <- spine
+    option sp (Pi "_" sp <$> tm)
 
   tm : Rule Tm
   tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> funOrSpine
