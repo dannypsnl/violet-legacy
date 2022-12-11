@@ -7,6 +7,7 @@ import public Text.Parser
 import Violet.Lexer
 import Violet.Syntax
 
+public export
 Rule : Type -> Type
 Rule ty = Grammar (TokenData VToken) True ty
 
@@ -35,8 +36,23 @@ tmVar = terminal (\x => case tok x of
   _ => Nothing)
 
 mutual
+  atom : Rule Tm
+  atom = tmU <|> tmVar -- <|> (parens tm)
+
+  funOrSpine : Rule Tm
+  funOrSpine = ?todo
+
   tm : Rule Tm
-  tm = tmLet <|> tmU <|> tmVar
+  tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> funOrSpine
+
+  tmPostulate : Rule Tm
+  tmPostulate = ?todo
+
+  tmLam : Rule Tm
+  tmLam = ?todo
+
+  tmPi : Rule Tm
+  tmPi = ?todo
 
   tmLet : Rule Tm
   tmLet = do
@@ -50,9 +66,6 @@ mutual
     u <- tm
     pure $ Let name a t u
 
+export
 tmFull : Rule Tm
 tmFull = tm <* eoi
-
-export
-test : String -> Either (ParseError (TokenData VToken)) (Tm, List (TokenData VToken))
-test s = parse tmFull $ fst (skipWs (lex violetTokens s))

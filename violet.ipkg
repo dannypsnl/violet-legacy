@@ -6,7 +6,7 @@ bugtracker = http://www.github.com/dannypsnl/violet/issues
 pkgs = contrib, effects, lightyear
 
 modules = Violet
-        , Violet.Parser
+        , Violet.CParser
         , Violet.Core
         , Violet.Syntax
         , Violet.Val

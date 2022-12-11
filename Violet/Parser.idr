@@ -17,20 +17,6 @@ symbol s = (lexeme (skip (string s))) <?> "symbol \"" ++ s ++ "\""
 arrowSymbol : Parser ()
 arrowSymbol = symbol "->" <|> symbol "→"
 
-violetU : Parser Tm
-violetU = (keyword "U" <?> "universe") *> pure U
-
-violetIdentifier : Parser Name
-violetIdentifier = lexeme inner <?> "identifier"
-  where inner : Parser Name
-        inner = do
-          c <- letter
-          cs <- many alphaNum
-          pure $ pack (c::cs)
-
-violetVar : Parser Tm
-violetVar = Var <$> violetIdentifier
-
 mutual
   violetTm : Parser Tm
   violetTm = choice alts
@@ -40,9 +26,6 @@ mutual
                  , violetLam
                  , violetPi <|>| funOrSpine
                  ]
-
-  violetAtom : Parser Tm
-  violetAtom = violetU <|> violetVar <|> (parens violetTm)
 
   funOrSpine : Parser Tm
   funOrSpine = do
