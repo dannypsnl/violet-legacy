@@ -1,6 +1,6 @@
-SOURCE := Violet/Core.idr
+sources := $(wildcard *.idr)
 
-build: ${SOURCE}
+build: $(sources)
 	@idris2 --build violet.ipkg
 
 run: build

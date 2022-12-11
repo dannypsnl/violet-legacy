@@ -119,8 +119,8 @@ violetTokens = toTokenMap [(spaces, Comment)] ++
   ] ++ toTokenMap [
     (exact ":", Colon),
     (exact ";", Semicolon),
-    (exact "->", Arrow),
-    (exact "\\", Lambda),
+    (exact "→", Arrow),
+    (exact "λ", Lambda),
     (exact ".", Dot),
     (exact "(", OpenP),
     (exact ")", CloseP),

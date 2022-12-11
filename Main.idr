@@ -17,7 +17,7 @@ handle [_, "check", filename] =
     (\fileContent =>
       case (parse fileContent) of
         -- TODO: print err
-        Left err => putStrLn $ "error"
+        Left err => putStrLn $ show err
         Right tm =>
           case (infer emptyEnv emptyCtx tm) of
             Left ce => putStr $ unlines [ "term:\n", show tm, "\nhas error:\n", show ce]
