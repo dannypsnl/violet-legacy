@@ -56,7 +56,12 @@ mutual
     pure $ Postulate name a u
 
   tmLam : Rule Tm
-  tmLam = ?todo
+  tmLam = do
+    keyword Lambda
+    names <- some identifier
+    symbol Dot
+    body <- tm
+    pure $ foldr Lam body names
 
   tmPi : Rule Tm
   tmPi = ?todo
