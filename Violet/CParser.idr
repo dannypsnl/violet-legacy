@@ -46,7 +46,14 @@ mutual
   tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> funOrSpine
 
   tmPostulate : Rule Tm
-  tmPostulate = ?todo
+  tmPostulate = do
+    keyword Postulate
+    name <- identifier
+    symbol Colon
+    a <- tm
+    symbol Semicolon
+    u <- tm
+    pure $ Postulate name a u
 
   tmLam : Rule Tm
   tmLam = ?todo
