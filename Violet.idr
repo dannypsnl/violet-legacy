@@ -11,7 +11,7 @@ import public Text.Parser
 import Violet.Core
 import Violet.Syntax
 import Violet.Lexer
-import Violet.CParser
+import Violet.Parser
 
 parseString : String -> Either (ParseError (TokenData VToken)) (Tm, List (TokenData VToken))
 parseString s = parse tmFull $ fst (skipWs (lex violetTokens s))

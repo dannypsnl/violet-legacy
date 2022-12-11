@@ -1,81 +1,106 @@
-module Violet.Parser
+module Violet.CParser
 
-import public Lightyear
-import public Lightyear.Char
-import public Lightyear.Combinators
-import public Lightyear.Strings
+import Text.Lexer
+import public Text.Parser.Core
+import public Text.Parser
 
+import Violet.Lexer
 import Violet.Syntax
 
-withPos : (Position -> a -> a) -> Parser a -> Parser a
-withPos f p = f <$> getPosition <*> p
+public export
+Rule : Type -> Type
+Rule ty = Grammar (TokenData VToken) True ty
 
-keyword : String -> Parser ()
-keyword s = (lexeme (skip (string s))) <?> "keyword \"" ++ s ++ "\""
-symbol : String -> Parser ()
-symbol s = (lexeme (skip (string s))) <?> "symbol \"" ++ s ++ "\""
-arrowSymbol : Parser ()
-arrowSymbol = symbol "->" <|> symbol "→"
+eat : VToken -> Rule ()
+eat t = terminal (\x => if (t == tok x) then Just () else Nothing)
+keyword : VToken -> Rule ()
+keyword = eat
+symbol : VToken -> Rule ()
+symbol = eat
+eoi : Rule ()
+eoi = eat EndInput
+
+identifier : Rule Name
+identifier = terminal (\x => case tok x of
+  Identifier x => Just x
+  _ => Nothing)
+
+tmU : Rule Tm
+tmU = terminal (\x => case tok x of
+  Universe => Just U
+  _ => Nothing)
+
+tmVar : Rule Tm
+tmVar = terminal (\x => case tok x of
+  Identifier x => Just $ Var x
+  _ => Nothing)
+
+parens : Rule a -> Rule a
+parens p = symbol OpenP *> p <* symbol CloseP
 
 mutual
-  violetTm : Parser Tm
-  violetTm = choice alts
-    where alts : List (Parser Tm)
-          alts = [ violetLet
-                 , violetPostulate
-                 , violetLam
-                 , violetPi <|>| funOrSpine
-                 ]
+  atom : Rule Tm
+  atom = tmU <|> tmVar <|> (parens tm)
 
-  funOrSpine : Parser Tm
+  spine : Rule Tm
+  spine = foldl1 App <$> some atom
+
+  -- a -> b -> c
+  --
+  -- or
+  --
+  -- a b c
+  funOrSpine : Rule Tm
   funOrSpine = do
-    sp <- violetSpine
-    case !(opt arrowSymbol) of
-      Nothing => pure sp
-      Just _ => Pi "_" sp <$> violetTm
+    sp <- spine
+    option sp (Pi "_" sp <$> tm)
 
-  -- (x : a) → b
-  violetPi : Parser Tm
-  violetPi = do
-    (x, a) <- parens bind
-    arrowSymbol
-    Pi x a <$> violetTm
+  tm : Rule Tm
+  tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> funOrSpine
 
-  violetSpine : Parser Tm
-  violetSpine = foldl1 App <$> some violetAtom
+  tmPostulate : Rule Tm
+  tmPostulate = do
+    keyword Postulate
+    name <- identifier
+    symbol Colon
+    a <- tm
+    symbol Semicolon
+    u <- tm
+    pure $ Postulate name a u
 
-  violetLam : Parser Tm
-  violetLam = do
-    keyword "λ" <|> keyword "\\"
-    xs <- some violetIdentifier
-    keyword "."
-    t <- violetTm
-    pure $ foldr Lam t xs
+  -- λ A x . x
+  tmLam : Rule Tm
+  tmLam = do
+    keyword Lambda
+    names <- some identifier
+    symbol Dot
+    body <- tm
+    pure $ foldr Lam body names
 
-  violetPostulate : Parser Tm
-  violetPostulate = do
-    keyword "postulate"
-    (x, a) <- bind
-    symbol ";"
-    Postulate x a <$> violetTm
+  -- (A : U) -> A -> A
+  tmPi : Rule Tm
+  tmPi = do
+    symbol OpenP
+    name <- identifier
+    symbol Colon
+    a <- tm
+    symbol CloseP
+    symbol Arrow
+    Pi name a <$> tm
 
-  violetLet : Parser Tm
-  violetLet = do
-    keyword "let"
-    (x, a) <- bind
-    symbol "="
-    t <- violetTm
-    symbol ";"
-    u <- violetTm
-    pure $ Let x a t u
-
-  bind : Parser (Name, Ty)
-  bind = do
-    x <- violetIdentifier
-    symbol ":"
-    a <- violetTm
-    pure (x, a)
+  -- let x : a = t; u
+  tmLet : Rule Tm
+  tmLet = do
+    keyword Let
+    name <- identifier
+    symbol Colon
+    a <- tm
+    symbol Assign
+    t <- tm
+    symbol Semicolon
+    u <- tm
+    pure $ Let name a t u
 
 export
-violetSrc : Parser Tm
-violetSrc = (withPos SrcPos violetTm) <* eof
+tmFull : Rule Tm
+tmFull = tm <* eoi
