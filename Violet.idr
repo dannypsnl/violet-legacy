@@ -1,9 +1,5 @@
 module Violet
 
-import Effects
-import Effect.StdIO
-import Effect.File
-
 import Text.Lexer
 import public Text.Parser.Core
 import public Text.Parser

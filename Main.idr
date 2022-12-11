@@ -1,7 +1,5 @@
 module Main
 
-import Effects
-import Effect.StdIO
 import Violet
 
 main : IO ()

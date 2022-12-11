@@ -7,42 +7,20 @@ import public Text.Parser
 import Violet.Lexer
 import Violet.Syntax
 
-public export
-Rule : Type -> Type
-Rule ty = Grammar (TokenData VToken) True ty
+tmU : Grammar state VToken True Tm
+tmU = match Universe $> U
 
-eat : VToken -> Rule ()
-eat t = terminal (\x => if (t == tok x) then Just () else Nothing)
-keyword : VToken -> Rule ()
-keyword = eat
-symbol : VToken -> Rule ()
-symbol = eat
-eoi : Rule ()
-eoi = eat EndInput
+tmVar : Grammar state VToken True Tm
+tmVar = Var <$> match Identifier
 
-identifier : Rule Name
-identifier = terminal (\x => case tok x of
-  Identifier x => Just x
-  _ => Nothing)
-
-tmU : Rule Tm
-tmU = terminal (\x => case tok x of
-  Universe => Just U
-  _ => Nothing)
-
-tmVar : Rule Tm
-tmVar = terminal (\x => case tok x of
-  Identifier x => Just $ Var x
-  _ => Nothing)
-
-parens : Rule a -> Rule a
-parens p = symbol OpenP *> p <* symbol CloseP
+parens : Grammar state VToken True a -> Grammar state VToken True a
+parens p = match OpenP *> p <* match CloseP
 
 mutual
-  atom : Rule Tm
+  atom : Grammar state VToken True Tm
   atom = tmU <|> tmVar <|> (parens tm)
 
-  spine : Rule Tm
+  spine : Grammar state VToken True Tm
   spine = foldl1 App <$> some atom
 
   -- a -> b -> c
@@ -50,57 +28,57 @@ mutual
   -- or
   --
   -- a b c
-  funOrSpine : Rule Tm
+  funOrSpine : Grammar state VToken True Tm
   funOrSpine = do
     sp <- spine
     option sp (Pi "_" sp <$> tm)
 
-  tm : Rule Tm
+  tm : Grammar state VToken True Tm
   tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> funOrSpine
 
-  tmPostulate : Rule Tm
+  tmPostulate : Grammar state VToken True Tm
   tmPostulate = do
-    keyword Postulate
-    name <- identifier
-    symbol Colon
+    match Postulate
+    name <- match Identifier
+    match Colon
     a <- tm
-    symbol Semicolon
+    match Semicolon
     u <- tm
     pure $ Postulate name a u
 
   -- λ A x . x
-  tmLam : Rule Tm
+  tmLam : Grammar state VToken True Tm
   tmLam = do
-    keyword Lambda
-    names <- some identifier
-    symbol Dot
+    match Lambda
+    names <- some $ match Identifier
+    match Dot
     body <- tm
     pure $ foldr Lam body names
 
   -- (A : U) -> A -> A
-  tmPi : Rule Tm
+  tmPi : Grammar state VToken True Tm
   tmPi = do
-    symbol OpenP
-    name <- identifier
-    symbol Colon
+    match OpenP
+    name <- match Identifier
+    match Colon
     a <- tm
-    symbol CloseP
-    symbol Arrow
+    match CloseP
+    match Arrow
     Pi name a <$> tm
 
   -- let x : a = t; u
-  tmLet : Rule Tm
+  tmLet : Grammar state VToken True Tm
   tmLet = do
-    keyword Let
-    name <- identifier
-    symbol Colon
+    match Let
+    name <- match Identifier
+    match Colon
     a <- tm
-    symbol Assign
+    match Assign
     t <- tm
-    symbol Semicolon
+    match Semicolon
     u <- tm
     pure $ Let name a t u
 
 export
-tmFull : Rule Tm
-tmFull = tm <* eoi
+tmFull : Grammar state VToken True Tm
+tmFull = tm

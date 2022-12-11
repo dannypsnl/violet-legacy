@@ -53,12 +53,15 @@ Show VTokenKind where
   show Dot        = "."
   show Comment    = "<comment>"
 
+public export
 VToken : Type
 VToken = Token VTokenKind
 
+export
 Show VToken where
   show (Tok kind text) = "Tok kind: " ++ show kind ++ " text: " ++ text
 
+export
 TokenKind VTokenKind where
   TokType Identifier = String
   TokType _ = ()
