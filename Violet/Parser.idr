@@ -1,4 +1,4 @@
-module Violet.CParser
+module Violet.Parser
 
 import Text.Lexer
 import public Text.Parser.Core
