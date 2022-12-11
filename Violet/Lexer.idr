@@ -8,50 +8,51 @@ import Data.List
 
 public export
 data VTokenKind
-  = Identifier        -- x
-  | Let               -- let
-  | Postulate         -- postulate
-  | Universe          -- U
-  | Assign            -- =
-  | Colon             -- :
-  | Semicolon         -- ;
-  | OpenP             -- (
-  | CloseP            -- )
-  | Arrow             -- →
-  | Lambda            -- λ
-  | Dot               -- .
-  | Comment           -- single line comment or whitespace
+  = VTIdentifier        -- x
+  | VTLet               -- let
+  | VTPostulate         -- postulate
+  | VTUniverse          -- U
+  | VTAssign            -- =
+  | VTColon             -- :
+  | VTSemicolon         -- ;
+  | VTOpenP             -- (
+  | VTCloseP            -- )
+  | VTArrow             -- →
+  | VTLambda            -- λ
+  | VTDot               -- .
+  | VTComment           -- single line comment or whitespace
 
 export
 Eq VTokenKind where
-  Let == Let = True
-  Postulate == Postulate = True
-  Universe == Universe = True
-  Assign == Assign = True
-  Colon == Colon = True
-  Semicolon == Semicolon = True
-  OpenP == OpenP = True
-  CloseP == CloseP = True
-  Arrow == Arrow = True
-  Lambda == Lambda = True
-  Dot == Dot = True
-  _ == _ = False
+  (==) VTIdentifier VTIdentifier = True
+  (==) VTLet VTLet = True
+  (==) VTPostulate VTPostulate = True
+  (==) VTUniverse VTUniverse = True
+  (==) VTAssign VTAssign = True
+  (==) VTColon VTColon = True
+  (==) VTSemicolon VTSemicolon = True
+  (==) VTOpenP VTOpenP = True
+  (==) VTCloseP VTCloseP = True
+  (==) VTArrow VTArrow = True
+  (==) VTLambda VTLambda = True
+  (==) VTDot VTDot = True
+  (==) _ _ = False
 
 export
 Show VTokenKind where
-  show Identifier = "<identifer>"
-  show Let        = "let"
-  show Postulate  = "postulate"
-  show Universe   = "U"
-  show Assign     = "="
-  show Colon      = ":"
-  show Semicolon  = ";"
-  show OpenP      = "("
-  show CloseP     = ")"
-  show Arrow      = "→"
-  show Lambda     = "λ"
-  show Dot        = "."
-  show Comment    = "<comment>"
+  show VTIdentifier = "<identifer>"
+  show VTLet        = "let"
+  show VTPostulate  = "postulate"
+  show VTUniverse   = "U"
+  show VTAssign     = "="
+  show VTColon      = ":"
+  show VTSemicolon  = ";"
+  show VTOpenP      = "("
+  show VTCloseP     = ")"
+  show VTArrow      = "→"
+  show VTLambda     = "λ"
+  show VTDot        = "."
+  show VTComment    = "<comment>"
 
 public export
 VToken : Type
@@ -63,25 +64,25 @@ Show VToken where
 
 export
 TokenKind VTokenKind where
-  TokType Identifier = String
+  TokType VTIdentifier = String
   TokType _ = ()
 
-  tokValue Identifier s = s
-  tokValue Let _ = ()
-  tokValue Postulate _ = ()
-  tokValue Universe _ = ()
-  tokValue Assign _ = ()
-  tokValue Colon _ = ()
-  tokValue Semicolon _ = ()
-  tokValue OpenP _ = ()
-  tokValue CloseP _ = ()
-  tokValue Arrow _ = ()
-  tokValue Lambda _ = ()
-  tokValue Dot _ = ()
-  tokValue Comment _ = ()
+  tokValue VTIdentifier s = s
+  tokValue VTLet _ = ()
+  tokValue VTPostulate _ = ()
+  tokValue VTUniverse _ = ()
+  tokValue VTAssign _ = ()
+  tokValue VTColon _ = ()
+  tokValue VTSemicolon _ = ()
+  tokValue VTOpenP _ = ()
+  tokValue VTCloseP _ = ()
+  tokValue VTArrow _ = ()
+  tokValue VTLambda _ = ()
+  tokValue VTDot _ = ()
+  tokValue VTComment _ = ()
 
 ignored : WithBounds VToken -> Bool
-ignored (MkBounded (Tok Comment _) _ _) = True
+ignored (MkBounded (Tok VTComment _) _ _) = True
 ignored _ = False
 
 ||| An identifier starts from alphabet
@@ -103,33 +104,32 @@ identifier = (pred isAlpha) <+> many (pred isIdChar)
 
 keywords : List (String, VTokenKind)
 keywords = [
-  ("let", Let),
-  ("postulate", Postulate),
-  ("U", Universe)
+  ("let", VTLet),
+  ("postulate", VTPostulate),
+  ("U", VTUniverse)
 ]
 
-export
-violetTokens : TokenMap VToken
-violetTokens = toTokenMap [(spaces, Comment)] ++
+violetTokenMap : TokenMap VToken
+violetTokenMap = toTokenMap [(spaces, VTComment)] ++
   [(identifier, \s =>
       case lookup s keywords of
         (Just kind) => Tok kind s
-        Nothing => Tok Identifier s
+        Nothing => Tok VTIdentifier s
     )
   ] ++ toTokenMap [
-    (exact ":", Colon),
-    (exact ";", Semicolon),
-    (exact "→", Arrow),
-    (exact "λ", Lambda),
-    (exact ".", Dot),
-    (exact "(", OpenP),
-    (exact ")", CloseP),
-    (exact "=", Assign)
+    (exact ":", VTColon),
+    (exact ";", VTSemicolon),
+    (exact "→", VTArrow),
+    (exact "λ", VTLambda),
+    (exact ".", VTDot),
+    (exact "(", VTOpenP),
+    (exact ")", VTCloseP),
+    (exact "=", VTAssign)
   ]
 
 export
 lexViolet : String -> Maybe (List (WithBounds VToken))
 lexViolet str =
-  case lex violetTokens str of
+  case lex violetTokenMap str of
     (tokens, _, _, "") => Just (filter (not . ignored) tokens)
     _ => Nothing
