@@ -35,7 +35,7 @@ mutual
     option sp (Pi "_" sp <$> tm)
 
   tm : Grammar state VToken True Tm
-  tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> funOrSpine
+  tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine
 
   tmPostulate : Grammar state VToken True Tm
   tmPostulate = do
@@ -85,7 +85,7 @@ parse : String -> Either String Tm
 parse str =
   case lexViolet str of
     Just toks => parseTokens toks
-    Nothing => Left "error: failed to lex."
+    Nothing => Left "error: failed to lex"
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True

@@ -3,6 +3,7 @@ module Violet.Lexer
 import Text.Lexer
 import Text.Token
 import Data.List
+import Data.SortedSet
 
 %default total
 
@@ -85,14 +86,11 @@ TokenKind VTokenKind where
 ||| following with alphabet, number, and the below set
 ||| `-`, `_`, `?`, `!`
 isIdChar : Char -> Bool
-isIdChar '-' = True
-isIdChar '_' = True
-isIdChar '?' = True
-isIdChar '!' = True
-isIdChar x = isAlphaNum x
+isIdChar x = isAlphaNum x || (x `contains` fromList ['-', '_', '?', '!'])
+isStartChar x = isAlpha x || (x `contains` fromList ['-', '_', '?', '!'])
 
 identifier : Lexer
-identifier = (pred isAlpha) <+> many (pred isIdChar)
+identifier = (pred isStartChar) <+> many (pred isIdChar)
 
 -- 只要還沒碰到換行就是單行的註解內容
 comment : Lexer
