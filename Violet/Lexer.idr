@@ -20,7 +20,7 @@ data VTokenKind
   | VTArrow             -- →
   | VTLambda            -- λ
   | VTDot               -- .
-  | VTComment           -- single line comment or whitespace
+  | VTIgnore            -- single line comment or whitespace
 
 export
 Eq VTokenKind where
@@ -52,7 +52,7 @@ Show VTokenKind where
   show VTArrow      = "→"
   show VTLambda     = "λ"
   show VTDot        = "."
-  show VTComment    = "<comment>"
+  show VTIgnore     = "<ignore>"
 
 public export
 VToken : Type
@@ -60,7 +60,7 @@ VToken = Token VTokenKind
 
 export
 Show VToken where
-  show (Tok kind text) = "Tok kind: " ++ show kind ++ " text: " ++ text
+  show (Tok kind text) = "Tok kind: " ++ show kind ++ "\n text: " ++ text
 
 export
 TokenKind VTokenKind where
@@ -79,11 +79,7 @@ TokenKind VTokenKind where
   tokValue VTArrow _ = ()
   tokValue VTLambda _ = ()
   tokValue VTDot _ = ()
-  tokValue VTComment _ = ()
-
-ignored : WithBounds VToken -> Bool
-ignored (MkBounded (Tok VTComment _) _ _) = True
-ignored _ = False
+  tokValue VTIgnore _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
@@ -99,8 +95,8 @@ identifier : Lexer
 identifier = (pred isAlpha) <+> many (pred isIdChar)
 
 -- 只要還沒碰到換行就是單行的註解內容
--- comment : Lexer
--- comment = is '-' <+> is '-' <+> many (isNot '\n')
+comment : Lexer
+comment = is '-' <+> is '-' <+> many (isNot '\n')
 
 keywords : List (String, VTokenKind)
 keywords = [
@@ -110,13 +106,9 @@ keywords = [
 ]
 
 violetTokenMap : TokenMap VToken
-violetTokenMap = toTokenMap [(spaces, VTComment)] ++
-  [(identifier, \s =>
-      case lookup s keywords of
-        (Just kind) => Tok kind s
-        Nothing => Tok VTIdentifier s
-    )
-  ] ++ toTokenMap [
+violetTokenMap = toTokenMap [
+    (spaces, VTIgnore),
+    (comment, VTIgnore),
     (exact ":", VTColon),
     (exact ";", VTSemicolon),
     (exact "→", VTArrow),
@@ -125,11 +117,17 @@ violetTokenMap = toTokenMap [(spaces, VTComment)] ++
     (exact "(", VTOpenP),
     (exact ")", VTCloseP),
     (exact "=", VTAssign)
+  ] ++
+  [ (identifier, \s =>
+      case lookup s keywords of
+        (Just kind) => Tok kind s
+        Nothing => Tok VTIdentifier s
+    )
   ]
 
 export
 lexViolet : String -> Maybe (List (WithBounds VToken))
 lexViolet str =
   case lex violetTokenMap str of
-    (tokens, _, _, "") => Just (filter (not . ignored) tokens)
+    (tokens, _, _, "") => Just tokens
     _ => Nothing

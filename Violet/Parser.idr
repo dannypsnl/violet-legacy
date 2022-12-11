@@ -1,5 +1,6 @@
 module Violet.Parser
 
+import Data.String
 import Text.Lexer
 import public Text.Parser.Core
 import public Text.Parser
@@ -79,19 +80,20 @@ mutual
     u <- tm
     pure $ Let name a t u
 
-tmFull : Grammar state VToken True Tm
-tmFull = tm
-
 export
 parse : String -> Either String Tm
 parse str =
   case lexViolet str of
-    Just toks => pp toks
+    Just toks => parseTokens toks
     Nothing => Left "error: failed to lex."
   where
-    pp : List (WithBounds VToken) -> Either String Tm
-    pp toks =
-      case parse tmFull toks of
+    ignored : WithBounds VToken -> Bool
+    ignored (MkBounded (Tok VTIgnore _) _ _) = True
+    ignored _ = False
+    parseTokens : List (WithBounds VToken) -> Either String Tm
+    parseTokens toks =
+      let toks' = filter (not . ignored) toks
+      in case parse tm toks' of
         Right (l, []) => Right l
         Right e => Left "error: contains tokens that were not consumed"
-        Left e => Left $ "error: " ++ show e
+        Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
