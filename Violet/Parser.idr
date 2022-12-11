@@ -93,5 +93,5 @@ parse str =
     pp toks =
       case parse tmFull toks of
         Right (l, []) => Right l
-        Right e => Left "contains tokens that were not consumed"
-        Left e => Left (show e)
+        Right e => Left "error: contains tokens that were not consumed"
+        Left e => Left $ "error: " ++ show e
