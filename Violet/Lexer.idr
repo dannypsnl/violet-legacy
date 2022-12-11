@@ -127,6 +127,7 @@ violetTokens = toTokenMap [(spaces, Comment)] ++
     (exact "=", Assign)
   ]
 
+export
 lexViolet : String -> Maybe (List (WithBounds VToken))
 lexViolet str =
   case lex violetTokens str of

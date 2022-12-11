@@ -1,5 +1,7 @@
-build:
+SOURCE := Violet/Core.idr
+
+build: ${SOURCE}
 	@idris2 --build violet.ipkg
 
 run: build
-	@./violetc check example/test.vt
+	@./build/exec/violetc check example/test.vt

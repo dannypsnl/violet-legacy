@@ -1,10 +1,30 @@
 module Main
 
-import Violet
+import System
+import Control.App
+import Control.App.Console
+import Control.App.FileIO
+import Data.String
+
+import Violet.Core
+import Violet.Syntax
+import Violet.Parser
+
+export
+handle : (FileIO (IOError :: es), Console es) => List String -> App es ()
+handle [_, "check", filename] =
+  handle (readFile filename)
+    (\fileContent =>
+      case (parse fileContent) of
+        -- TODO: print err
+        Left err => putStrLn $ "error"
+        Right tm =>
+          case (infer emptyEnv emptyCtx tm) of
+            Left ce => putStr $ unlines [ "term:\n", show tm, "\nhas error:\n", show ce]
+            Right vty => putStr $ unlines [ "term:\n", show tm, "\nhas type:\n", show $ quote emptyEnv vty]
+      )
+    (\err : IOError => putStrLn $ "error: " ++ show err)
+handle _ = pure ()
 
 main : IO ()
-main = do
-  -- ignore the first argument, it's command itself
-  (_ :: args) <- getArgs
-  -- putStrLn $ show args
-  run $ handle args
+main = run $ handle !getArgs

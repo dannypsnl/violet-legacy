@@ -79,6 +79,19 @@ mutual
     u <- tm
     pure $ Let name a t u
 
-export
 tmFull : Grammar state VToken True Tm
 tmFull = tm
+
+export
+parse : String -> Either String Tm
+parse str =
+  case lexViolet str of
+    Just toks => pp toks
+    Nothing => Left "error: failed to lex."
+  where
+    pp : List (WithBounds VToken) -> Either String Tm
+    pp toks =
+      case parse tmFull toks of
+        Right (l, []) => Right l
+        Right e => Left "contains tokens that were not consumed"
+        Left e => Left (show e)

@@ -6,8 +6,7 @@ bugtracker = "http://www.github.com/dannypsnl/violet/issues"
 
 depends = contrib
 
-modules = Violet
-        , Violet.Parser
+modules = Violet.Parser
         , Violet.Core
         , Violet.Syntax
         , Violet.Val
