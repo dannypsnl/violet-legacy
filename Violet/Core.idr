@@ -1,7 +1,7 @@
 module Violet.Core
 
-import public Lightyear
-import public Lightyear.Position
+import Data.List
+import Data.String
 
 import Violet.Syntax
 import public Violet.Val
@@ -10,7 +10,7 @@ export
 data CheckError = MkCheckError (Maybe Position) String
 export
 Show CheckError where
-  show (MkCheckError (Just pos) msg) = concat [ display pos, "\n", msg]
+  show (MkCheckError (Just pos) msg) = show pos ++ "\n" ++ msg
   show (MkCheckError _ msg) = msg
 
 public export

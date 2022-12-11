@@ -59,11 +59,11 @@ violetTokens =
   ]
 
 export
-skipWs : (List (TokenData VToken), Int, Int, String) -> (List (TokenData VToken), Int, Int, String)
+skipWs : (List (Token VToken), Int, Int, String) -> (List (Token VToken), Int, Int, String)
 skipWs (ts, l, c, s) = ((filter notComment ts) ++ [MkToken l c EndInput], l, c, s)
   where
-    notComment : TokenData VToken -> Bool
-    notComment t = case (tok t) of
+    notComment : Token VToken -> Bool
+    notComment t = case (Tok t) of
       (Comment _) => False
       _ => True
 
@@ -101,5 +101,5 @@ Show VToken where
   show EndInput       = "<end of input>"
 
 export
-Show (TokenData VToken) where
+Show (Token VToken) where
   show (MkToken l c t) = show l ++ ":" ++ show c ++ ": tok=" ++ show t

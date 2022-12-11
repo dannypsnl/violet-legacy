@@ -1,5 +1,6 @@
 module Violet.Val
 
+import Data.List
 import Violet.Syntax
 
 mutual

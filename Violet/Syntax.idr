@@ -1,6 +1,13 @@
 module Violet.Syntax
 
 public export
+data Position = MkPos Int Int
+
+export
+Show Position where
+  show (MkPos line col) = show line ++ ":" ++ show col ++ ":"
+
+public export
 Name : Type
 Name = String
 
@@ -8,7 +15,7 @@ mutual
   ||| The Core Term of violet language
   public export
   data Tm
-    = SrcPos Tm
+    = SrcPos Position Tm
     | Var Name             -- x
     | Lam Name Tm          -- λ x . t
     | App Tm Tm            -- t u
@@ -24,7 +31,7 @@ mutual
 
 export
 Show Tm where
-  show (SrcPos t)        = show t
+  show (SrcPos _ t)        = show t
   show (Var name)        = name
   show (Lam x t)         = "λ " ++ x ++ "." ++ show t
   show (App t u)         = show t ++ " " ++ show u
