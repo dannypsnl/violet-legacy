@@ -1,9 +1,10 @@
 package violet
+version = 0.0.1
 
-sourceloc  = git://git@github.com:dannypsnl/violet.git
-bugtracker = http://www.github.com/dannypsnl/violet/issues
+sourceloc  = "git://git@github.com:dannypsnl/violet.git"
+bugtracker = "http://www.github.com/dannypsnl/violet/issues"
 
-pkgs = contrib, effects, lightyear
+depends = contrib
 
 modules = Violet
         , Violet.Parser
@@ -12,6 +13,7 @@ modules = Violet
         , Violet.Val
         , Violet.Lexer
 
+sourcedir = "."
 -- application
 executable = violetc
 main = Main

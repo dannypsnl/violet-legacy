@@ -1,7 +1,5 @@
 module Violet.Syntax
 
-import public Lightyear.Position
-
 public export
 Name : Type
 Name = String
@@ -10,7 +8,7 @@ mutual
   ||| The Core Term of violet language
   public export
   data Tm
-    = SrcPos Position Tm
+    = SrcPos Tm
     | Var Name             -- x
     | Lam Name Tm          -- λ x . t
     | App Tm Tm            -- t u
@@ -26,11 +24,11 @@ mutual
 
 export
 Show Tm where
-  show (SrcPos _ t)      = show t
+  show (SrcPos t)        = show t
   show (Var name)        = name
   show (Lam x t)         = "λ " ++ x ++ "." ++ show t
   show (App t u)         = show t ++ " " ++ show u
   show U                 = "U"
   show (Pi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b
-  show (Let x a t u)     = "let " ++ x ++ " : " ++ show a ++ " = " ++ show t ++ ";\n" ++ show u 
+  show (Let x a t u)     = "let " ++ x ++ " : " ++ show a ++ " = " ++ show t ++ ";\n" ++ show u
   show (Postulate x a u) = "postulate " ++ x ++ " : " ++ show a ++ ";\n" ++ show u
