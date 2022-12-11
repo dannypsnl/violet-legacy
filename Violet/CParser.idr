@@ -35,9 +35,12 @@ tmVar = terminal (\x => case tok x of
   Identifier x => Just $ Var x
   _ => Nothing)
 
+parens : Rule a -> Rule a
+parens p = symbol OpenP *> p <* symbol CloseP
+
 mutual
   atom : Rule Tm
-  atom = tmU <|> tmVar -- <|> (parens tm)
+  atom = tmU <|> tmVar <|> (parens tm)
 
   spine : Rule Tm
   spine = foldl1 App <$> some atom
