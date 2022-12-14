@@ -1,7 +1,7 @@
-module Violet.Val
+module Violet.Core.Val
 
 import Data.List
-import Violet.Syntax
+import Violet.Core.Term
 
 mutual
   public export

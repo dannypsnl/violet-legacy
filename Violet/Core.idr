@@ -3,8 +3,8 @@ module Violet.Core
 import Data.List
 import Data.String
 
-import Violet.Syntax
-import public Violet.Val
+import Violet.Core.Term
+import public Violet.Core.Val
 
 export
 data CheckError = MkCheckError (Maybe Position) String

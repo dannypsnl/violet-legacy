@@ -8,8 +8,9 @@ depends = contrib
 
 modules = Violet.Parser
         , Violet.Core
+        , Violet.Core.Val
+        , Violet.Core.Term
         , Violet.Syntax
-        , Violet.Val
         , Violet.Lexer
 
 sourcedir = "."

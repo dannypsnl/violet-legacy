@@ -1,41 +1,42 @@
 module Violet.Syntax
 
-public export
-data Position = MkPos Int Int
-
-export
-Show Position where
-  show (MkPos line col) = show line ++ ":" ++ show col ++ ":"
-
-public export
-Name : Type
-Name = String
+import public Violet.Core.Term
 
 mutual
   ||| The Core Term of violet language
   public export
-  data Tm
-    = SrcPos Position Tm
-    | Var Name             -- x
-    | Lam Name Tm          -- λ x . t
-    | App Tm Tm            -- t u
-    | U                    -- U
-    | Pi Name Ty Ty        -- (x : a) → b
-    | Let Name Ty Tm Tm    -- let x : a = t; u
-    -- FIXME?: maybe constructor should be treated special
-    | Postulate Name Ty Tm -- posulate x : a; u
+  data Raw
+    = RSrcPos Position Raw
+    | RVar Name               -- x
+    | RLam Name Raw           -- λ x . t
+    | RApp Raw Raw            -- t u
+    | RU                      -- U
+    | RPi Name RTy RTy        -- (x : a) → b
+    | RLet Name RTy Raw Raw   -- let x : a = t; u
+    | RPostulate Name RTy Raw -- posulate x : a; u
 
   public export
-  Ty : Type
-  Ty = Tm
+  RTy : Type
+  RTy = Raw
 
 export
-Show Tm where
-  show (SrcPos _ t)        = show t
-  show (Var name)        = name
-  show (Lam x t)         = "λ " ++ x ++ "." ++ show t
-  show (App t u)         = show t ++ " " ++ show u
-  show U                 = "U"
-  show (Pi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b
-  show (Let x a t u)     = "let " ++ x ++ " : " ++ show a ++ " = " ++ show t ++ ";\n" ++ show u
-  show (Postulate x a u) = "postulate " ++ x ++ " : " ++ show a ++ ";\n" ++ show u
+toTm : Raw -> Tm
+toTm (RSrcPos pos raw) = SrcPos pos (toTm raw)
+toTm (RVar x) = Var x
+toTm (RLam x t) = Lam x (toTm t)
+toTm (RApp t u) = App (toTm t) (toTm u)
+toTm RU = U
+toTm (RPi x a b) = Pi x (toTm a) (toTm b)
+toTm (RLet x a t u) = Let x (toTm a) (toTm t) (toTm u)
+toTm (RPostulate x a u) = Postulate x (toTm a) (toTm u)
+
+export
+Show Raw where
+  show (RSrcPos _ t)      = show t
+  show (RVar name)        = name
+  show (RLam x t)         = "λ " ++ x ++ "." ++ show t
+  show (RApp t u)         = show t ++ " " ++ show u
+  show RU                 = "U"
+  show (RPi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b
+  show (RLet x a t u)     = "let " ++ x ++ " : " ++ show a ++ " = " ++ show t ++ ";\n" ++ show u
+  show (RPostulate x a u) = "postulate " ++ x ++ " : " ++ show a ++ ";\n" ++ show u
