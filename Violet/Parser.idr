@@ -43,7 +43,8 @@ mutual
     name <- match VTIdentifier
     caseList <- many pCase
     match VTSemicolon
-    pure $ RData name caseList
+    u <- tm
+    pure $ RData name caseList u
     where
       pCase : Grammar state VToken True (Name, RTy)
       pCase = do
@@ -96,12 +97,6 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-topLevel : Grammar state VToken False (List Raw)
-topLevel = many tm
-
-transformTopLevel : (List Raw) -> Raw
-transformTopLevel = ?todo
-
 export
 parse : String -> Either String Raw
 parse str =
@@ -115,7 +110,7 @@ parse str =
     parseTokens : List (WithBounds VToken) -> Either String Raw
     parseTokens toks =
       let toks' = filter (not . ignored) toks
-      in case parse topLevel toks' of
-        Right (l, []) => Right (transformTopLevel l)
+      in case parse tm toks' of
+        Right (l, []) => Right l
         Right (_, leftTokens) => Left $ "error: contains tokens that were not consumed\n" ++ show leftTokens
         Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')

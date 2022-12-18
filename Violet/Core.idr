@@ -55,6 +55,7 @@ quote env v = case v of
 nf : Env -> Tm -> Tm
 nf env tm = quote env (eval env tm)
 
+export
 nf0 : Tm -> Tm
 nf0 = nf emptyEnv
 

@@ -20,8 +20,8 @@ handle [_, "check", filename] =
         Right raw =>
           let tm = (toTm raw)
           in case (infer emptyEnv emptyCtx tm) of
-            Left ce => putStr $ unlines [ "term:\n", show tm, "\nhas error:\n", show ce]
-            Right vty => putStr $ unlines [ "term:\n", show tm, "\nhas type:\n", show $ quote emptyEnv vty]
+            Left ce => putStr $ unlines [ "term:\n", show $ nf0 tm, "\nhas error:\n", show ce]
+            Right vty => putStr $ unlines [ "term:\n", show $ nf0 tm, "\nhas type:\n", show $ quote emptyEnv vty]
       )
     (\err : IOError => putStrLn $ "error: " ++ show err)
 handle _ = pure ()
