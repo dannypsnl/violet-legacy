@@ -35,7 +35,23 @@ mutual
     option sp (RPi "_" sp <$> tm)
 
   tm : Grammar state VToken True Raw
-  tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine
+  tm = tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine
+
+  tmData : Grammar state VToken True Raw
+  tmData = do
+    match VTData
+    name <- match VTIdentifier
+    caseList <- many pCase
+    match VTSemicolon
+    pure $ RData name caseList
+    where
+      pCase : Grammar state VToken True (Name, RTy)
+      pCase = do
+        match VTVerticalLine
+        name <- match VTIdentifier
+        match VTColon
+        a <- tm
+        pure (name, a)
 
   tmPostulate : Grammar state VToken True Raw
   tmPostulate = do
@@ -95,5 +111,5 @@ parse str =
       let toks' = filter (not . ignored) toks
       in case parse tm toks' of
         Right (l, []) => Right l
-        Right e => Left "error: contains tokens that were not consumed"
+        Right (l, e) => Left $ "error: contains tokens that were not consumed\n" ++ show e
         Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
