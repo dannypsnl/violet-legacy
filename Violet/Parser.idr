@@ -22,6 +22,13 @@ tmVar = RVar <$> match VTIdentifier
 parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
 
+-- RSrcPos : Position -> Raw -> Raw
+withPos : (Position -> a -> a) -> Rule a -> Rule a
+withPos f p = do
+  loc <- location
+  raw <- p
+  pure $ f (mkPos loc) raw
+
 mutual 
   atom : Rule Raw
   atom = tmU <|> tmVar <|> (parens tm)
@@ -40,7 +47,7 @@ mutual
     option sp (RPi "_" sp <$> tm)
  
   tm : Rule Raw
-  tm = tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine
+  tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine)
  
   tmData : Rule Raw
   tmData = do
@@ -102,15 +109,10 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-srcTm : Rule Raw
-srcTm = do
-  loc <- location
-  RSrcPos (mkPos loc) <$> tm
-
 parseTokens : List (WithBounds VToken) -> Either String Raw
 parseTokens toks =
   let toks' = filter (not . ignored) toks
-  in case parse srcTm toks' of
+  in case parse tm toks' of
     Right (l, []) => Right l
     Right (_, leftTokens) => Left $ "error: contains tokens that were not consumed\n" ++ show leftTokens
     Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
