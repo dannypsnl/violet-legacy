@@ -1,11 +1,6 @@
 module Violet.Core.Term
 
-public export
-data Position = MkPos Int Int
-
-export
-Show Position where
-  show (MkPos line col) = show line ++ ":" ++ show col ++ ":"
+import Violet.Core.Position
 
 public export
 Name : Type

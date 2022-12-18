@@ -4,6 +4,7 @@ import Data.List
 import Data.String
 
 import Violet.Core.Term
+import Violet.Core.Position
 import public Violet.Core.Val
 
 export
