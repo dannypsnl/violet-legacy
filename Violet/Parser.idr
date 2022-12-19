@@ -15,20 +15,20 @@ Rule = Grammar () VToken True
 
 tmU : Rule Raw
 tmU = match VTUniverse $> RU
- 
+
 tmVar : Rule Raw
 tmVar = RVar <$> match VTIdentifier
- 
+
 parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
 
 withPos : (Position -> a -> a) -> Rule a -> Rule a
 withPos f p = f (mkPos !location) <$> p
 
-mutual 
+mutual
   atom : Rule Raw
   atom = tmU <|> tmVar <|> (parens tm)
- 
+
   spine : Rule Raw
   spine = foldl1 RApp <$> some atom
 
@@ -36,15 +36,15 @@ mutual
   --
   -- or
   --
-  -- a b c 
+  -- a b c
   funOrSpine : Rule Raw
   funOrSpine = do
     sp <- spine
     option sp (RPi "_" sp <$> tm)
- 
+
   tm : Rule Raw
   tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine)
- 
+
   tmData : Rule Raw
   tmData = do
     match VTData
@@ -53,7 +53,7 @@ mutual
     match VTSemicolon
     u <- tm
     pure $ RData name caseList u
-    where 
+    where
       pCase : Rule (Name, RTy)
       pCase = do
         match VTVerticalLine
@@ -61,7 +61,7 @@ mutual
         match VTColon
         a <- tm
         pure (name, a)
- 
+
   tmPostulate : Rule Raw
   tmPostulate = do
     match VTPostulate
@@ -72,7 +72,7 @@ mutual
     u <- tm
     pure $ RPostulate name a u
 
-  -- λ A x . x 
+  -- λ A x . x
   tmLam : Rule Raw
   tmLam = do
     match VTLambda
@@ -81,7 +81,7 @@ mutual
     body <- tm
     pure $ foldr RLam body names
 
-  -- (A : U) -> A -> A 
+  -- (A : U) -> A -> A
   tmPi : Rule Raw
   tmPi = do
     match VTOpenP
@@ -92,7 +92,7 @@ mutual
     match VTArrow
     RPi name a <$> tm
 
-  -- let x : a = t; u 
+  -- let x : a = t; u
   tmLet : Rule Raw
   tmLet = do
     match VTLet
