@@ -3,4 +3,4 @@ data Nat
 | suc : Nat → Nat
 ;
 let id : (A : U) → (_ : A) → A = λ A x . x;
-id Nat (suc zero)
+id Nat $ id Nat (suc zero)

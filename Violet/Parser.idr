@@ -32,13 +32,17 @@ mutual
   spine : Rule Raw
   spine = foldl1 RApp <$> some atom
 
-  -- 1. `a -> b -> c`
-  -- 2. `a b c`
-  -- notice that application should be tighter than arrow
   expr : Rule Raw
   expr = buildExpressionParser [
-    [ Infix (RPi "_" <$ match VTArrow) AssocRight
-    ]
+    -- dollar sign can use to avoid parentheses
+    -- the following expressions are same
+    -- `a $ b c d` <=> `a (b c d)`
+    -- except the arrow symbol, it's the lowest
+    -- since it's about to reorganize the code
+    [ Infix (RApp <$ match VTDollar) AssocRight ],
+    -- To be convience, thus, arrow is the lowsest symbol
+    -- For example, user might write `List a -> List b`, here `List a` is an application
+    [ Infix (RPi "_" <$ match VTArrow) AssocRight ]
   ] (spine <|> atom)
 
   tm : Rule Raw
