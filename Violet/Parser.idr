@@ -2,12 +2,12 @@ module Violet.Parser
 
 import Data.String
 import Text.Lexer
-import public Text.Parser.Core
-import public Text.Parser
+import Text.Parser.Core
+import Text.Parser
+import Text.Parser.Expression
 
 import Violet.Lexer
 import Violet.Syntax
-import Violet.Core.Position
 
 public export
 Rule : Type -> Type
@@ -32,18 +32,17 @@ mutual
   spine : Rule Raw
   spine = foldl1 RApp <$> some atom
 
-  -- a -> b -> c
-  --
-  -- or
-  --
-  -- a b c
-  funOrSpine : Rule Raw
-  funOrSpine = do
-    sp <- spine
-    option sp (RPi "_" sp <$> tm)
+  -- 1. `a -> b -> c`
+  -- 2. `a b c`
+  -- notice that application should be tighter than arrow
+  expr : Rule Raw
+  expr = buildExpressionParser [
+    [ Infix (RPi "_" <$ match VTArrow) AssocRight
+    ]
+  ] (spine <|> atom)
 
   tm : Rule Raw
-  tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine)
+  tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
 
   tmData : Rule Raw
   tmData = do

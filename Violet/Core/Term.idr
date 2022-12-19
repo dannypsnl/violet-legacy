@@ -1,6 +1,6 @@
 module Violet.Core.Term
 
-import Violet.Core.Position
+import public Violet.Core.Position
 
 public export
 Name : Type

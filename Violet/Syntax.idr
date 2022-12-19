@@ -1,7 +1,6 @@
 module Violet.Syntax
 
 import Data.String
-import Violet.Core.Position
 import public Violet.Core.Term
 
 mutual
