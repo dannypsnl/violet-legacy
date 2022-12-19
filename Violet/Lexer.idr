@@ -10,9 +10,11 @@ import Data.SortedSet
 public export
 data VTokenKind
   = VTIdentifier        -- x
+  | VTData              -- data
   | VTLet               -- let
   | VTPostulate         -- postulate
   | VTUniverse          -- U
+  | VTVerticalLine      -- |
   | VTAssign            -- =
   | VTColon             -- :
   | VTSemicolon         -- ;
@@ -26,9 +28,11 @@ data VTokenKind
 export
 Eq VTokenKind where
   (==) VTIdentifier VTIdentifier = True
+  (==) VTData VTData = True
   (==) VTLet VTLet = True
   (==) VTPostulate VTPostulate = True
   (==) VTUniverse VTUniverse = True
+  (==) VTVerticalLine VTVerticalLine = True
   (==) VTAssign VTAssign = True
   (==) VTColon VTColon = True
   (==) VTSemicolon VTSemicolon = True
@@ -41,19 +45,21 @@ Eq VTokenKind where
 
 export
 Show VTokenKind where
-  show VTIdentifier = "<identifer>"
-  show VTLet        = "let"
-  show VTPostulate  = "postulate"
-  show VTUniverse   = "U"
-  show VTAssign     = "="
-  show VTColon      = ":"
-  show VTSemicolon  = ";"
-  show VTOpenP      = "("
-  show VTCloseP     = ")"
-  show VTArrow      = "→"
-  show VTLambda     = "λ"
-  show VTDot        = "."
-  show VTIgnore     = "<ignore>"
+  show VTIdentifier   = "<identifer>"
+  show VTData         = "data"
+  show VTLet          = "let"
+  show VTPostulate    = "postulate"
+  show VTUniverse     = "U"
+  show VTAssign       = "="
+  show VTColon        = ":"
+  show VTSemicolon    = ";"
+  show VTVerticalLine = "|"
+  show VTOpenP        = "("
+  show VTCloseP       = ")"
+  show VTArrow        = "→"
+  show VTLambda       = "λ"
+  show VTDot          = "."
+  show VTIgnore       = "<ignore>"
 
 public export
 VToken : Type
@@ -69,9 +75,11 @@ TokenKind VTokenKind where
   TokType _ = ()
 
   tokValue VTIdentifier s = s
+  tokValue VTData _ = ()
   tokValue VTLet _ = ()
   tokValue VTPostulate _ = ()
   tokValue VTUniverse _ = ()
+  tokValue VTVerticalLine _ = ()
   tokValue VTAssign _ = ()
   tokValue VTColon _ = ()
   tokValue VTSemicolon _ = ()
@@ -98,6 +106,7 @@ comment = is '-' <+> is '-' <+> many (isNot '\n')
 
 keywords : List (String, VTokenKind)
 keywords = [
+  ("data", VTData),
   ("let", VTLet),
   ("postulate", VTPostulate),
   ("U", VTUniverse)
@@ -107,6 +116,7 @@ violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
     (spaces, VTIgnore),
     (comment, VTIgnore),
+    (exact "|", VTVerticalLine),
     (exact ":", VTColon),
     (exact ";", VTSemicolon),
     (exact "→", VTArrow),

@@ -2,42 +2,66 @@ module Violet.Parser
 
 import Data.String
 import Text.Lexer
-import public Text.Parser.Core
-import public Text.Parser
+import Text.Parser.Core
+import Text.Parser
+import Text.Parser.Expression
 
 import Violet.Lexer
 import Violet.Syntax
 
-tmU : Grammar state VToken True Raw
+public export
+Rule : Type -> Type
+Rule = Grammar () VToken True
+
+tmU : Rule Raw
 tmU = match VTUniverse $> RU
 
-tmVar : Grammar state VToken True Raw
+tmVar : Rule Raw
 tmVar = RVar <$> match VTIdentifier
 
-parens : Grammar state VToken True a -> Grammar state VToken True a
+parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
 
+withPos : (Position -> a -> a) -> Rule a -> Rule a
+withPos f p = f (mkPos !location) <$> p
+
 mutual
-  atom : Grammar state VToken True Raw
+  atom : Rule Raw
   atom = tmU <|> tmVar <|> (parens tm)
 
-  spine : Grammar state VToken True Raw
+  spine : Rule Raw
   spine = foldl1 RApp <$> some atom
 
-  -- a -> b -> c
-  --
-  -- or
-  --
-  -- a b c
-  funOrSpine : Grammar state VToken True Raw
-  funOrSpine = do
-    sp <- spine
-    option sp (RPi "_" sp <$> tm)
+  -- 1. `a -> b -> c`
+  -- 2. `a b c`
+  -- notice that application should be tighter than arrow
+  expr : Rule Raw
+  expr = buildExpressionParser [
+    [ Infix (RPi "_" <$ match VTArrow) AssocRight
+    ]
+  ] (spine <|> atom)
 
-  tm : Grammar state VToken True Raw
-  tm = tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> spine
+  tm : Rule Raw
+  tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
 
-  tmPostulate : Grammar state VToken True Raw
+  tmData : Rule Raw
+  tmData = do
+    match VTData
+    name <- match VTIdentifier
+    caseList <- many pCase
+    match VTSemicolon
+    u <- tm
+    pure $ RData name caseList u
+    where
+      pCase : Rule (Name, RTy)
+      pCase = do
+        match VTVerticalLine
+        name <- match VTIdentifier
+        match VTColon
+        a <- tm
+        pure (name, a)
+
+  tmPostulate : Rule Raw
   tmPostulate = do
     match VTPostulate
     name <- match VTIdentifier
@@ -48,7 +72,7 @@ mutual
     pure $ RPostulate name a u
 
   -- λ A x . x
-  tmLam : Grammar state VToken True Raw
+  tmLam : Rule Raw
   tmLam = do
     match VTLambda
     names <- some $ match VTIdentifier
@@ -57,7 +81,7 @@ mutual
     pure $ foldr RLam body names
 
   -- (A : U) -> A -> A
-  tmPi : Grammar state VToken True Raw
+  tmPi : Rule Raw
   tmPi = do
     match VTOpenP
     name <- match VTIdentifier
@@ -68,7 +92,7 @@ mutual
     RPi name a <$> tm
 
   -- let x : a = t; u
-  tmLet : Grammar state VToken True Raw
+  tmLet : Rule Raw
   tmLet = do
     match VTLet
     name <- match VTIdentifier
@@ -80,20 +104,21 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
+parseTokens : List (WithBounds VToken) -> Either String Raw
+parseTokens toks =
+  let toks' = filter (not . ignored) toks
+  in case parse tm toks' of
+    Right (l, []) => Right l
+    Right (_, leftTokens) => Left $ "error: contains tokens that were not consumed\n" ++ show leftTokens
+    Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
+  where
+    ignored : WithBounds VToken -> Bool
+    ignored (MkBounded (Tok VTIgnore _) _ _) = True
+    ignored _ = False
+
 export
 parse : String -> Either String Raw
 parse str =
   case lexViolet str of
     Just toks => parseTokens toks
     Nothing => Left "error: failed to lex"
-  where
-    ignored : WithBounds VToken -> Bool
-    ignored (MkBounded (Tok VTIgnore _) _ _) = True
-    ignored _ = False
-    parseTokens : List (WithBounds VToken) -> Either String Raw
-    parseTokens toks =
-      let toks' = filter (not . ignored) toks
-      in case parse tm toks' of
-        Right (l, []) => Right l
-        Right e => Left "error: contains tokens that were not consumed"
-        Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')

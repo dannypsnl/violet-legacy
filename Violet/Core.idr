@@ -4,6 +4,7 @@ import Data.List
 import Data.String
 
 import Violet.Core.Term
+import Violet.Core.Position
 import public Violet.Core.Val
 
 export
@@ -55,6 +56,7 @@ quote env v = case v of
 nf : Env -> Tm -> Tm
 nf env tm = quote env (eval env tm)
 
+export
 nf0 : Tm -> Tm
 nf0 = nf emptyEnv
 
