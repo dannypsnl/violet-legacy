@@ -75,7 +75,7 @@ mutual
         VPi _ a b => do
           check env ctx u a
           pure (b (eval env u))
-        _ => report "bad app"
+        _ => report $ "bad app on: " ++ show (quote env tty)
     Lam _ _ => report $ "cannot inference lambda: " ++ show tm
     Pi x a b => do
       check env ctx a VU
