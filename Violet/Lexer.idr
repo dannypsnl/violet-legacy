@@ -23,6 +23,7 @@ data VTokenKind
   | VTArrow             -- →
   | VTLambda            -- λ
   | VTDot               -- .
+  | VTDollar            -- $
   | VTIgnore            -- single line comment or whitespace
 
 export
@@ -41,6 +42,7 @@ Eq VTokenKind where
   (==) VTArrow VTArrow = True
   (==) VTLambda VTLambda = True
   (==) VTDot VTDot = True
+  (==) VTDollar VTDollar = True
   (==) _ _ = False
 
 export
@@ -59,6 +61,7 @@ Show VTokenKind where
   show VTArrow        = "→"
   show VTLambda       = "λ"
   show VTDot          = "."
+  show VTDollar       = "$"
   show VTIgnore       = "<ignore>"
 
 public export
@@ -88,6 +91,7 @@ TokenKind VTokenKind where
   tokValue VTArrow _ = ()
   tokValue VTLambda _ = ()
   tokValue VTDot _ = ()
+  tokValue VTDollar _ = ()
   tokValue VTIgnore _ = ()
 
 ||| An identifier starts from alphabet
@@ -122,6 +126,7 @@ violetTokenMap = toTokenMap [
     (exact "→", VTArrow),
     (exact "λ", VTLambda),
     (exact ".", VTDot),
+    (exact "$", VTDollar),
     (exact "(", VTOpenP),
     (exact ")", VTCloseP),
     (exact "=", VTAssign)
