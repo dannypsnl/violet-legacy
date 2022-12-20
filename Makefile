@@ -1,7 +1,9 @@
-sources := $(wildcard *.idr)
+sources := $(wildcard ./src/*.idr)
+
+.PHONY: build run
 
 build: $(sources)
 	@idris2 --build violet.ipkg
 
 run: build
-	@./build/exec/violetc check example/test.vt
+	@./build/exec/violet check example/test.vt

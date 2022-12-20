@@ -13,7 +13,7 @@ modules = Violet.Parser
         , Violet.Syntax
         , Violet.Lexer
 
-sourcedir = "."
+sourcedir = "src"
 -- application
-executable = violetc
+executable = violet
 main = Main
