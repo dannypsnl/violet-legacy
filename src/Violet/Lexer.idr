@@ -109,10 +109,10 @@ comment : Lexer
 comment = is '-' <+> is '-' <+> many (isNot '\n')
 
 arrow : Lexer
-arrow = (is '-' <+> is '>') <|> (is '→')
+arrow = exact "->" <|> is '→'
 
 lambda : Lexer
-lambda = (is 'λ') <|> (exact "\\")
+lambda = (is 'λ') <|> (is '\\')
 
 keywords : List (String, VTokenKind)
 keywords = [
