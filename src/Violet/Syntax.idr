@@ -9,7 +9,7 @@ mutual
   data Raw
     = RSrcPos Position Raw
     | RVar Name               -- x
-    | RLam Name Raw           -- λ x . t
+    | RLam Name Raw           -- λ x => t
     | RApp Raw Raw            -- t u
     | RU                      -- U
     | RPi Name RTy RTy        -- (x : a) → b
@@ -46,7 +46,7 @@ export
 Show Raw where
   show (RSrcPos _ t)      = show t
   show (RVar name)        = name
-  show (RLam x t)         = "λ " ++ x ++ "." ++ show t
+  show (RLam x t)         = "λ " ++ x ++ "=>" ++ show t
   show (RApp t u)         = show t ++ " " ++ show u
   show RU                 = "U"
   show (RPi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b

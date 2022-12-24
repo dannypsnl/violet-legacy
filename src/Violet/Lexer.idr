@@ -22,7 +22,7 @@ data VTokenKind
   | VTCloseP            -- )
   | VTArrow             -- → or ->
   | VTLambda            -- λ or \
-  | VTDot               -- .
+  | VTLambdaArrow       -- =>
   | VTDollar            -- $
   | VTIgnore            -- single line comment or whitespace
 
@@ -41,7 +41,7 @@ Eq VTokenKind where
   (==) VTCloseP VTCloseP = True
   (==) VTArrow VTArrow = True
   (==) VTLambda VTLambda = True
-  (==) VTDot VTDot = True
+  (==) VTLambdaArrow VTLambdaArrow = True
   (==) VTDollar VTDollar = True
   (==) _ _ = False
 
@@ -60,7 +60,7 @@ Show VTokenKind where
   show VTCloseP       = ")"
   show VTArrow        = "→"
   show VTLambda       = "λ"
-  show VTDot          = "."
+  show VTLambdaArrow  = "=>"
   show VTDollar       = "$"
   show VTIgnore       = "<ignore>"
 
@@ -90,7 +90,7 @@ TokenKind VTokenKind where
   tokValue VTCloseP _ = ()
   tokValue VTArrow _ = ()
   tokValue VTLambda _ = ()
-  tokValue VTDot _ = ()
+  tokValue VTLambdaArrow _ = ()
   tokValue VTDollar _ = ()
   tokValue VTIgnore _ = ()
 
@@ -131,7 +131,7 @@ violetTokenMap = toTokenMap [
     (exact "|", VTVerticalLine),
     (exact ":", VTColon),
     (exact ";", VTSemicolon),
-    (exact ".", VTDot),
+    (exact "=>", VTLambdaArrow),
     (exact "$", VTDollar),
     (exact "(", VTOpenP),
     (exact ")", VTCloseP),
