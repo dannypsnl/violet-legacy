@@ -99,6 +99,8 @@ TokenKind VTokenKind where
 ||| `-`, `_`, `?`, `!`
 isIdChar : Char -> Bool
 isIdChar x = isAlphaNum x || (x `contains` fromList ['-', '_', '?', '!'])
+
+isStartChar : Char -> Bool
 isStartChar x = isAlpha x || (x `contains` fromList ['-', '_', '?', '!'])
 
 identifier : Lexer
