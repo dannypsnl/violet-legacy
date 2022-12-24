@@ -26,7 +26,22 @@ mutual
   RTy : Type
   RTy = Raw
 
-export
+public export
+data TopLevelRaw
+  = TLet Name RTy Raw       -- let x : a = t
+  | TPostulate Name RTy     -- posulate x : a
+  -- inductive type
+  -- data Nat
+  -- | zero : Nat
+  -- | suc : Nat -> Nat
+  | TData Name (List (Name, RTy))
+
+public export
+data ModuleInfoRaw = MkModuleInfoRaw Name
+
+public export
+data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
+
 toTm : Raw -> Tm
 toTm (RSrcPos pos raw) = SrcPos pos (toTm raw)
 toTm (RVar x) = Var x
@@ -40,6 +55,16 @@ toTm (RData x caseLst r) = foldl (\a, (x, t) => \u => a (Postulate x (toTm t) u)
   (\u => Postulate x U u)
   caseLst
   $ toTm r
+
+export
+toTTm : List TopLevelRaw -> Tm
+toTTm [] = U
+toTTm (TLet x a t :: xs) = Let x (toTm a) (toTm t) (toTTm xs)
+toTTm (TPostulate x a :: xs) = Postulate x (toTm a) (toTTm xs)
+toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (toTm t) u))
+  (\u => Postulate x U u)
+  caseLst
+  $ toTTm xs
 
 partial
 export

@@ -113,7 +113,7 @@ mutual
           , "\nactual type:\n"
           , "  " ++ (show $ quote env tty)
           ]
-  
+
   conv : Env -> Val -> Val -> Bool
   conv env t u = case (t, u) of
     (VU, VU) => True

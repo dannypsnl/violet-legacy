@@ -17,8 +17,8 @@ handle [_, "check", filename] =
     (\fileContent =>
       case (parse fileContent) of
         Left msg => putStrLn msg
-        Right raw =>
-          let tm = (toTm raw)
+        Right (MkModuleRaw _ xs) =>
+          let tm = (toTTm xs)
           in case (infer emptyEnv emptyCtx tm) of
             Left ce => putStr $ unlines [ "term:\n", show $ nf0 tm, "\nhas error\n", filename ++ ":" ++ show ce]
             Right vty => putStrLn $ show (nf0 tm) ++ " : " ++ show (quote emptyEnv vty)

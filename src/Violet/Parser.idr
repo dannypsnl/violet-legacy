@@ -108,10 +108,57 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-parseTokens : List (WithBounds VToken) -> Either String Raw
+ttmData : Rule TopLevelRaw
+ttmData = do
+  match VTData
+  name <- match VTIdentifier
+  caseList <- many pCase
+  match VTSemicolon
+  pure $ TData name caseList
+  where
+    pCase : Rule (Name, RTy)
+    pCase = do
+      match VTVerticalLine
+      name <- match VTIdentifier
+      match VTColon
+      a <- tm
+      pure (name, a)
+
+ttmPostulate : Rule TopLevelRaw
+ttmPostulate = do
+  match VTPostulate
+  name <- match VTIdentifier
+  match VTColon
+  a <- tm
+  match VTSemicolon
+  pure $ TPostulate name a
+
+-- let x : a = t
+ttmLet : Rule TopLevelRaw
+ttmLet = do
+  match VTLet
+  name <- match VTIdentifier
+  match VTColon
+  a <- tm
+  match VTAssign
+  t <- tm
+  match VTSemicolon
+  pure $ TLet name a t
+
+ttm : Rule TopLevelRaw
+ttm = ttmData <|> ttmPostulate <|> ttmLet
+
+moduleRule : Rule ModuleRaw
+moduleRule = do
+  match VModule
+  name <- match VTIdentifier
+  bindings <- many ttm
+  pure $ MkModuleRaw (MkModuleInfoRaw name) bindings
+
+parseTokens : List (WithBounds VToken) -> Either String ModuleRaw
 parseTokens toks =
   let toks' = filter (not . ignored) toks
-  in case parse tm toks' of
+  in case parse moduleRule toks' of
     Right (l, []) => Right l
     Right (_, leftTokens) => Left $ "error: contains tokens that were not consumed\n" ++ show leftTokens
     Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
@@ -121,7 +168,7 @@ parseTokens toks =
     ignored _ = False
 
 export
-parse : String -> Either String Raw
+parse : String -> Either String ModuleRaw
 parse str =
   case lexViolet str of
     Just toks => parseTokens toks
