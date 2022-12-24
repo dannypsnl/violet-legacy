@@ -20,8 +20,8 @@ data VTokenKind
   | VTSemicolon         -- ;
   | VTOpenP             -- (
   | VTCloseP            -- )
-  | VTArrow             -- →
-  | VTLambda            -- λ
+  | VTArrow             -- → or ->
+  | VTLambda            -- λ or \
   | VTDot               -- .
   | VTDollar            -- $
   | VTIgnore            -- single line comment or whitespace
@@ -108,6 +108,12 @@ identifier = (pred isStartChar) <+> many (pred isIdChar)
 comment : Lexer
 comment = is '-' <+> is '-' <+> many (isNot '\n')
 
+arrow : Lexer
+arrow = (is '-' <+> is '>') <|> (is '→')
+
+lambda : Lexer
+lambda = (is 'λ') <|> (exact "\\")
+
 keywords : List (String, VTokenKind)
 keywords = [
   ("data", VTData),
@@ -120,11 +126,11 @@ violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
     (spaces, VTIgnore),
     (comment, VTIgnore),
+    (arrow, VTArrow),
+    (lambda, VTLambda),
     (exact "|", VTVerticalLine),
     (exact ":", VTColon),
     (exact ";", VTSemicolon),
-    (exact "→", VTArrow),
-    (exact "λ", VTLambda),
     (exact ".", VTDot),
     (exact "$", VTDollar),
     (exact "(", VTOpenP),
