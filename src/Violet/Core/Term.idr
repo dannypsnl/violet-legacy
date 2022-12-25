@@ -28,17 +28,6 @@ mutual
   Ty : Type
   Ty = Tm
 
-partial export
-Show Tm where
-  show (SrcPos t) = show t.val
-  show (Var name) = name
-  show (Lam x t) = "Lam " ++ x ++ " " ++ show t
-  show (App t u) = "App " ++ show t ++ " " ++ show u
-  show U = "U"
-  show (Pi x a b) = "Pi " ++ x ++ " " ++ show a ++ " " ++ show b
-  show (Let x a t u) = "Let " ++ x ++ " " ++ show a ++ " " ++ show t ++ " " ++ show u
-  show (Postulate x a u) = "Postulate " ++ x ++ " " ++ show a ++ " " ++ show u
-
 export
 Pretty Tm where
   pretty (SrcPos t) = pretty t.val
