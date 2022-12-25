@@ -6,6 +6,7 @@ import Text.Parser.Core
 import Text.Parser
 import Text.Parser.Expression
 import Text.PrettyPrint.Prettyprinter.Doc
+import Text.PrettyPrint.Prettyprinter.Render.Terminal
 
 import Violet.Lexer
 import Violet.Syntax
@@ -110,20 +111,23 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-parseTokens : List (WithBounds VToken) -> (ParsingError VToken -> PError) -> Either (Doc ann) Raw
+parseTokens : List (WithBounds VToken) -> (ParsingError VToken -> PError) -> Either (Doc AnsiStyle) Raw
 parseTokens toks mkPError =
   let toks' = filter (not . ignored) toks
   in case parse tm toks' of
     Right (l, []) => Right l
     Right (_, leftTokens) => Left $ pretty $ "error: contains tokens that were not consumed\n" ++ show leftTokens
-    Left es => Left $ vsep $ map (prettyError . mkPError) $ forget es
+    Left es =>
+      let es' = map mkPError $ take 3 $ forget es
+      in let maxLine = findMaxLine es'
+      in Left $ vsep $ map (prettyError maxLine) es'
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True
     ignored _ = False
 
 export
-parse : String -> Either (Doc ann) Raw
+parse : String -> Either (Doc AnsiStyle) Raw
 parse source =
   case lexViolet source of
     Just toks => parseTokens toks (MkPError source)
