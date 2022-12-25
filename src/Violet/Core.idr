@@ -76,10 +76,10 @@ mutual
           pure (b (eval env u))
         _ => report
           $ annotate bold $ annotate (color Red)
-          $ hcat ["bad app on: ", pretty $ show (quote env tty)]
+          $ hcat ["bad app on: ", pretty (quote env tty)]
     Lam _ _ => report
       $ annotate bold $ annotate (color Red)
-      $ hcat ["cannot inference lambda: ", pretty $ show tm]
+      $ hcat ["cannot inference lambda: ", pretty tm]
     Pi x a b => do
       check env ctx a VU
       check (extend env x (VVar x)) (extendCtx ctx x (eval env a)) b VU
@@ -112,9 +112,9 @@ mutual
         else report $ vcat
           [ annotate bold $ annotate (color Red) $ "type mismatched"
           , "expected type:"
-          , annotate bold $ annotate (color Blue) $ indent 2 $ pretty $ show $ quote env a
+          , annotate bold $ annotate (color Blue) $ indent 2 $ pretty $ quote env a
           , "actual type:"
-          , annotate bold $ annotate (color Yellow) $ indent 2 $ pretty $ show $ quote env tty
+          , annotate bold $ annotate (color Yellow) $ indent 2 $ pretty $ quote env tty
           ]
   
   conv : Env -> Val -> Val -> Bool

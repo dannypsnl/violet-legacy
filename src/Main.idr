@@ -23,14 +23,14 @@ handle [_, "check", filename] =
           let tm = (toTm raw)
           in case (infer emptyEnv emptyCtx tm) of
             Left ce => primIO $ putDoc $
-              (annotate bold $ pretty (show (nf0 tm)))
+              (annotate bold $ pretty (nf0 tm))
               <++> "has error:"
               <++> line
               <++> prettyCE filename source ce
             Right vty => primIO $ putDoc $
-              (annotate bold $ pretty (show (nf0 tm)))
+              (annotate bold $ pretty (nf0 tm))
               <++> ":"
-              <++> (annotate bold $ annotate (color Blue) $ pretty (show (quote emptyEnv vty)))
+              <++> (annotate bold $ annotate (color Blue) $ pretty (quote emptyEnv vty))
       )
     (\err : IOError => putStrLn $ "error: " ++ show err)
 handle _ = pure ()
