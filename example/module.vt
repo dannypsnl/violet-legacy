@@ -8,4 +8,6 @@ data SomethingElse;
 
 let id : (A : U) → (_ : A) → A = λ A x . x;
 
-let main : Nat = id Nat $ id Nat (suc zero);
+let main : Nat =
+  let one : Nat = suc zero;
+  id Nat $ id Nat one;
