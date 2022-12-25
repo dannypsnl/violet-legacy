@@ -1,7 +1,6 @@
 module Violet.Core.Term
 
 import Text.Parser.Core
-import public Violet.Core.Position
 
 public export
 Name : Type

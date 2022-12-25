@@ -3,28 +3,23 @@ module Violet.Core
 import Data.List
 import Data.String
 import Text.Parser.Core
+import Text.PrettyPrint.Prettyprinter.Doc
+import Text.PrettyPrint.Prettyprinter.Render.Terminal
 
 import Violet.Core.Term
-import Violet.Core.Position
 import public Violet.Core.Val
-
-export
-data CheckError = MkCheckError (Maybe Bounds) String
-export
-Show CheckError where
-  show (MkCheckError (Just pos) msg) = show pos ++ "\n" ++ msg
-  show (MkCheckError _ msg) = msg
+import public Violet.Error.Check
 
 public export
 checkM : Type -> Type
-checkM a = Either CheckError a
+checkM a = Either (CheckError AnsiStyle) a
 
 addPos : Bounds -> checkM a -> checkM a
 addPos pos (Left (MkCheckError Nothing msg)) =
   (Left (MkCheckError (Just pos) msg))
 addPos _ ma = ma
 
-report : String -> checkM a
+report : Doc AnsiStyle -> checkM a
 report msg = Left (MkCheckError Nothing msg)
 
 eval : Env -> Tm -> Val
@@ -68,7 +63,9 @@ mutual
   infer env ctx tm = case tm of
     SrcPos t => addPos t.bounds (infer env ctx t.val)
     Var x => case lookup x ctx of
-      Nothing => report $ "variable: " ++ x ++ " not found"
+      Nothing => report
+        $ annotate bold $ annotate (color Red)
+        $ hcat ["variable:", pretty x, "not found"]
       Just a => pure a
     U => pure VU
     App t u => do
@@ -77,8 +74,12 @@ mutual
         VPi _ a b => do
           check env ctx u a
           pure (b (eval env u))
-        _ => report $ "bad app on: " ++ show (quote env tty)
-    Lam _ _ => report $ "cannot inference lambda: " ++ show tm
+        _ => report
+          $ annotate bold $ annotate (color Red)
+          $ hcat ["bad app on: ", pretty $ show (quote env tty)]
+    Lam _ _ => report
+      $ annotate bold $ annotate (color Red)
+      $ hcat ["cannot inference lambda: ", pretty $ show tm]
     Pi x a b => do
       check env ctx a VU
       check (extend env x (VVar x)) (extendCtx ctx x (eval env a)) b VU
@@ -108,12 +109,12 @@ mutual
       tty <- infer env ctx t
       if (conv env tty a)
         then pure ()
-        else report $ unlines
-          [ "type mismatched"
-          , "expected type:\n"
-          , "  " ++ (show $ quote env a)
-          , "\nactual type:\n"
-          , "  " ++ (show $ quote env tty)
+        else report $ vcat
+          [ annotate bold $ annotate (color Red) $ "type mismatched"
+          , "expected type:"
+          , annotate bold $ annotate (color Blue) $ indent 2 $ pretty $ show $ quote env a
+          , "actual type:"
+          , annotate bold $ annotate (color Yellow) $ indent 2 $ pretty $ show $ quote env tty
           ]
   
   conv : Env -> Val -> Val -> Bool

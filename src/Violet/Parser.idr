@@ -25,9 +25,6 @@ tmVar = RVar <$> match VTIdentifier
 parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
 
-withPos : (Position -> a -> a) -> Rule a -> Rule a
-withPos f p = f (mkPos !location) <$> p
-
 mutual
   atom : Rule Raw
   atom = tmU <|> tmVar <|> (parens tm)
