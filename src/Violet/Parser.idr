@@ -5,9 +5,11 @@ import Text.Lexer
 import Text.Parser.Core
 import Text.Parser
 import Text.Parser.Expression
+import Text.PrettyPrint.Prettyprinter.Doc
 
 import Violet.Lexer
 import Violet.Syntax
+import Violet.Error.Parsing
 
 public export
 Rule : Type -> Type
@@ -108,21 +110,21 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-parseTokens : List (WithBounds VToken) -> Either String Raw
-parseTokens toks =
+parseTokens : List (WithBounds VToken) -> (ParsingError VToken -> PError) -> Either (Doc ann) Raw
+parseTokens toks mkPError =
   let toks' = filter (not . ignored) toks
   in case parse tm toks' of
     Right (l, []) => Right l
-    Right (_, leftTokens) => Left $ "error: contains tokens that were not consumed\n" ++ show leftTokens
-    Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
+    Right (_, leftTokens) => Left $ pretty $ "error: contains tokens that were not consumed\n" ++ show leftTokens
+    Left es => Left $ vsep $ map (prettyError . mkPError) $ forget es
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True
     ignored _ = False
 
 export
-parse : String -> Either String Raw
-parse str =
-  case lexViolet str of
-    Just toks => parseTokens toks
-    Nothing => Left "error: failed to lex"
+parse : String -> Either (Doc ann) Raw
+parse source =
+  case lexViolet source of
+    Just toks => parseTokens toks (MkPError source)
+    Nothing => Left $ pretty "error: failed to lex"

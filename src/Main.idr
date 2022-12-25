@@ -5,18 +5,20 @@ import Control.App
 import Control.App.Console
 import Control.App.FileIO
 import Data.String
+import Text.PrettyPrint.Prettyprinter.Doc
+import Text.PrettyPrint.Prettyprinter.Render.Terminal
 
 import Violet.Core
 import Violet.Syntax
 import Violet.Parser
 
 export
-handle : (FileIO (IOError :: es), Console es) => List String -> App es ()
+handle : (PrimIO es, FileIO (IOError :: es), Console es) => List String -> App es ()
 handle [_, "check", filename] =
   handle (readFile filename)
     (\fileContent =>
       case (parse fileContent) of
-        Left msg => putStrLn msg
+        Left doc => primIO $ putDoc doc
         Right raw =>
           let tm = (toTm raw)
           in case (infer emptyEnv emptyCtx tm) of
