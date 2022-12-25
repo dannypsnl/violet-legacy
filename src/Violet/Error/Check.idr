@@ -11,6 +11,6 @@ export
 prettyCE : {ann : Type} -> CheckError ann -> Doc ann
 prettyCE (MkCheckError Nothing msg) = msg
 prettyCE (MkCheckError (Just bounds) msg) =
-    hcat [pretty bounds.startLine, ":", pretty bounds.startCol, ":"]
-      <++> line
-      <++> msg
+  hcat [pretty bounds.startLine, ":", pretty bounds.startCol, ":"]
+  <++> line
+  <++> msg

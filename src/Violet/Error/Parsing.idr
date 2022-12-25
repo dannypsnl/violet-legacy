@@ -26,7 +26,7 @@ getCode source line shift =
       in (annotate (color Blue) $
           pretty (line+1)
           <++> pretty "|")
-         <++> pretty curLine
+          <++> pretty curLine
 
 export
 prettyError : Int -> PError -> Doc AnsiStyle
