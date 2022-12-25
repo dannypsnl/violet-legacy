@@ -28,27 +28,38 @@ mutual
   Ty : Type
   Ty = Tm
 
-prettyTm : Tm -> Doc ann
-prettyTm (SrcPos t)        = prettyTm (t.val)
-prettyTm (Var name)        = pretty name
-prettyTm (Lam x t)         = hsep ["λ", pretty x, "=>", prettyTm t]
--- FIXME: should wrap nested app but leave rest
-prettyTm (App t u)         = hsep [prettyTm t, prettyTm u]
-prettyTm U                 = "U"
-prettyTm (Pi x a b)        =
-  hsep [ hcat ["(", pretty x],
-         ":",
-         hcat [prettyTm a, ")"],
-         "→", prettyTm b
-       ]
-prettyTm (Let x a t u)     =
-  hsep [ "let", pretty x, ":", prettyTm a, "=", hcat [prettyTm t, ";"] ]
-  <++> line
-  <++> prettyTm u
-prettyTm (Postulate x a u) =
-  hsep ["postulate", pretty x, ":", hcat [prettyTm a, ";"]]
-  <++> line
-  <++> prettyTm u
+partial export
+Show Tm where
+  show (SrcPos t) = show t.val
+  show (Var name) = name
+  show (Lam x t) = "Lam " ++ x ++ " " ++ show t
+  show (App t u) = "App " ++ show t ++ " " ++ show u
+  show U = "U"
+  show (Pi x a b) = "Pi " ++ x ++ " " ++ show a ++ " " ++ show b
+  show (Let x a t u) = "Let " ++ x ++ " " ++ show a ++ " " ++ show t ++ " " ++ show u
+  show (Postulate x a u) = "Postulate " ++ x ++ " " ++ show a ++ " " ++ show u
+
 export
 Pretty Tm where
-  pretty = prettyTm
+  pretty (SrcPos t) = pretty t.val
+  pretty (Var name) = pretty name
+  pretty (Lam x t) = hsep ["λ", pretty x, "=>", pretty t]
+  pretty (App t u) = pretty t <++> case u of
+    SrcPos t => parens $ pretty t.val
+    App {}   => parens $ pretty u
+    _        => pretty u
+  pretty U = "U"
+  pretty (Pi x a b) =
+    hsep [ hcat ["(", pretty x],
+           ":",
+           hcat [pretty a, ")"],
+           "→", pretty b
+         ]
+  pretty (Let x a t u) =
+    hsep [ "let", pretty x, ":", pretty a, "=", hcat [pretty t, ";"] ]
+    <++> line
+    <++> pretty u
+  pretty (Postulate x a u) =
+    hsep ["postulate", pretty x, ":", hcat [pretty a, ";"]]
+    <++> line
+    <++> pretty u
