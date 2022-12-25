@@ -12,7 +12,7 @@ mutual
   data Tm
     = SrcPos Position Tm
     | Var Name             -- x
-    | Lam Name Tm          -- λ x . t
+    | Lam Name Tm          -- λ x => t
     | App Tm Tm            -- t u
     | U                    -- U
     | Pi Name Ty Ty        -- (x : a) → b
@@ -28,7 +28,7 @@ export
 Show Tm where
   show (SrcPos _ t)        = show t
   show (Var name)        = name
-  show (Lam x t)         = "λ " ++ x ++ "." ++ show t
+  show (Lam x t)         = "λ " ++ x ++ "=>" ++ show t
   show (App t u)         = show t ++ " " ++ show u
   show U                 = "U"
   show (Pi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b

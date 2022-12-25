@@ -75,12 +75,12 @@ mutual
     u <- tm
     pure $ RPostulate name a u
 
-  -- λ A x . x
+  -- λ A x => x
   tmLam : Rule Raw
   tmLam = do
     match VTLambda
     names <- some $ match VTIdentifier
-    match VTDot
+    match VTLambdaArrow
     body <- tm
     pure $ foldr RLam body names
 
