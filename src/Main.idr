@@ -18,15 +18,15 @@ handle [_, "check", filename] =
   handle (readFile filename)
     (\source =>
       case (parse source) of
-        Left doc => primIO $ putDoc doc
+        Left pErr => primIO $ putDoc $ prettyError pErr
         Right raw =>
           let tm = (toTm raw)
           in case (infer emptyEnv emptyCtx tm) of
-            Left ce => primIO $ putDoc $
+            Left cErr => primIO $ putDoc $
               (annotate bold $ pretty (nf0 tm))
               <++> "has error:"
               <++> line
-              <++> prettyCE filename source ce
+              <++> prettyCheckError filename source cErr
             Right vty => primIO $ putDoc $
               (annotate bold $ pretty (nf0 tm))
               <++> ":"

@@ -8,9 +8,9 @@ public export
 data CheckError ann = MkCheckError (Maybe Bounds) (Doc ann)
 
 export
-prettyCE : String -> String -> CheckError AnsiStyle -> Doc AnsiStyle
-prettyCE filename source (MkCheckError Nothing msg) = msg
-prettyCE filename source (MkCheckError (Just bounds) msg) =
+prettyCheckError : String -> String -> CheckError AnsiStyle -> Doc AnsiStyle
+prettyCheckError filename source (MkCheckError Nothing msg) = msg
+prettyCheckError filename source (MkCheckError (Just bounds) msg) =
   hcat [pretty filename, ":", pretty (bounds.startLine+1), ":", pretty bounds.startCol, ":"]
   <++> line
   <++> line

@@ -5,12 +5,10 @@ import Text.Lexer
 import Text.Parser.Core
 import Text.Parser
 import Text.Parser.Expression
-import Text.PrettyPrint.Prettyprinter.Doc
-import Text.PrettyPrint.Prettyprinter.Render.Terminal
 
 import Violet.Lexer
 import Violet.Syntax
-import Violet.Error.Parsing
+import public Violet.Error.Parsing
 
 public export
 Rule : Type -> Type
@@ -110,22 +108,21 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-parseTokens : List (WithBounds VToken) -> (ParsingError VToken -> PError) -> Either (Doc AnsiStyle) Raw
-parseTokens toks mkPError =
+parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError Raw
+parseTokens toks source =
   let toks' = filter (not . ignored) toks
   in case parse tm toks' of
     Right (l, []) => Right l
-    Right (_, leftTokens) => Left $ pretty $ "error: contains tokens that were not consumed\n" ++ show leftTokens
-    Left es => let es' = map mkPError $ take 3 $ forget es
-               in Left $ vsep $ map prettyError es'
+    Right (_, leftTokens) => Left $ pErrFromStr source $ "error: contains tokens that were not consumed\n" ++ show leftTokens
+    Left es => Left $ (fromParsingError source) $ head es
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True
     ignored _ = False
 
 export
-parse : String -> Either (Doc AnsiStyle) Raw
+parse : String -> Either PError Raw
 parse source =
   case lexViolet source of
-    Just toks => parseTokens toks (MkPError source)
-    Nothing => Left $ pretty "error: failed to lex"
+    Just toks => parseTokens toks source
+    Nothing => Left $ pErrFromStr source "error: failed to lex"
