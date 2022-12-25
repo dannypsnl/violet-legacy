@@ -2,13 +2,14 @@ module Violet.Core
 
 import Data.List
 import Data.String
+import Text.Parser.Core
 
 import Violet.Core.Term
 import Violet.Core.Position
 import public Violet.Core.Val
 
 export
-data CheckError = MkCheckError (Maybe Position) String
+data CheckError = MkCheckError (Maybe Bounds) String
 export
 Show CheckError where
   show (MkCheckError (Just pos) msg) = show pos ++ "\n" ++ msg
@@ -18,8 +19,9 @@ public export
 checkM : Type -> Type
 checkM a = Either CheckError a
 
-addPos : Position -> checkM a -> checkM a
-addPos pos (Left (MkCheckError Nothing msg)) = (Left (MkCheckError (Just pos) msg))
+addPos : Bounds -> checkM a -> checkM a
+addPos pos (Left (MkCheckError Nothing msg)) =
+  (Left (MkCheckError (Just pos) msg))
 addPos _ ma = ma
 
 report : String -> checkM a
@@ -27,7 +29,7 @@ report msg = Left (MkCheckError Nothing msg)
 
 eval : Env -> Tm -> Val
 eval env tm = case tm of
-  SrcPos _ tm => eval env tm
+  SrcPos tm => eval env tm.val
   Var x => case lookup x env of
     Just a => a
     _ => ?unreachable
@@ -64,7 +66,7 @@ mutual
   export
   infer : Env -> Ctx -> Tm -> checkM VTy
   infer env ctx tm = case tm of
-    SrcPos pos t => addPos pos (infer env ctx t)
+    SrcPos t => addPos t.bounds (infer env ctx t.val)
     Var x => case lookup x ctx of
       Nothing => report $ "variable: " ++ x ++ " not found"
       Just a => pure a
@@ -93,7 +95,7 @@ mutual
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
-    (SrcPos pos t, a) => addPos pos (check env ctx t a)
+    (SrcPos t, a) => addPos t.bounds (check env ctx t.val a)
     (Lam x t, VPi x' a b) =>
       let x' = fresh env x'
       in check (extend env x (VVar x)) (extendCtx ctx x a) t (b (VVar x'))

@@ -1,5 +1,6 @@
 module Violet.Core.Term
 
+import Text.Parser.Core
 import public Violet.Core.Position
 
 public export
@@ -10,7 +11,7 @@ mutual
   ||| The Core Term of violet language
   public export
   data Tm
-    = SrcPos Position Tm
+    = SrcPos (WithBounds Tm)
     | Var Name             -- x
     | Lam Name Tm          -- λ x => t
     | App Tm Tm            -- t u
@@ -24,13 +25,16 @@ mutual
   Ty : Type
   Ty = Tm
 
-export
+showTm : Tm -> String
+showTm (SrcPos t)        = showTm (t.val)
+showTm (Var name)        = name
+showTm (Lam x t)         = "λ " ++ x ++ "." ++ showTm t
+showTm (App t u)         = showTm t ++ " " ++ showTm u
+showTm U                 = "U"
+showTm (Pi x a b)        = "(" ++ x ++ " : " ++ showTm a ++ ") → " ++ showTm b
+showTm (Let x a t u)     = "let " ++ x ++ " : " ++ showTm a ++ " = " ++ showTm t ++ ";\n" ++ showTm u
+showTm (Postulate x a u) = "postulate " ++ x ++ " : " ++ showTm a ++ ";\n" ++ showTm u
+
+export partial
 Show Tm where
-  show (SrcPos _ t)        = show t
-  show (Var name)        = name
-  show (Lam x t)         = "λ " ++ x ++ "=>" ++ show t
-  show (App t u)         = show t ++ " " ++ show u
-  show U                 = "U"
-  show (Pi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b
-  show (Let x a t u)     = "let " ++ x ++ " : " ++ show a ++ " = " ++ show t ++ ";\n" ++ show u
-  show (Postulate x a u) = "postulate " ++ x ++ " : " ++ show a ++ ";\n" ++ show u
+  show = showTm

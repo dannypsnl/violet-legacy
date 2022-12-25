@@ -49,7 +49,9 @@ mutual
   ] (spine <|> atom)
 
   tm : Rule Raw
-  tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
+  tm = do
+    r <- bounds (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
+    pure $ RSrcPos r
 
   tmData : Rule Raw
   tmData = do
