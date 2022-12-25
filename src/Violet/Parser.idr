@@ -150,7 +150,7 @@ ttm = ttmData <|> ttmPostulate <|> ttmLet
 
 moduleRule : Rule ModuleRaw
 moduleRule = do
-  match VModule
+  match VTModule
   name <- match VTIdentifier
   bindings <- many ttm
   pure $ MkModuleRaw (MkModuleInfoRaw name) bindings

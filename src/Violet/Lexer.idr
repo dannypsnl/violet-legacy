@@ -25,7 +25,7 @@ data VTokenKind
   | VTDot               -- .
   | VTDollar            -- $
   | VTIgnore            -- single line comment or whitespace
-  | VModule             -- module
+  | VTModule             -- module
 
 export
 Eq VTokenKind where
@@ -44,7 +44,7 @@ Eq VTokenKind where
   (==) VTLambda VTLambda = True
   (==) VTDot VTDot = True
   (==) VTDollar VTDollar = True
-  (==) VModule VModule = True
+  (==) VTModule VTModule = True
   (==) _ _ = False
 
 export
@@ -65,7 +65,7 @@ Show VTokenKind where
   show VTDot          = "."
   show VTDollar       = "$"
   show VTIgnore       = "<ignore>"
-  show VModule        = "module"
+  show VTModule        = "module"
 
 public export
 VToken : Type
@@ -96,7 +96,7 @@ TokenKind VTokenKind where
   tokValue VTDot _ = ()
   tokValue VTDollar _ = ()
   tokValue VTIgnore _ = ()
-  tokValue VModule _ = ()
+  tokValue VTModule _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
@@ -120,7 +120,7 @@ keywords = [
   ("let", VTLet),
   ("postulate", VTPostulate),
   ("U", VTUniverse),
-  ("module", VModule)
+  ("module", VTModule)
 ]
 
 violetTokenMap : TokenMap VToken
