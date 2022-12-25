@@ -21,12 +21,12 @@ handle [_, "check", filename] =
         Left pErr => primIO $ putDoc $ prettyError pErr
         Right raw =>
           let tm = (toTm raw)
-          in case (infer emptyEnv emptyCtx tm) of
+          in case (infer emptyEnv (ctxFromFile filename source) tm) of
             Left cErr => primIO $ putDoc $
               (annotate bold $ pretty (nf0 tm))
               <++> "has error:"
               <++> line
-              <++> prettyCheckError filename source cErr
+              <++> prettyCheckError cErr
             Right vty => primIO $ putDoc $
               (annotate bold $ pretty (nf0 tm))
               <++> ":"

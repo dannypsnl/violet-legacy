@@ -5,16 +5,21 @@ import Text.Parser.Core
 import Violet.Error.Common
 
 public export
-data CheckError ann = MkCheckError (Maybe Bounds) (Doc ann)
+record CheckError ann where
+  constructor MkCheckError
+  filename, source : String
+  bounds : Maybe Bounds
+  msg : Doc ann
 
 export
-prettyCheckError : String -> String -> CheckError AnsiStyle -> Doc AnsiStyle
-prettyCheckError filename source (MkCheckError Nothing msg) = msg
-prettyCheckError filename source (MkCheckError (Just bounds) msg) =
-  hcat [pretty filename, ":", pretty (bounds.startLine+1), ":", pretty bounds.startCol, ":"]
-  <++> line
-  <++> line
-  <++> getCode source (cast bounds.startLine) bounds.endLine
-  <++> line
-  <++> line
-  <++> msg
+prettyCheckError : CheckError AnsiStyle -> Doc AnsiStyle
+prettyCheckError ce = case ce.bounds of
+  Nothing => ce.msg
+  Just bounds =>
+    hcat [pretty ce.filename, ":", pretty (bounds.startLine+1), ":", pretty bounds.startCol, ":"]
+    <++> line
+    <++> line
+    <++> getCode ce.source (cast bounds.startLine) bounds.endLine
+    <++> line
+    <++> line
+    <++> ce.msg

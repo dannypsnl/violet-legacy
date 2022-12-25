@@ -14,13 +14,14 @@ public export
 checkM : Type -> Type
 checkM a = Either (CheckError AnsiStyle) a
 
-addPos : Bounds -> checkM a -> checkM a
-addPos pos (Left (MkCheckError Nothing msg)) =
-  (Left (MkCheckError (Just pos) msg))
-addPos _ ma = ma
+addPos : Ctx -> Bounds -> checkM a -> checkM a
+addPos ctx bounds (Left ce) = case ce.bounds of
+  Nothing => Left $ {bounds := Just bounds} ce
+  Just _ => Left ce
+addPos ctx _ ma = ma
 
-report : Doc AnsiStyle -> checkM a
-report msg = Left (MkCheckError Nothing msg)
+report : Ctx -> Doc AnsiStyle -> checkM a
+report ctx msg = Left (MkCheckError ctx.filename ctx.source Nothing msg)
 
 eval : Env -> Tm -> Val
 eval env tm = case tm of
@@ -61,11 +62,11 @@ mutual
   export
   infer : Env -> Ctx -> Tm -> checkM VTy
   infer env ctx tm = case tm of
-    SrcPos t => addPos t.bounds (infer env ctx t.val)
-    Var x => case lookup x ctx of
-      Nothing => report
+    SrcPos t => addPos ctx t.bounds (infer env ctx t.val)
+    Var x => case lookupCtx ctx x of
+      Nothing => report ctx
         $ annotate bold $ annotate (color Red)
-        $ hcat ["variable:", pretty x, "not found"]
+        $ hsep ["variable:", pretty x, "not found"]
       Just a => pure a
     U => pure VU
     App t u => do
@@ -74,10 +75,10 @@ mutual
         VPi _ a b => do
           check env ctx u a
           pure (b (eval env u))
-        _ => report
+        _ => report ctx
           $ annotate bold $ annotate (color Red)
           $ hcat ["bad app on: ", pretty (quote env tty)]
-    Lam _ _ => report
+    Lam _ _ => report ctx
       $ annotate bold $ annotate (color Red)
       $ hcat ["cannot inference lambda: ", pretty tm]
     Pi x a b => do
@@ -96,7 +97,7 @@ mutual
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
-    (SrcPos t, a) => addPos t.bounds (check env ctx t.val a)
+    (SrcPos t, a) => addPos ctx t.bounds (check env ctx t.val a)
     (Lam x t, VPi x' a b) =>
       let x' = fresh env x'
       in check (extend env x (VVar x)) (extendCtx ctx x a) t (b (VVar x'))
@@ -109,7 +110,7 @@ mutual
       tty <- infer env ctx t
       if (conv env tty a)
         then pure ()
-        else report $ vcat
+        else report ctx $ vcat
           [ annotate bold $ annotate (color Red) $ "type mismatched"
           , "expected type:"
           , annotate bold $ annotate (color Blue) $ indent 2 $ pretty $ quote env a
