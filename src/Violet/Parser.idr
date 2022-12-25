@@ -116,10 +116,8 @@ parseTokens toks mkPError =
   in case parse tm toks' of
     Right (l, []) => Right l
     Right (_, leftTokens) => Left $ pretty $ "error: contains tokens that were not consumed\n" ++ show leftTokens
-    Left es =>
-      let es' = map mkPError $ take 3 $ forget es
-      in let maxLine = findMaxLine es'
-      in Left $ vsep $ map (prettyError maxLine) es'
+    Left es => let es' = map mkPError $ take 3 $ forget es
+               in Left $ vsep $ map prettyError es'
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True

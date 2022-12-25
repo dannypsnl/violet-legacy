@@ -29,19 +29,13 @@ getCode source line shift =
           <++> pretty curLine
 
 export
-prettyError : Int -> PError -> Doc AnsiStyle
-prettyError shift (MkPError source (Error str Nothing)) = pretty str
-prettyError shift (MkPError source (Error str (Just bound))) =
-  getCode source (cast bound.startLine) shift
+prettyError : PError -> Doc AnsiStyle
+prettyError (MkPError source (Error str Nothing)) = pretty str
+prettyError (MkPError source (Error str (Just bound))) =
+  let shift = bound.endLine
+  in getCode source (cast bound.startLine) shift
   <++> line
   <++> (annotate (color Red) $
       indent shift (cat $ repeat (cast ((bound.endCol-1) - (bound.startCol-1))) "^")
       <++> "Parsing error:"
       <++> pretty str)
-
-export
-findMaxLine : List PError -> Int
-findMaxLine [] = 0
-findMaxLine ((MkPError source (Error str Nothing)) :: xs) = findMaxLine xs
-findMaxLine ((MkPError source (Error str (Just bound))) :: xs) =
-  bound.startLine `max` findMaxLine xs
