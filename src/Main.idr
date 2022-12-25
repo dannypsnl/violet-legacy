@@ -16,8 +16,8 @@ export
 handle : (PrimIO es, FileIO (IOError :: es), Console es) => List String -> App es ()
 handle [_, "check", filename] =
   handle (readFile filename)
-    (\fileContent =>
-      case (parse fileContent) of
+    (\source =>
+      case (parse source) of
         Left doc => primIO $ putDoc doc
         Right raw =>
           let tm = (toTm raw)
@@ -26,7 +26,7 @@ handle [_, "check", filename] =
               (annotate bold $ pretty (show (nf0 tm)))
               <++> "has error:"
               <++> line
-              <++> hcat [pretty filename, ":", prettyCE ce]
+              <++> prettyCE filename source ce
             Right vty => primIO $ putDoc $
               (annotate bold $ pretty (show (nf0 tm)))
               <++> ":"

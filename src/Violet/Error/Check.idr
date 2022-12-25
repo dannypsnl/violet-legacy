@@ -1,16 +1,20 @@
 module Violet.Error.Check
 
 import Text.Parser.Core
-import Text.PrettyPrint.Prettyprinter.Doc
-import Text.PrettyPrint.Prettyprinter.Render.Terminal
+
+import Violet.Error.Common
 
 public export
 data CheckError ann = MkCheckError (Maybe Bounds) (Doc ann)
 
 export
-prettyCE : {ann : Type} -> CheckError ann -> Doc ann
-prettyCE (MkCheckError Nothing msg) = msg
-prettyCE (MkCheckError (Just bounds) msg) =
-  hcat [pretty bounds.startLine, ":", pretty bounds.startCol, ":"]
+prettyCE : String -> String -> CheckError AnsiStyle -> Doc AnsiStyle
+prettyCE filename source (MkCheckError Nothing msg) = msg
+prettyCE filename source (MkCheckError (Just bounds) msg) =
+  hcat [pretty filename, ":", pretty (bounds.startLine+1), ":", pretty bounds.startCol, ":"]
+  <++> line
+  <++> line
+  <++> getCode source (cast bounds.startLine) bounds.endLine
+  <++> line
   <++> line
   <++> msg
