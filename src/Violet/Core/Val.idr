@@ -36,12 +36,22 @@ extend env x v = (x, v) :: env
 
 -- context
 public export
-Ctx : Type
-Ctx = List (Name, VTy)
+record Ctx where
+  constructor MkCtx
+  filename, source : String
+  map : List (Name, VTy)
+
+export
+ctxFromFile : String -> String -> Ctx
+ctxFromFile filename source = MkCtx filename source []
+
 export
 emptyCtx : Ctx
-emptyCtx = []
+emptyCtx = MkCtx "<no file>" "<empty>" []
 
 export
 extendCtx : Ctx -> Name -> VTy -> Ctx
-extendCtx ctx x v = (x, v) :: ctx
+extendCtx ctx x v = { map := (x, v) :: ctx.map } ctx
+export
+lookupCtx : Ctx -> Name -> Maybe VTy
+lookupCtx ctx x = lookup x ctx.map

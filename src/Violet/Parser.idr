@@ -8,6 +8,7 @@ import Text.Parser.Expression
 
 import Violet.Lexer
 import Violet.Syntax
+import public Violet.Error.Parsing
 
 public export
 Rule : Type -> Type
@@ -21,9 +22,6 @@ tmVar = RVar <$> match VTIdentifier
 
 parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
-
-withPos : (Position -> a -> a) -> Rule a -> Rule a
-withPos f p = f (mkPos !location) <$> p
 
 mutual
   atom : Rule Raw
@@ -46,7 +44,9 @@ mutual
   ] (spine <|> atom)
 
   tm : Rule Raw
-  tm = withPos RSrcPos (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
+  tm = do
+    r <- bounds (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
+    pure $ RSrcPos r
 
   tmData : Rule Raw
   tmData = do
@@ -108,21 +108,21 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-parseTokens : List (WithBounds VToken) -> Either String Raw
-parseTokens toks =
+parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError Raw
+parseTokens toks source =
   let toks' = filter (not . ignored) toks
   in case parse tm toks' of
     Right (l, []) => Right l
-    Right (_, leftTokens) => Left $ "error: contains tokens that were not consumed\n" ++ show leftTokens
-    Left e => Left $ "error:\n" ++ show e ++ "\ntokens:\n" ++ joinBy "\n" (map show toks')
+    Right (_, leftTokens) => Left $ pErrFromStr source $ "error: contains tokens that were not consumed\n" ++ show leftTokens
+    Left es => Left $ (fromParsingError source) $ head es
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True
     ignored _ = False
 
 export
-parse : String -> Either String Raw
-parse str =
-  case lexViolet str of
-    Just toks => parseTokens toks
-    Nothing => Left "error: failed to lex"
+parse : String -> Either PError Raw
+parse source =
+  case lexViolet source of
+    Just toks => parseTokens toks source
+    Nothing => Left $ pErrFromStr source "error: failed to lex"
