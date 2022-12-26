@@ -3,8 +3,6 @@ module Violet.Core
 import Data.List
 import Data.String
 import Text.Parser.Core
-import Text.PrettyPrint.Prettyprinter.Doc
-import Text.PrettyPrint.Prettyprinter.Render.Terminal
 
 import Violet.Core.Term
 import public Violet.Core.Val
@@ -12,7 +10,7 @@ import public Violet.Error.Check
 
 public export
 checkM : Type -> Type
-checkM a = Either (CheckError AnsiStyle) a
+checkM a = Either CheckError a
 
 addPos : Ctx -> Bounds -> checkM a -> checkM a
 addPos ctx bounds (Left ce) = case ce.bounds of
@@ -20,8 +18,8 @@ addPos ctx bounds (Left ce) = case ce.bounds of
   Just _ => Left ce
 addPos ctx _ ma = ma
 
-report : Ctx -> Doc AnsiStyle -> checkM a
-report ctx msg = Left (MkCheckError ctx.filename ctx.source Nothing msg)
+report : Ctx -> CheckErrorKind -> checkM a
+report ctx err = Left (MkCheckError ctx.filename ctx.source Nothing err)
 
 eval : Env -> Tm -> Val
 eval env tm = case tm of
@@ -64,9 +62,7 @@ mutual
   infer env ctx tm = case tm of
     SrcPos t => addPos ctx t.bounds (infer env ctx t.val)
     Var x => case lookupCtx ctx x of
-      Nothing => report ctx
-        $ annotate bold $ annotate (color Red)
-        $ hsep ["variable:", pretty x, "not found"]
+      Nothing => report ctx (NoVar x)
       Just a => pure a
     U => pure VU
     App t u => do
@@ -75,12 +71,8 @@ mutual
         VPi _ a b => do
           check env ctx u a
           pure (b (eval env u))
-        _ => report ctx
-          $ annotate bold $ annotate (color Red)
-          $ hcat ["bad app on: ", pretty (quote env tty)]
-    Lam _ _ => report ctx
-      $ annotate bold $ annotate (color Red)
-      $ hcat ["cannot inference lambda: ", pretty tm]
+        _ => report ctx (BadApp (quote env tty))
+    Lam _ _ => report ctx (InferLam tm)
     Pi x a b => do
       check env ctx a VU
       check (extend env x (VVar x)) (extendCtx ctx x (eval env a)) b VU
@@ -110,13 +102,7 @@ mutual
       tty <- infer env ctx t
       if (conv env tty a)
         then pure ()
-        else report ctx $ vcat
-          [ annotate bold $ annotate (color Red) $ "type mismatched"
-          , "expected type:"
-          , annotate bold $ annotate (color Blue) $ indent 2 $ pretty $ quote env a
-          , "actual type:"
-          , annotate bold $ annotate (color Yellow) $ indent 2 $ pretty $ quote env tty
-          ]
+        else report ctx $ TypeMismatch (quote env a) (quote env tty)
   
   conv : Env -> Val -> Val -> Bool
   conv env t u = case (t, u) of
