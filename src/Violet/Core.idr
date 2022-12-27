@@ -64,7 +64,7 @@ mutual
     pure ty
 
   emptyEnvAndCtx : (Env, Ctx)
-  emptyEnvAndCtx = (empty, emptyCtx)
+  emptyEnvAndCtx = (emptyEnv, emptyCtx)
 
   -- infer but with new introduced env and ctx (only top level)
   export

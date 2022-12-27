@@ -19,6 +19,7 @@ mutual
 public export
 Env : Type
 Env = List (Name, Val)
+
 export
 emptyEnv : Env
 emptyEnv = []

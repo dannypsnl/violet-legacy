@@ -20,7 +20,7 @@ handle [_, "check", filename] =
       case (parse source) of
         Left pErr => primIO $ putDoc $ prettyError pErr
         Right (MkModuleRaw _ xs) =>
-          let tm = (toTTm xs)
+          let tm = cast xs
           in case (infer' emptyEnv (ctxFromFile filename source) tm) of
             Left cErr => primIO $ putDoc $
               (annotate bold $ pretty (nf0 tm))

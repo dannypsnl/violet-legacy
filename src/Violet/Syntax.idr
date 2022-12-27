@@ -58,6 +58,9 @@ toTm (RData x caseLst r) = foldl (\a, (x, t) => \u => a (Postulate x (toTm t) u)
   $ toTm r
 
 export
+Cast Raw Tm where
+  cast = toTm
+
 toTTm : List TopLevelRaw -> Tm
 toTTm [] = U
 toTTm (TLet x a t :: xs) = Let x (toTm a) (toTm t) (toTTm xs)
@@ -66,6 +69,10 @@ toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (toTm 
   (\u => Postulate x U u)
   caseLst
   $ toTTm xs
+
+export
+Cast (List TopLevelRaw) Tm where
+  cast = toTTm
 
 partial export
 Show Raw where

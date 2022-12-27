@@ -1,6 +1,10 @@
+module Test
+
 data Nat
 | zero : Nat
 | suc : Nat → Nat
 ;
+
 let id : (A : U) -> (_ : A) -> A = \ A x => x;
-id Nat $ id Nat (suc zero)
+
+let main : Nat = id Nat $ id Nat (suc zero);
