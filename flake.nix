@@ -18,7 +18,7 @@
         idris2 = idris-lang.packages.${system}.idris2;
         rlwrap = pkgs.rlwrap;
 
-        violet = stdenv.mkDerivation rec {
+        violet = stdenv.mkDerivation {
           name = "violet";
           version = "0.0.1";
           src = ./.;

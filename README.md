@@ -9,6 +9,14 @@ A programming language focuses on
 - semantic versioning
 - separate compilation
 
+### Usage
+
+Type checking
+
+```shell
+violet check example/module.vt
+```
+
 ### Develop
 
 You will need to install idris, via any package manager would be fine, here is an example for macOS.
