@@ -26,9 +26,11 @@
           buildInputs = [ idris2 ];
           nativeBuildInputs = [ makeWrapper ];
           installPhase = ''
-            mkdir -p $out
             export HOME=$(pwd)
-            PREFIX=$(out) make install
+            make build
+            mkdir -p $out/bin
+            mv ./build/exec/violet $out/bin/
+            mv ./build/exec/violet_app/ $out/bin/
           '';
         };
       in rec {
