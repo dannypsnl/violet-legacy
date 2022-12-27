@@ -25,6 +25,7 @@ data VTokenKind
   | VTLambdaArrow       -- =>
   | VTDollar            -- $
   | VTIgnore            -- single line comment or whitespace
+  | VTModule             -- module
 
 export
 Eq VTokenKind where
@@ -43,6 +44,7 @@ Eq VTokenKind where
   (==) VTLambda VTLambda = True
   (==) VTLambdaArrow VTLambdaArrow = True
   (==) VTDollar VTDollar = True
+  (==) VTModule VTModule = True
   (==) _ _ = False
 
 export
@@ -63,6 +65,7 @@ Show VTokenKind where
   show VTLambdaArrow  = "=>"
   show VTDollar       = "$"
   show VTIgnore       = "<ignore>"
+  show VTModule        = "module"
 
 public export
 VToken : Type
@@ -93,12 +96,15 @@ TokenKind VTokenKind where
   tokValue VTLambdaArrow _ = ()
   tokValue VTDollar _ = ()
   tokValue VTIgnore _ = ()
+  tokValue VTModule _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
 ||| `-`, `_`, `?`, `!`
 isIdChar : Char -> Bool
 isIdChar x = isAlphaNum x || (x `contains` fromList ['-', '_', '?', '!'])
+
+isStartChar : Char -> Bool
 isStartChar x = isAlpha x || (x `contains` fromList ['-', '_', '?', '!'])
 
 identifier : Lexer
@@ -119,7 +125,8 @@ keywords = [
   ("data", VTData),
   ("let", VTLet),
   ("postulate", VTPostulate),
-  ("U", VTUniverse)
+  ("U", VTUniverse),
+  ("module", VTModule)
 ]
 
 violetTokenMap : TokenMap VToken

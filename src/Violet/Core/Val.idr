@@ -19,6 +19,7 @@ mutual
 public export
 Env : Type
 Env = List (Name, Val)
+
 export
 emptyEnv : Env
 emptyEnv = []
@@ -40,6 +41,10 @@ record Ctx where
   constructor MkCtx
   filename, source : String
   map : List (Name, VTy)
+
+export
+Semigroup Ctx where
+  a <+> b = MkCtx b.filename b.source (a.map ++ b.map)
 
 export
 ctxFromFile : String -> String -> Ctx

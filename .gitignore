@@ -2,3 +2,5 @@
 *.ttc
 *.ttm
 build/
+
+*.swp

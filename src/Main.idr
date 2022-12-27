@@ -19,18 +19,20 @@ handle [_, "check", filename] =
     (\source =>
       case (parse source) of
         Left pErr => primIO $ putDoc $ prettyError pErr
-        Right raw =>
-          let tm = (toTm raw)
-          in case (infer emptyEnv (ctxFromFile filename source) tm) of
+        Right (MkModuleRaw _ xs) =>
+          let tm = cast xs
+          in case (infer' emptyEnv (ctxFromFile filename source) tm) of
             Left cErr => primIO $ putDoc $
               (annotate bold $ pretty (nf0 tm))
               <++> "has error:"
               <++> line
               <++> prettyCheckError cErr
-            Right vty => primIO $ putDoc $
-              (annotate bold $ pretty (nf0 tm))
-              <++> ":"
-              <++> (annotate bold $ annotate (color Blue) $ pretty (quote emptyEnv vty))
+            Right (vty, (env, ctx)) =>
+              for_ ctx.map $ \(name, ty) =>
+                primIO $ putDoc $
+                  (annotate bold $ pretty name)
+                  <++> ":"
+                  <++> (annotate bold $ annotate (color Blue) $ pretty (quote env ty))
       )
     (\err : IOError => putStrLn $ "error: " ++ show err)
 handle _ = pure ()

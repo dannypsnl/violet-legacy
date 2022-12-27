@@ -1,0 +1,11 @@
+module AModule
+
+data Nat
+  | zero : Nat
+  | suc : Nat → Nat;
+
+data SomethingElse;
+
+let id : (A : U) → (_ : A) → A = λ A x => x;
+
+let main : SomethingElse = id Nat $ id Nat (suc zero);

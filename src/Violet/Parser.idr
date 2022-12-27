@@ -45,7 +45,7 @@ mutual
 
   tm : Rule Raw
   tm = do
-    r <- bounds (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
+    r <- bounds (tmData <|> tmLet <|> tmLam <|> tmPi <|> expr)
     pure $ RSrcPos r
 
   tmData : Rule Raw
@@ -64,16 +64,6 @@ mutual
         match VTColon
         a <- tm
         pure (name, a)
-
-  tmPostulate : Rule Raw
-  tmPostulate = do
-    match VTPostulate
-    name <- match VTIdentifier
-    match VTColon
-    a <- tm
-    match VTSemicolon
-    u <- tm
-    pure $ RPostulate name a u
 
   -- λ A x => x
   tmLam : Rule Raw
@@ -108,10 +98,57 @@ mutual
     u <- tm
     pure $ RLet name a t u
 
-parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError Raw
+ttmData : Rule TopLevelRaw
+ttmData = do
+  match VTData
+  name <- match VTIdentifier
+  caseList <- many pCase
+  match VTSemicolon
+  pure $ TData name caseList
+  where
+    pCase : Rule (Name, RTy)
+    pCase = do
+      match VTVerticalLine
+      name <- match VTIdentifier
+      match VTColon
+      a <- tm
+      pure (name, a)
+
+ttmPostulate : Rule TopLevelRaw
+ttmPostulate = do
+  match VTPostulate
+  name <- match VTIdentifier
+  match VTColon
+  a <- tm
+  match VTSemicolon
+  pure $ TPostulate name a
+
+-- let x : a = t
+ttmLet : Rule TopLevelRaw
+ttmLet = do
+  match VTLet
+  name <- match VTIdentifier
+  match VTColon
+  a <- tm
+  match VTAssign
+  t <- tm
+  match VTSemicolon
+  pure $ TLet name a t
+
+ttm : Rule TopLevelRaw
+ttm = ttmData <|> ttmPostulate <|> ttmLet
+
+moduleRule : Rule ModuleRaw
+moduleRule = do
+  match VTModule
+  name <- match VTIdentifier
+  bindings <- many ttm
+  pure $ MkModuleRaw (MkModuleInfoRaw name) bindings
+
+parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError ModuleRaw
 parseTokens toks source =
   let toks' = filter (not . ignored) toks
-  in case parse tm toks' of
+  in case parse moduleRule toks' of
     Right (l, []) => Right l
     Right (_, leftTokens) => Left $ pErrFromStr source $ "error: contains tokens that were not consumed\n" ++ show leftTokens
     Left es => Left $ (fromParsingError source) $ head es
@@ -121,7 +158,7 @@ parseTokens toks source =
     ignored _ = False
 
 export
-parse : String -> Either PError Raw
+parse : String -> Either PError ModuleRaw
 parse source =
   case lexViolet source of
     Just toks => parseTokens toks source

@@ -59,33 +59,52 @@ nf0 = nf emptyEnv
 mutual
   export
   infer : Env -> Ctx -> Tm -> checkM VTy
-  infer env ctx tm = case tm of
-    SrcPos t => addPos ctx t.bounds (infer env ctx t.val)
+  infer env ctx tm = do
+    (ty, _) <- infer' env ctx tm
+    pure ty
+
+  emptyEnvAndCtx : (Env, Ctx)
+  emptyEnvAndCtx = (emptyEnv, emptyCtx)
+
+  -- infer but with new introduced env and ctx (only top level)
+  export
+  infer' : Env -> Ctx -> Tm -> checkM (VTy, (Env, Ctx))
+  infer' env ctx tm = case tm of
+    SrcPos t => addPos ctx t.bounds (infer' env ctx t.val)
     Var x => case lookupCtx ctx x of
       Nothing => report ctx (NoVar x)
-      Just a => pure a
-    U => pure VU
+      Just a => pure (a, emptyEnvAndCtx)
+    U => pure (VU, emptyEnvAndCtx)
     App t u => do
       tty <- infer env ctx t
       case tty of
         VPi _ a b => do
           check env ctx u a
-          pure (b (eval env u))
+          pure (b (eval env u), emptyEnvAndCtx)
         _ => report ctx (BadApp (quote env tty))
     Lam _ _ => report ctx (InferLam tm)
     Pi x a b => do
       check env ctx a VU
-      check (extend env x (VVar x)) (extendCtx ctx x (eval env a)) b VU
-      pure VU
+      let newEnv = extend emptyEnv x (VVar x)
+          newCtx = extendCtx emptyCtx x (eval env a)
+      check (newEnv <+> env) (newCtx <+> ctx) b VU
+      pure (VU, (newEnv, newCtx))
     Postulate x a u => do
       check env ctx a VU
       let a' = eval env a
-      infer (extend env x (VVar x)) (extendCtx ctx x a') u
+      let newEnv = extend emptyEnv x (VVar x)
+          newCtx = extendCtx emptyCtx x a'
+      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
+      pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
     Let x a t u => do
       check env ctx a VU
       let a' = eval env a
       check env ctx t a'
-      infer (extend env x (eval env t)) (extendCtx ctx x a') u
+      let newEnv = extend emptyEnv x (eval env t)
+          newCtx = extendCtx emptyCtx x a'
+      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
+      pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
+
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
@@ -103,7 +122,7 @@ mutual
       if (conv env tty a)
         then pure ()
         else report ctx $ TypeMismatch (quote env a) (quote env tty)
-  
+
   conv : Env -> Val -> Val -> Bool
   conv env t u = case (t, u) of
     (VU, VU) => True
