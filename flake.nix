@@ -2,24 +2,21 @@
   description = "violet programming language";
 
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
-    idris2-pkgs.url = "github:claymager/idris2-pkgs";
-    nixpkgs.follows = "idris2-pkgs/nixpkgs";
+    idris-lang.url = "github:idris-lang/Idris2";
+    idris-lang.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, idris2-pkgs, flake-utils }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+  outputs = { self, nixpkgs, flake-utils, idris-lang }:
+    flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; overlays = [ idris2-pkgs.overlay ]; };
-        inherit (pkgs.idris2-pkgs._builders) idrisPackage devEnv;
-        violet = idrisPackage ./. { };
-        runTests = idrisPackage ./test { extraPkgs.violet = violet; };
+        pkgs = nixpkgs.legacyPackages.${system};
+        idris2 = idris-lang.packages.${system}.idris2;
       in
       {
-        defaultPackage = violet;
-        packages = { inherit violet runTests; };
-        devShell = pkgs.mkShell {
-          buildInputs = [ (devEnv violet) ];
+        devShells.default = pkgs.mkShell {
+          buildInputs = [ idris2 ];
         };
       }
     );
