@@ -12,11 +12,30 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        stdenv = pkgs.stdenv;
+        makeWrapper = pkgs.makeWrapper;
+
         idris2 = idris-lang.packages.${system}.idris2;
-      in
-      {
-        devShells.default = pkgs.mkShell {
+        rlwrap = pkgs.rlwrap;
+
+        violet = stdenv.mkDerivation rec {
+          name = "violet";
+          version = "0.0.1";
+          src = ./.;
+
           buildInputs = [ idris2 ];
+          nativeBuildInputs = [ makeWrapper ];
+          installPhase = ''
+            mkdir -p $out
+            export HOME=$(pwd)
+            PREFIX=$(out) make install
+          '';
+        };
+      in rec {
+        packages = { violet = violet; };
+        packages.default = packages.violet;
+        devShells.default = pkgs.mkShell {
+          buildInputs = [ idris2 rlwrap violet ];
         };
       }
     );
