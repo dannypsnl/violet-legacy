@@ -45,7 +45,7 @@ mutual
 
   tm : Rule Raw
   tm = do
-    r <- bounds (tmData <|> tmPostulate <|> tmLet <|> tmLam <|> tmPi <|> expr)
+    r <- bounds (tmData <|> tmLet <|> tmLam <|> tmPi <|> expr)
     pure $ RSrcPos r
 
   tmData : Rule Raw
@@ -64,16 +64,6 @@ mutual
         match VTColon
         a <- tm
         pure (name, a)
-
-  tmPostulate : Rule Raw
-  tmPostulate = do
-    match VTPostulate
-    name <- match VTIdentifier
-    match VTColon
-    a <- tm
-    match VTSemicolon
-    u <- tm
-    pure $ RPostulate name a u
 
   -- λ A x => x
   tmLam : Rule Raw
