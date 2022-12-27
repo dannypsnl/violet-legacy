@@ -2,5 +2,5 @@ data Nat
 | zero : Nat
 | suc : Nat → Nat
 ;
-let id : (A : U) → (_ : A) → A = λ A x . x;
+let id : (A : U) -> (_ : A) -> A = \ A x => x;
 id Nat $ id Nat (suc zero)

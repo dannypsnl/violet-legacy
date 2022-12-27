@@ -1,15 +1,16 @@
 module Violet.Syntax
 
 import Data.String
+import Text.Parser.Core
 import public Violet.Core.Term
 
 mutual
   ||| The Core Term of violet language
   public export
   data Raw
-    = RSrcPos Position Raw
+    = RSrcPos (WithBounds Raw)
     | RVar Name               -- x
-    | RLam Name Raw           -- λ x . t
+    | RLam Name Raw           -- λ x => t
     | RApp Raw Raw            -- t u
     | RU                      -- U
     | RPi Name RTy RTy        -- (x : a) → b
@@ -43,7 +44,7 @@ public export
 data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
 
 toTm : Raw -> Tm
-toTm (RSrcPos pos raw) = SrcPos pos (toTm raw)
+toTm (RSrcPos raw) = SrcPos $ MkBounded (toTm raw.val) True raw.bounds
 toTm (RVar x) = Var x
 toTm (RLam x t) = Lam x (toTm t)
 toTm (RApp t u) = App (toTm t) (toTm u)
@@ -66,12 +67,11 @@ toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (toTm 
   caseLst
   $ toTTm xs
 
-partial
-export
+partial export
 Show Raw where
-  show (RSrcPos _ t)      = show t
+  show (RSrcPos t)      = show t.val
   show (RVar name)        = name
-  show (RLam x t)         = "λ " ++ x ++ "." ++ show t
+  show (RLam x t)         = "λ " ++ x ++ "=>" ++ show t
   show (RApp t u)         = show t ++ " " ++ show u
   show RU                 = "U"
   show (RPi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b

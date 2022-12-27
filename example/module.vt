@@ -6,7 +6,7 @@ data Nat
 
 data SomethingElse;
 
-let id : (A : U) → (_ : A) → A = λ A x . x;
+let id : (A : U) → (_ : A) → A = λ A x => x;
 
 let main : Nat =
   let one : Nat = suc zero;

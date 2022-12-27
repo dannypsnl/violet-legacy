@@ -20,9 +20,9 @@ data VTokenKind
   | VTSemicolon         -- ;
   | VTOpenP             -- (
   | VTCloseP            -- )
-  | VTArrow             -- →
-  | VTLambda            -- λ
-  | VTDot               -- .
+  | VTArrow             -- → or ->
+  | VTLambda            -- λ or \
+  | VTLambdaArrow       -- =>
   | VTDollar            -- $
   | VTIgnore            -- single line comment or whitespace
   | VTModule             -- module
@@ -42,7 +42,7 @@ Eq VTokenKind where
   (==) VTCloseP VTCloseP = True
   (==) VTArrow VTArrow = True
   (==) VTLambda VTLambda = True
-  (==) VTDot VTDot = True
+  (==) VTLambdaArrow VTLambdaArrow = True
   (==) VTDollar VTDollar = True
   (==) VTModule VTModule = True
   (==) _ _ = False
@@ -62,7 +62,7 @@ Show VTokenKind where
   show VTCloseP       = ")"
   show VTArrow        = "→"
   show VTLambda       = "λ"
-  show VTDot          = "."
+  show VTLambdaArrow  = "=>"
   show VTDollar       = "$"
   show VTIgnore       = "<ignore>"
   show VTModule        = "module"
@@ -93,7 +93,7 @@ TokenKind VTokenKind where
   tokValue VTCloseP _ = ()
   tokValue VTArrow _ = ()
   tokValue VTLambda _ = ()
-  tokValue VTDot _ = ()
+  tokValue VTLambdaArrow _ = ()
   tokValue VTDollar _ = ()
   tokValue VTIgnore _ = ()
   tokValue VTModule _ = ()
@@ -114,6 +114,12 @@ identifier = (pred isStartChar) <+> many (pred isIdChar)
 comment : Lexer
 comment = is '-' <+> is '-' <+> many (isNot '\n')
 
+arrow : Lexer
+arrow = exact "->" <|> is '→'
+
+lambda : Lexer
+lambda = (is 'λ') <|> (is '\\')
+
 keywords : List (String, VTokenKind)
 keywords = [
   ("data", VTData),
@@ -127,12 +133,12 @@ violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
     (spaces, VTIgnore),
     (comment, VTIgnore),
+    (arrow, VTArrow),
+    (lambda, VTLambda),
     (exact "|", VTVerticalLine),
     (exact ":", VTColon),
     (exact ";", VTSemicolon),
-    (exact "→", VTArrow),
-    (exact "λ", VTLambda),
-    (exact ".", VTDot),
+    (exact "=>", VTLambdaArrow),
     (exact "$", VTDollar),
     (exact "(", VTOpenP),
     (exact ")", VTCloseP),

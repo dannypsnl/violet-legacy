@@ -2,32 +2,28 @@ module Violet.Core
 
 import Data.List
 import Data.String
+import Text.Parser.Core
 
 import Violet.Core.Term
-import Violet.Core.Position
 import public Violet.Core.Val
-
-export
-data CheckError = MkCheckError (Maybe Position) String
-export
-Show CheckError where
-  show (MkCheckError (Just pos) msg) = show pos ++ "\n" ++ msg
-  show (MkCheckError _ msg) = msg
+import public Violet.Error.Check
 
 public export
 checkM : Type -> Type
 checkM a = Either CheckError a
 
-addPos : Position -> checkM a -> checkM a
-addPos pos (Left (MkCheckError Nothing msg)) = (Left (MkCheckError (Just pos) msg))
-addPos _ ma = ma
+addPos : Ctx -> Bounds -> checkM a -> checkM a
+addPos ctx bounds (Left ce) = case ce.bounds of
+  Nothing => Left $ {bounds := Just bounds} ce
+  Just _ => Left ce
+addPos ctx _ ma = ma
 
-report : String -> checkM a
-report msg = Left (MkCheckError Nothing msg)
+report : Ctx -> CheckErrorKind -> checkM a
+report ctx err = Left (MkCheckError ctx.filename ctx.source Nothing err)
 
 eval : Env -> Tm -> Val
 eval env tm = case tm of
-  SrcPos _ tm => eval env tm
+  SrcPos tm => eval env tm.val
   Var x => case lookup x env of
     Just a => a
     _ => ?unreachable
@@ -74,9 +70,9 @@ mutual
   export
   infer' : Env -> Ctx -> Tm -> checkM (VTy, (Env, Ctx))
   infer' env ctx tm = case tm of
-    SrcPos pos t => addPos pos (infer' env ctx t)
-    Var x => case lookup x ctx of
-      Nothing => report $ "variable: " ++ x ++ " not found"
+    SrcPos t => addPos ctx t.bounds (infer' env ctx t.val)
+    Var x => case lookupCtx ctx x of
+      Nothing => report ctx (NoVar x)
       Just a => pure (a, emptyEnvAndCtx)
     U => pure (VU, emptyEnvAndCtx)
     App t u => do
@@ -85,20 +81,20 @@ mutual
         VPi _ a b => do
           check env ctx u a
           pure (b (eval env u), emptyEnvAndCtx)
-        _ => report $ "bad app on: " ++ show (quote env tty)
-    Lam _ _ => report $ "cannot inference lambda: " ++ show tm
+        _ => report ctx (BadApp (quote env tty))
+    Lam _ _ => report ctx (InferLam tm)
     Pi x a b => do
       check env ctx a VU
       let newEnv = extend emptyEnv x (VVar x)
           newCtx = extendCtx emptyCtx x (eval env a)
-      check (newEnv ++ env) (newCtx ++ ctx) b VU
+      check (newEnv <+> env) (newCtx <+> ctx) b VU
       pure (VU, (newEnv, newCtx))
     Postulate x a u => do
       check env ctx a VU
       let a' = eval env a
       let newEnv = extend emptyEnv x (VVar x)
           newCtx = extendCtx emptyCtx x a'
-      (ty, restEnvAndCtx) <- infer' (newEnv ++ env) (newCtx ++ ctx) u
+      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
       pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
     Let x a t u => do
       check env ctx a VU
@@ -106,13 +102,13 @@ mutual
       check env ctx t a'
       let newEnv = extend emptyEnv x (eval env t)
           newCtx = extendCtx emptyCtx x a'
-      (ty, restEnvAndCtx) <- infer' (newEnv ++ env) (newCtx ++ ctx) u
+      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
       pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
 
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
-    (SrcPos pos t, a) => addPos pos (check env ctx t a)
+    (SrcPos t, a) => addPos ctx t.bounds (check env ctx t.val a)
     (Lam x t, VPi x' a b) =>
       let x' = fresh env x'
       in check (extend env x (VVar x)) (extendCtx ctx x a) t (b (VVar x'))
@@ -125,13 +121,7 @@ mutual
       tty <- infer env ctx t
       if (conv env tty a)
         then pure ()
-        else report $ unlines
-          [ "type mismatched"
-          , "expected type:\n"
-          , "  " ++ (show $ quote env a)
-          , "\nactual type:\n"
-          , "  " ++ (show $ quote env tty)
-          ]
+        else report ctx $ TypeMismatch (quote env a) (quote env tty)
 
   conv : Env -> Val -> Val -> Bool
   conv env t u = case (t, u) of
