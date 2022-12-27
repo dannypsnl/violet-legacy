@@ -45,25 +45,8 @@ mutual
 
   tm : Rule Raw
   tm = do
-    r <- bounds (tmData <|> tmLet <|> tmLam <|> tmPi <|> expr)
+    r <- bounds (tmLet <|> tmLam <|> tmPi <|> expr)
     pure $ RSrcPos r
-
-  tmData : Rule Raw
-  tmData = do
-    match VTData
-    name <- match VTIdentifier
-    caseList <- many pCase
-    match VTSemicolon
-    u <- tm
-    pure $ RData name caseList u
-    where
-      pCase : Rule (Name, RTy)
-      pCase = do
-        match VTVerticalLine
-        name <- match VTIdentifier
-        match VTColon
-        a <- tm
-        pure (name, a)
 
   -- λ A x => x
   tmLam : Rule Raw

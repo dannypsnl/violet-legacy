@@ -13,7 +13,6 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         stdenv = pkgs.stdenv;
-        makeWrapper = pkgs.makeWrapper;
 
         idris2 = idris-lang.packages.${system}.idris2;
         rlwrap = pkgs.rlwrap;
@@ -24,13 +23,13 @@
           src = ./.;
 
           buildInputs = [ idris2 ];
-          nativeBuildInputs = [ makeWrapper ];
+          buildPhase = ''
+            idris2 --build ./violet.ipkg
+          '';
           installPhase = ''
             export HOME=$(pwd)
-            make build
             mkdir -p $out/bin
-            mv ./build/exec/violet $out/bin/
-            mv ./build/exec/violet_app/ $out/bin/
+            mv ./build/exec/* $out/bin/
           '';
         };
       in rec {

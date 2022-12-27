@@ -15,12 +15,6 @@ mutual
     | RU                      -- U
     | RPi Name RTy RTy        -- (x : a) → b
     | RLet Name RTy Raw Raw   -- let x : a = t; u
-    -- inductive type
-    -- data Nat
-    -- | zero : Nat
-    -- | suc : Nat -> Nat
-    -- ; u
-    | RData Name (List (Name, RTy)) Raw
 
   public export
   RTy : Type
@@ -42,28 +36,21 @@ data ModuleInfoRaw = MkModuleInfoRaw Name
 public export
 data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
 
-toTm : Raw -> Tm
-toTm (RSrcPos raw) = SrcPos $ MkBounded (toTm raw.val) True raw.bounds
-toTm (RVar x) = Var x
-toTm (RLam x t) = Lam x (toTm t)
-toTm (RApp t u) = App (toTm t) (toTm u)
-toTm RU = U
-toTm (RPi x a b) = Pi x (toTm a) (toTm b)
-toTm (RLet x a t u) = Let x (toTm a) (toTm t) (toTm u)
-toTm (RData x caseLst r) = foldl (\a, (x, t) => \u => a (Postulate x (toTm t) u))
-  (\u => Postulate x U u)
-  caseLst
-  $ toTm r
-
 export
 Cast Raw Tm where
-  cast = toTm
+  cast (RSrcPos raw) = SrcPos $ MkBounded (cast raw.val) True raw.bounds
+  cast (RVar x) = Var x
+  cast (RLam x t) = Lam x (cast t)
+  cast (RApp t u) = App (cast t) (cast u)
+  cast RU = U
+  cast (RPi x a b) = Pi x (cast a) (cast b)
+  cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)
 
 toTTm : List TopLevelRaw -> Tm
 toTTm [] = U
-toTTm (TLet x a t :: xs) = Let x (toTm a) (toTm t) (toTTm xs)
-toTTm (TPostulate x a :: xs) = Postulate x (toTm a) (toTTm xs)
-toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (toTm t) u))
+toTTm (TLet x a t :: xs) = Let x (cast a) (cast t) (toTTm xs)
+toTTm (TPostulate x a :: xs) = Postulate x (cast a) (toTTm xs)
+toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (cast t) u))
   (\u => Postulate x U u)
   caseLst
   $ toTTm xs
@@ -71,17 +58,3 @@ toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (toTm 
 export
 Cast (List TopLevelRaw) Tm where
   cast = toTTm
-
-partial export
-Show Raw where
-  show (RSrcPos t)      = show t.val
-  show (RVar name)        = name
-  show (RLam x t)         = "λ " ++ x ++ "=>" ++ show t
-  show (RApp t u)         = show t ++ " " ++ show u
-  show RU                 = "U"
-  show (RPi x a b)        = "(" ++ x ++ " : " ++ show a ++ ") → " ++ show b
-  show (RLet x a t u)     = "let " ++ x ++ " : " ++ show a ++ " = " ++ show t ++ ";\n" ++ show u
-  show (RData x caseLst u)  = "data" ++ x ++ (unlines $ map showCase caseLst) ++ show u
-    where
-      showCase : (Name, RTy) -> String
-      showCase (x, t) = "| " ++ x ++ " : " ++ show t
