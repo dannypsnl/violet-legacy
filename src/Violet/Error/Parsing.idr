@@ -31,7 +31,7 @@ prettyError (MkPError source (Just bound) msg) =
   let shift = bound.endLine
   in getCode source (cast bound.startLine) shift
   <++> line
-  <++> (annotate (color Red) $
-      indent shift (cat $ repeat (cast ((bound.endCol-1) - (bound.startCol-1))) "^")
-      <++> "Parsing error:"
-      <++> pretty msg)
+  <++> (annColor Red $
+    indent shift (cat $ repeat (cast ((bound.endCol-1) - (bound.startCol-1))) "^")
+    <++> "Parsing error:"
+    <++> pretty msg)

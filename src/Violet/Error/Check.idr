@@ -5,7 +5,7 @@ import Text.PrettyPrint.Prettyprinter.Doc
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
 
 import Violet.Core.Term
-import Violet.Error.Common
+import public Violet.Error.Common
 
 public export
 data CheckErrorKind
@@ -15,15 +15,15 @@ data CheckErrorKind
   | TypeMismatch Tm Tm
 
 prettyCheckErrorKind : CheckErrorKind -> Doc AnsiStyle
-prettyCheckErrorKind (NoVar name) = bold' $ color' Red $ hsep ["variable:", pretty name, "not found"]
-prettyCheckErrorKind (InferLam tm) = bold' $ color' Red $ hcat ["cannot inference lambda: ", pretty tm]
-prettyCheckErrorKind (BadApp tm) = bold' $ color' Red $ hcat ["bad app on: ", pretty tm]
+prettyCheckErrorKind (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
+prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hcat ["cannot inference lambda: ", pretty tm]
+prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hcat ["bad app on: ", pretty tm]
 prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
-  [ bold' $ color' Red $ "type mismatched"
+  [ annBold $ annColor Red $ "type mismatched"
   , "expected type:"
-  , bold' $ color' Blue $ indent 2 $ pretty t1
+  , annBold $ annColor Blue $ indent 2 $ pretty t1
   , "actual type:"
-  , bold' $ color' Yellow $ indent 2 $ pretty t2
+  , annBold $ annColor Yellow $ indent 2 $ pretty t2
   ]
 
 public export
