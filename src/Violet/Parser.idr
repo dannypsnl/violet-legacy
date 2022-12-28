@@ -124,28 +124,33 @@ ttmLet = do
 ttm : Rule TopLevelRaw
 ttm = ttmData <|> ttmPostulate <|> ttmLet
 
-moduleRule : Rule ModuleRaw
-moduleRule = do
+export
+ruleTm : Rule Raw
+ruleTm = tm
+
+export
+ruleModule : Rule ModuleRaw
+ruleModule = do
   match VTModule
   name <- match VTIdentifier
   bindings <- many ttm
   pure $ MkModuleRaw (MkModuleInfoRaw name) bindings
 
-parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError ModuleRaw
-parseTokens toks source =
-  let toks' = filter (not . ignored) toks
-  in case parse moduleRule toks' of
-    Right (l, []) => Right l
-    Right (_, leftTokens) => Left $ TokensLeave source leftTokens
-    Left es => Left $ CollectPError $ map (\(Error msg bounds) => SinglePError source bounds msg) $ forget es
-  where
-    ignored : WithBounds VToken -> Bool
-    ignored (MkBounded (Tok VTIgnore _) _ _) = True
-    ignored _ = False
-
 export
-parse : String -> Either PError ModuleRaw
-parse source =
+parseViolet : Rule a -> String -> Either PError a
+parseViolet rule source =
   case lexViolet source of
     Just toks => parseTokens toks source
     Nothing => Left LexFail
+  where
+    parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError a
+    parseTokens toks source =
+      let toks' = filter (not . ignored) toks
+      in case parse rule toks' of
+        Right (l, []) => Right l
+        Right (_, leftTokens) => Left $ TokensLeave source leftTokens
+        Left es => Left $ CollectPError $ map (\(Error msg bounds) => SinglePError source bounds msg) $ forget es
+      where
+        ignored : WithBounds VToken -> Bool
+        ignored (MkBounded (Tok VTIgnore _) _ _) = True
+        ignored _ = False
