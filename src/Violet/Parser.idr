@@ -8,8 +8,13 @@ import Violet.Lexer
 import Violet.Syntax
 import public Violet.Error.Parsing
 
+-- `Grammar state tok consumes ty`
+-- * `state` can be defined, but didn't be used here
+-- * `tok` is the token type of the language
+-- * `consumes` flag is True if the language is guaranteed to consume some input on success
+-- * `ty` is the returned type of parser
 public export
-Rule : Type -> Type
+Rule : (ty : Type) -> Type
 Rule = Grammar () VToken True
 
 tmU : Rule Raw
@@ -131,8 +136,8 @@ parseTokens toks source =
   let toks' = filter (not . ignored) toks
   in case parse moduleRule toks' of
     Right (l, []) => Right l
-    Right (_, leftTokens) => Left $ pErrFromStr source $ "error: contains tokens that were not consumed\n" ++ show leftTokens
-    Left es => Left $ (fromParsingError source) $ head es
+    Right (_, leftTokens) => Left $ TokensLeave source leftTokens
+    Left es => Left $ CollectPError $ map (\(Error msg bounds) => SinglePError source bounds msg) $ forget es
   where
     ignored : WithBounds VToken -> Bool
     ignored (MkBounded (Tok VTIgnore _) _ _) = True
@@ -143,4 +148,4 @@ parse : String -> Either PError ModuleRaw
 parse source =
   case lexViolet source of
     Just toks => parseTokens toks source
-    Nothing => Left $ pErrFromStr source "error: failed to lex"
+    Nothing => Left LexFail
