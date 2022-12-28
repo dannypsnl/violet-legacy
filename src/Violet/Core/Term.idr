@@ -10,6 +10,11 @@ public export
 Name : Type
 Name = String
 
+public export
+data Pat
+  = PVar Name
+  | PCons Name (List Name)
+
 mutual
   ||| The Core Term of violet language
   public export
@@ -21,12 +26,18 @@ mutual
     | U                    -- U
     | Pi Name Ty Ty        -- (x : a) → b
     | Let Name Ty Tm Tm    -- let x : a = t; u
+    | Elim Tm (List (Pat, Tm))
     -- FIXME?: maybe constructor should be treated special
     | Postulate Name Ty Tm -- posulate x : a; u
 
   public export
   Ty : Type
   Ty = Tm
+
+export
+Pretty Pat where
+  pretty (PVar n) = pretty n
+  pretty (PCons h vs) = pretty h <++> hsep (map pretty vs)
 
 export
 Pretty Tm where
@@ -48,6 +59,13 @@ Pretty Tm where
     hsep [ "let", pretty x, ":", pretty a, "=", hcat [pretty t, ";"] ]
     <++> line
     <++> pretty u
+  pretty (Elim tm cases) =
+    "elim" <++> pretty tm
+    <++> line
+    <++> vsep (map prettyCase cases)
+    where
+      prettyCase : (Pat, Tm) -> Doc ann
+      prettyCase (p, t) = pipe <++> pretty p <++> "=>" <++> pretty tm
   pretty (Postulate x a u) =
     hsep ["postulate", pretty x, ":", hcat [pretty a, ";"]]
     <++> line

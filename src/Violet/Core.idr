@@ -35,6 +35,7 @@ eval env tm = case tm of
   Pi x a b => VPi x (eval env a) (\u => eval (extend env x u) b)
   Let x a t u => eval (extend env x (eval env t)) u
   Postulate x a u => eval (extend env x (VVar x)) u
+  Elim t cases => ?todo1
 
 export
 quote : Env -> Val -> Tm
@@ -101,6 +102,7 @@ mutual
           newCtx = extendCtx emptyCtx x a'
       (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
       pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
+    Elim t cases => ?todo2
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
