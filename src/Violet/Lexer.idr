@@ -12,6 +12,7 @@ data VTokenKind
   = VTIdentifier        -- x
   | VTData              -- data
   | VTLet               -- let
+  | VTElim              -- elim
   | VTPostulate         -- postulate
   | VTUniverse          -- U
   | VTVerticalLine      -- |
@@ -32,6 +33,7 @@ Eq VTokenKind where
   (==) VTIdentifier VTIdentifier = True
   (==) VTData VTData = True
   (==) VTLet VTLet = True
+  (==) VTElim VTElim = True
   (==) VTPostulate VTPostulate = True
   (==) VTUniverse VTUniverse = True
   (==) VTVerticalLine VTVerticalLine = True
@@ -52,6 +54,7 @@ Show VTokenKind where
   show VTIdentifier   = "<identifer>"
   show VTData         = "data"
   show VTLet          = "let"
+  show VTElim         = "elim"
   show VTPostulate    = "postulate"
   show VTUniverse     = "U"
   show VTAssign       = "="
@@ -65,7 +68,7 @@ Show VTokenKind where
   show VTLambdaArrow  = "=>"
   show VTDollar       = "$"
   show VTIgnore       = "<ignore>"
-  show VTModule        = "module"
+  show VTModule       = "module"
 
 public export
 VToken : Type
@@ -83,6 +86,7 @@ TokenKind VTokenKind where
   tokValue VTIdentifier s = s
   tokValue VTData _ = ()
   tokValue VTLet _ = ()
+  tokValue VTElim _ = ()
   tokValue VTPostulate _ = ()
   tokValue VTUniverse _ = ()
   tokValue VTVerticalLine _ = ()
@@ -114,16 +118,11 @@ identifier = (pred isStartChar) <+> many (pred isIdChar)
 comment : Lexer
 comment = is '-' <+> is '-' <+> many (isNot '\n')
 
-arrow : Lexer
-arrow = exact "->" <|> is '→'
-
-lambda : Lexer
-lambda = (is 'λ') <|> (is '\\')
-
 keywords : List (String, VTokenKind)
 keywords = [
   ("data", VTData),
   ("let", VTLet),
+  ("elim", VTElim),
   ("postulate", VTPostulate),
   ("U", VTUniverse),
   ("module", VTModule)
@@ -133,12 +132,12 @@ violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
     (spaces, VTIgnore),
     (comment, VTIgnore),
-    (arrow, VTArrow),
-    (lambda, VTLambda),
+    (exact "->" <|> is '→', VTArrow),
+    (is 'λ' <|> is '\\', VTLambda),
+    (exact "=>" <|> is '⇒', VTLambdaArrow),
     (exact "|", VTVerticalLine),
     (exact ":", VTColon),
     (exact ";", VTSemicolon),
-    (exact "=>", VTLambdaArrow),
     (exact "$", VTDollar),
     (exact "(", VTOpenP),
     (exact ")", VTCloseP),

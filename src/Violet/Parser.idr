@@ -45,7 +45,7 @@ mutual
 
   tm : Rule Raw
   tm = do
-    r <- bounds (tmLet <|> tmLam <|> tmPi <|> expr)
+    r <- bounds (tmLet <|> tmElim <|> tmLam <|> tmPi <|> expr)
     pure $ RSrcPos r
 
   -- λ A x => x
@@ -80,6 +80,25 @@ mutual
     match VTSemicolon
     u <- tm
     pure $ RLet name a t u
+  
+  -- elim n
+  -- | C x => x
+  -- | z => z
+  tmElim : Rule Raw
+  tmElim = do
+    match VTElim
+    pure $ RElim !tm !(many vcase)
+    where
+      pat : Rule PatRaw
+      pat = pure $
+            let (h ::: vs) = !(some (match VTIdentifier))
+            in if isNil vs then RPVar h else RPCons h vs
+      vcase : Rule (PatRaw, Raw)
+      vcase = do
+        match VTVerticalLine
+        p <- pat
+        match VTLambdaArrow
+        (p,) <$> tm
 
 ttmData : Rule TopLevelRaw
 ttmData = do
