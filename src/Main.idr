@@ -10,9 +10,9 @@ import Violet.Core
 import Violet.Syntax
 import Violet.Parser
 
-partial
 putErr : PrimIO e => (err -> Doc AnsiStyle) -> err -> App e a
-putErr p e = do primIO $ putDoc $ p e; idris_crash ""
+putErr p e = do primIO $ putDoc $ p e; primIO $ exitSuccess
+
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
 
@@ -34,7 +34,6 @@ putCtx (ty, env, ctx) = do
     <++> ":"
     <++> (annBold $ annColor Blue $ pretty (quote env ty))
 
-partial
 startREPL : Has [PrimIO, Console] e => (VTy, Env, Ctx) -> App e ()
 startREPL (_, env, ctx) = do
   putStr "> "
@@ -46,7 +45,6 @@ startREPL (_, env, ctx) = do
   primIO $ putDoc $ (annBold $ annColor Blue $ pretty (quote env ty))
   startREPL (ty, env, ctx)
 
-partial
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
 entry ["check", filename] = do
@@ -63,6 +61,5 @@ entry xs = primIO $ putDoc $ hsep [
     dquotes $ hsep $ map pretty xs
   ]
 
-partial
 main : IO ()
 main = run $ entry $ drop 1 !getArgs
