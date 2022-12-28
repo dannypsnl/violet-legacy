@@ -11,7 +11,7 @@ import Violet.Syntax
 import Violet.Parser
 
 putErr : PrimIO e => (err -> Doc AnsiStyle) -> err -> App e a
-putErr p e = do primIO $ putDoc $ p e; primIO $ exitSuccess
+putErr prettyErr err = primIO $ do putDoc $ prettyErr err; exitSuccess
 
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
@@ -28,21 +28,23 @@ checkMod filename source tm = do
   pure (vty, env, ctx)
 
 putCtx : PrimIO e => (VTy, Env, Ctx) -> App e ()
-putCtx (ty, env, ctx) = do
-  for_ ctx.map $ \(name, ty) => primIO $ putDoc $
-    (annotate bold $ pretty name)
-    <++> ":"
-    <++> (annBold $ annColor Blue $ pretty (quote env ty))
+putCtx (ty, env, ctx) = for_ ctx.map $ \(name, ty) => primIO $ putDoc $
+  (annotate bold $ pretty name)
+  <++> ":"
+  <++> (annBold $ annColor Blue $ pretty (quote env ty))
 
 startREPL : Has [PrimIO, Console] e => (VTy, Env, Ctx) -> App e ()
 startREPL (_, env, ctx) = do
   putStr "> "
   src <- getLine
-  Right tm <- pure $ parseViolet ruleTm src
+  Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
-  Right (ty, _) <- pure $ infer' env ctx (cast tm)
+  let tm = cast raw
+  Right (ty, _) <- pure $ infer' env ctx tm
     | Left err => putErr prettyCheckError err
-  primIO $ putDoc $ (annBold $ annColor Blue $ pretty (quote env ty))
+  primIO $ putDoc $ annBold (pretty tm)
+    <++> ":"
+    <++> (annBold $ annColor Blue $ pretty (quote env ty))
   startREPL (ty, env, ctx)
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
