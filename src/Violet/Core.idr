@@ -57,7 +57,6 @@ nf0 : Tm -> Tm
 nf0 = nf emptyEnv
 
 mutual
-  export
   infer : Env -> Ctx -> Tm -> checkM VTy
   infer env ctx tm = do
     (ty, _) <- infer' env ctx tm
@@ -76,12 +75,10 @@ mutual
       Just a => pure (a, emptyEnvAndCtx)
     U => pure (VU, emptyEnvAndCtx)
     App t u => do
-      tty <- infer env ctx t
-      case tty of
-        VPi _ a b => do
-          check env ctx u a
-          pure (b (eval env u), emptyEnvAndCtx)
-        _ => report ctx (BadApp (quote env tty))
+      VPi _ a b <- infer env ctx t
+        | t' => report ctx (BadApp (quote env t'))
+      check env ctx u a
+      pure (b (eval env u), emptyEnvAndCtx)
     Lam _ _ => report ctx (InferLam tm)
     Pi x a b => do
       check env ctx a VU
@@ -104,7 +101,6 @@ mutual
           newCtx = extendCtx emptyCtx x a'
       (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
       pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
-
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
