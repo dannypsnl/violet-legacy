@@ -22,7 +22,8 @@ mutual
 
 public export
 data TopLevelRaw
-  = TLet Name RTy Raw       -- let x : a = t
+  = TImport Name            -- import AnotherModuleName
+  | TLet Name RTy Raw       -- let x : a = t
   | TPostulate Name RTy     -- posulate x : a
   -- inductive type
   -- data Nat
@@ -48,6 +49,7 @@ Cast Raw Tm where
 
 toTTm : List TopLevelRaw -> Tm
 toTTm [] = U
+toTTm (TImport name :: xs) = Import name (toTTm xs)
 toTTm (TLet x a t :: xs) = Let x (cast a) (cast t) (toTTm xs)
 toTTm (TPostulate x a :: xs) = Postulate x (cast a) (toTTm xs)
 toTTm (TData x caseLst :: xs) = foldl (\a, (x, t) => \u => a (Postulate x (cast t) u))

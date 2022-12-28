@@ -1,5 +1,7 @@
 module AModule
 
+import BModule
+
 data Nat
   | zero : Nat
   | suc : Nat → Nat;

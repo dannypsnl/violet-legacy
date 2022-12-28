@@ -121,8 +121,14 @@ ttmLet = do
   match VTSemicolon
   pure $ TLet name a t
 
+ttmImport : Rule TopLevelRaw
+ttmImport = do
+  match VTImport
+  name <- match VTIdentifier
+  pure $ TImport name
+
 ttm : Rule TopLevelRaw
-ttm = ttmData <|> ttmPostulate <|> ttmLet
+ttm = ttmImport <|> ttmData <|> ttmPostulate <|> ttmLet
 
 moduleRule : Rule ModuleRaw
 moduleRule = do

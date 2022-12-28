@@ -23,6 +23,7 @@ mutual
     | Let Name Ty Tm Tm    -- let x : a = t; u
     -- FIXME?: maybe constructor should be treated special
     | Postulate Name Ty Tm -- posulate x : a; u
+    | Import Name Tm
 
   public export
   Ty : Type
@@ -50,5 +51,9 @@ Pretty Tm where
     <++> pretty u
   pretty (Postulate x a u) =
     hsep ["postulate", pretty x, ":", hcat [pretty a, ";"]]
+    <++> line
+    <++> pretty u
+  pretty (Import name u) =
+    hsep ["import", pretty name]
     <++> line
     <++> pretty u
