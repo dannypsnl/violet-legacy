@@ -21,30 +21,33 @@ parseMod source = do
   Right (MkModuleRaw _ tops) <- pure $ parseViolet ruleModule source
     | Left err => throw err
   pure $ cast tops
-checkMod : HasErr CheckError e => String -> String -> Tm -> App e (VTy, Env, Ctx)
+checkMod : PrimIO e => String -> String -> Tm -> App e (VTy, Env, Ctx)
 checkMod filename source tm = do
-  Right (vty, (env, ctx)) <- pure $ infer' emptyEnv (ctxFromFile filename source) tm
-    | Left err => throw err
+  (vty, (env, ctx)) <- handle (infer' emptyEnv emptyCtx tm)
+    pure (putErr prettyCheckError)
   pure (vty, env, ctx)
 
 putCtx : PrimIO e => (VTy, Env, Ctx) -> App e ()
-putCtx (ty, env, ctx) = for_ ctx.map $ \(name, ty) => primIO $ putDoc $
-  (annotate bold $ pretty name)
-  <++> ":"
-  <++> (annBold $ annColor Blue $ pretty (quote env ty))
+putCtx (ty, env, ctx) = do
+  v <- handle (cquote ctx env ty) pure (putErr prettyCheckError)
+  for_ ctx.map $ \(name, ty) => primIO $ putDoc $
+    (annotate bold $ pretty name)
+    <++> ":"
+    <++> (annBold $ annColor Blue $ pretty v)
 
-startREPL : Has [PrimIO, Console] e => (VTy, Env, Ctx) -> App e ()
+startREPL : PrimIO e => (VTy, Env, Ctx) -> App e ()
 startREPL (_, env, ctx) = do
   putStr "> "
   src <- getLine
   Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
   let tm = cast raw
-  Right (ty, _) <- pure $ infer' env ctx tm
-    | Left err => putErr prettyCheckError err
+  (ty, _) <- handle (infer' env ctx tm)
+    pure (putErr prettyCheckError)
+  v <- handle (cquote ctx env ty) pure (putErr prettyCheckError)
   primIO $ putDoc $ annBold (pretty tm)
     <++> ":"
-    <++> (annBold $ annColor Blue $ pretty (quote env ty))
+    <++> (annBold $ annColor Blue $ pretty v)
   startREPL (ty, env, ctx)
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
@@ -52,12 +55,12 @@ entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 entry ["check", filename] = do
   source <- handle (readFile filename) pure (putErr prettyIOError)
   tm <- handle (parseMod source) pure (putErr prettyParsingError)
-  handle (checkMod filename source tm) pure (putErr prettyCheckError) >>= putCtx
+  checkMod filename source tm >>= putCtx
 -- `violet ./sample.vt` will load `sample` into REPL
 entry [filename] = do
   source <- handle (readFile filename) pure (putErr prettyIOError)
   tm <- handle (parseMod source) pure (putErr prettyParsingError)
-  handle (checkMod filename source tm) pure (putErr prettyCheckError) >>= startREPL
+  checkMod filename source tm >>= startREPL
 entry xs = primIO $ putDoc $ hsep [
     pretty "unknown command",
     dquotes $ hsep $ map pretty xs

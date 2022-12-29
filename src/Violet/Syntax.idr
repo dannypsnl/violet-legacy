@@ -61,7 +61,7 @@ Cast Raw Tm where
   cast (RSrcPos raw) = SrcPos $ MkBounded (cast raw.val) True raw.bounds
   cast (RVar x) = Var x
   cast (RLam x t) = Lam x (cast t)
-  cast (RApp t u) = App (cast t) (cast u)
+  cast (RApp t u) = Apply (cast t) (cast u)
   cast RU = U
   cast (RPi x a b) = Pi x (cast a) (cast b)
   cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)

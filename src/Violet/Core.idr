@@ -1,142 +1,132 @@
 module Violet.Core
 
+import System
+import Control.App
+import Control.App.Console
 import Data.List
 import Data.String
-import Text.Parser.Core
-
+import Text.Bounded
 import Violet.Core.Term
 import public Violet.Core.Val
 import public Violet.Error.Check
 
-public export
-checkM : Type -> Type
-checkM a = Either CheckError a
+report : Has [Exception CheckError] e => Ctx -> CheckErrorKind -> App e a
+report ctx err = do
+    throw $ MkCheckError ctx.filename ctx.source Nothing err
 
-addPos : Ctx -> Bounds -> checkM a -> checkM a
-addPos ctx bounds (Left ce) = case ce.bounds of
-  Nothing => Left $ {bounds := Just bounds} ce
-  Just _ => Left ce
-addPos ctx _ ma = ma
+addPos : Has [Exception CheckError] e => Bounds -> App e a -> App e a
+addPos bounds app = catch app
+    (\ce => case ce.bounds of
+      Nothing => let err : CheckError = {bounds := Just bounds} ce in throw err
+      Just _ => throw ce)
 
-report : Ctx -> CheckErrorKind -> checkM a
-report ctx err = Left (MkCheckError ctx.filename ctx.source Nothing err)
-
-eval : Env -> Tm -> Val
-eval env tm = case tm of
-  SrcPos tm => eval env tm.val
-  Var x => case lookup x env of
-    Just a => a
-    _ => ?unreachable
-  App t u => case (eval env t, eval env u) of
-    (VLam _ t, u) => t u
-    (t, u) => VApp t u
-  U => VU
-  Lam x t => VLam x (\u => eval (extend env x u) t)
-  Pi x a b => VPi x (eval env a) (\u => eval (extend env x u) b)
-  Let x a t u => eval (extend env x (eval env t)) u
-  Postulate x a u => eval (extend env x (VVar x)) u
-  Elim t cases => ?todo1
+cast : EvalError -> CheckErrorKind
+cast (NoVar x) = NoVar x
 
 export
-quote : Env -> Val -> Tm
-quote env v = case v of
-  VVar x => Var x
-  VApp t u => App (quote env t) (quote env u)
-  VLam x t =>
-    let x = fresh env x
-    in Lam x (quote (extend env x (VVar x)) (t (VVar x)))
-  VPi x a b =>
-    let x = fresh env x
-    in Pi x (quote env a) (quote (extend env x (VVar x)) (b (VVar x)))
-  VU => U
+cquote : Has [Exception CheckError] e => Ctx -> Env -> Val -> App e Tm
+cquote ctx env v = case quote env v of
+  Right a => pure a
+  Left e => let ek : CheckErrorKind = cast e in report ctx ek
 
-nf : Env -> Tm -> Tm
-nf env tm = quote env (eval env tm)
+ceval : Has [Exception CheckError] e => Ctx -> Env -> Tm -> App e Val
+ceval ctx env tm = case eval env tm of
+    Right a => pure a
+    Left e => let ek : CheckErrorKind = cast e in report ctx ek
 
-export
-nf0 : Tm -> Tm
-nf0 = nf emptyEnv
+emptyEnvAndCtx : (Env, Ctx)
+emptyEnvAndCtx = (emptyEnv, emptyCtx)
 
 mutual
-  infer : Env -> Ctx -> Tm -> checkM VTy
+  infer : Has [Exception CheckError] e => Env -> Ctx -> Tm -> App e VTy
   infer env ctx tm = do
     (ty, _) <- infer' env ctx tm
     pure ty
 
-  emptyEnvAndCtx : (Env, Ctx)
-  emptyEnvAndCtx = (emptyEnv, emptyCtx)
-
   -- infer but with new introduced env and ctx (only top level)
   export
-  infer' : Env -> Ctx -> Tm -> checkM (VTy, (Env, Ctx))
-  infer' env ctx tm = case tm of
-    SrcPos t => addPos ctx t.bounds (infer' env ctx t.val)
-    Var x => case lookupCtx ctx x of
-      Nothing => report ctx (NoVar x)
-      Just a => pure (a, emptyEnvAndCtx)
-    U => pure (VU, emptyEnvAndCtx)
-    App t u => do
-      VPi _ a b <- infer env ctx t
-        | t' => report ctx (BadApp (quote env t'))
-      check env ctx u a
-      pure (b (eval env u), emptyEnvAndCtx)
-    Lam _ _ => report ctx (InferLam tm)
-    Pi x a b => do
-      check env ctx a VU
-      let newEnv = extend emptyEnv x (VVar x)
-          newCtx = extendCtx emptyCtx x (eval env a)
-      check (newEnv <+> env) (newCtx <+> ctx) b VU
-      pure (VU, (newEnv, newCtx))
-    Postulate x a u => do
-      check env ctx a VU
-      let a' = eval env a
-      let newEnv = extend emptyEnv x (VVar x)
-          newCtx = extendCtx emptyCtx x a'
-      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
-      pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
-    Let x a t u => do
-      check env ctx a VU
-      let a' = eval env a
-      check env ctx t a'
-      let newEnv = extend emptyEnv x (eval env t)
-          newCtx = extendCtx emptyCtx x a'
-      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
-      pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
-    Elim t cases => ?todo2
+  infer' : Has [Exception CheckError] e => Env -> Ctx -> Tm -> App e (VTy, (Env, Ctx))
+  infer' env ctx tm = go tm
+    where
+      go : Tm -> App e (VTy, (Env, Ctx))
+      go (SrcPos t) = addPos t.bounds (go t.val)
+      go (Var x) = case lookupCtx ctx x of
+        Nothing => report ctx (NoVar x)
+        Just a => pure (a, emptyEnvAndCtx)
+      go U = pure (VU, emptyEnvAndCtx)
+      go (Apply t u) = do
+        VPi _ a b <- infer env ctx t
+          | t' => report ctx $ BadApp !(cquote ctx env t')
+        check env ctx u a
+        u' <- ceval ctx env u
+        case b u' of
+          Right b' => pure (b', emptyEnvAndCtx)
+          Left e => report ctx $ cast e
+      go (Lam {}) = report ctx (InferLam tm)
+      go (Pi x a b) = do
+        check env ctx a VU
+        let newEnv = extend emptyEnv x (VVar x)
+            newCtx = extendCtx emptyCtx x !(ceval ctx env a)
+        check (newEnv <+> env) (newCtx <+> ctx) b VU
+        pure (VU, (newEnv, newCtx))
+      go (Postulate x a u) = do
+        check env ctx a VU
+        let newEnv = extend emptyEnv x (VVar x)
+            newCtx = extendCtx emptyCtx x !(ceval ctx env a)
+        (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
+        pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
+      go (Let x a t u) = do
+        check env ctx a VU
+        a' <- ceval ctx env a
+        check env ctx t a'
+        let newEnv = extend emptyEnv x !(ceval ctx env t)
+            newCtx = extendCtx emptyCtx x a'
+        (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
+        pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
+      go (Elim t cases) = ?todo2
 
-  check : Env -> Ctx -> Tm -> VTy -> checkM ()
-  check env ctx t a = case (t, a) of
-    (SrcPos t, a) => addPos ctx t.bounds (check env ctx t.val a)
-    (Lam x t, VPi x' a b) =>
-      let x' = fresh env x'
-      in check (extend env x (VVar x)) (extendCtx ctx x a) t (b (VVar x'))
-    (Let x a t u, _) => do
-      check env ctx a VU
-      let a' = eval env a
-      check env ctx t a'
-      check (extend env x (eval env t)) (extendCtx ctx x a') u a'
-    _ => do
-      tty <- infer env ctx t
-      if (conv env tty a)
-        then pure ()
-        else report ctx $ TypeMismatch (quote env a) (quote env tty)
+  check : Has [Exception CheckError] e => Env -> Ctx -> Tm -> VTy -> App e ()
+  check env ctx t a = go t a
+    where
+      go : Tm -> VTy -> App e ()
+      go (SrcPos t) a = addPos t.bounds (go t.val a)
+      go (Lam x t) (VPi x' a b) = do
+        let x' = fresh env x'
+        case b (VVar x') of
+          Right u => check (extend env x (VVar x)) (extendCtx ctx x a) t u
+          Left err => report ctx $ cast err
+      go (Let x a t u) _ = do
+        check env ctx a VU
+        a' <- ceval ctx env a
+        check env ctx t a'
+        check (extend env x !(ceval ctx env t)) (extendCtx ctx x a') u a'
+      go _ _ = do
+        tty <- infer env ctx t
+        case conv env tty a of
+          Right convertable =>
+            if convertable
+              then pure ()
+              else report ctx $ TypeMismatch !(cquote ctx env a) !(cquote ctx env tty)
+          Left err => report ctx $ cast err
 
-  conv : Env -> Val -> Val -> Bool
-  conv env t u = case (t, u) of
-    (VU, VU) => True
-    (VPi x a b, VPi _ a' b') =>
-      let x = fresh env x
-      in conv env a a' && conv (extend env x (VVar x)) (b (VVar x)) (b' (VVar x))
-    (VLam x t, VLam _ t') =>
-      let x = fresh env x
-      in conv (extend env x (VVar x)) (t (VVar x)) (t' (VVar x))
-    -- checking eta conversion for Lam
-    (VLam x t, u) =>
-      let x = fresh env x
-      in conv (extend env x (VVar x)) (t (VVar x)) (VApp u (VVar x))
-    (u, VLam x t) =>
-      let x = fresh env x
-      in conv (extend env x (VVar x)) (VApp u (VVar x)) (t (VVar x))
-    (VVar x, VVar x') => x == x'
-    (VApp t u, VApp t' u') => conv env t t' && conv env u u'
-    _ => False
+  conv : Env -> Val -> Val -> Either EvalError Bool
+  conv env t u = go t u
+    where
+      go : Val -> Val -> Either EvalError Bool
+      go VU VU = pure True
+      go (VPi x a b) (VPi _ a' b') = do
+        let x' = fresh env x
+        pure $ !(conv env a a') && !(conv (extend env x' (VVar x')) !(b (VVar x')) !(b' (VVar x')))
+      go (VLam x t) (VLam _ t') = do
+        let x = fresh env x
+        conv (extend env x (VVar x)) !(t (VVar x)) !(t' (VVar x))
+      -- checking eta conversion for Lam
+      go (VLam x t) u = do
+        let x = fresh env x
+        conv (extend env x (VVar x)) !(t (VVar x)) (VApp u (VVar x))
+      go u (VLam x t) = do
+        let x = fresh env x
+        conv (extend env x (VVar x)) (VApp u (VVar x)) !(t (VVar x))
+      go (VVar x) (VVar x') = pure $ x == x'
+      go (VApp t u) (VApp t' u') = pure $ !(conv env t t') && !(conv env u u')
+      go _ _ = pure False

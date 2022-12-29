@@ -1,9 +1,8 @@
 module Violet.Error.Check
 
-import Text.Parser.Core
+import Text.Bounded
 import Text.PrettyPrint.Prettyprinter.Doc
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
-
 import Violet.Core.Term
 import public Violet.Error.Common
 
