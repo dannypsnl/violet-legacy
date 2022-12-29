@@ -29,7 +29,7 @@ checkMod filename source tm = do
 
 putCtx : PrimIO e => (VTy, Env, Ctx) -> App e ()
 putCtx (ty, env, ctx) = do
-  v <- handle (cquote ctx env ty) pure (putErr prettyCheckError)
+  v <- handle (runEval quote ctx env ty) pure (putErr prettyCheckError)
   for_ ctx.map $ \(name, ty) => primIO $ putDoc $
     (annotate bold $ pretty name)
     <++> ":"
@@ -44,7 +44,7 @@ startREPL (_, env, ctx) = do
   let tm = cast raw
   (ty, _) <- handle (infer' env ctx tm)
     pure (putErr prettyCheckError)
-  v <- handle (cquote ctx env ty) pure (putErr prettyCheckError)
+  v <- handle (runEval quote ctx env ty) pure (putErr prettyCheckError)
   primIO $ putDoc $ annBold (pretty tm)
     <++> ":"
     <++> (annBold $ annColor Blue $ pretty v)

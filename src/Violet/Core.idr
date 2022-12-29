@@ -24,15 +24,10 @@ cast : EvalError -> CheckErrorKind
 cast (NoVar x) = NoVar x
 
 export
-cquote : Has [Exception CheckError] e => Ctx -> Env -> Val -> App e Tm
-cquote ctx env v = case quote env v of
-  Right a => pure a
-  Left e => let ek : CheckErrorKind = cast e in report ctx ek
-
-ceval : Has [Exception CheckError] e => Ctx -> Env -> Tm -> App e Val
-ceval ctx env tm = case eval env tm of
-    Right a => pure a
-    Left e => let ek : CheckErrorKind = cast e in report ctx ek
+runEval : Has [Exception CheckError] e => (Env -> a -> Either EvalError b) -> Ctx -> Env -> a -> App e b
+runEval f ctx env a = case f env a of
+  Left e => report ctx $ cast e
+  Right b => pure b
 
 emptyEnvAndCtx : (Env, Ctx)
 emptyEnvAndCtx = (emptyEnv, emptyCtx)
@@ -56,9 +51,9 @@ mutual
       go U = pure (VU, emptyEnvAndCtx)
       go (Apply t u) = do
         VPi _ a b <- infer env ctx t
-          | t' => report ctx $ BadApp !(cquote ctx env t')
+          | t' => report ctx $ BadApp !(runEval quote ctx env t')
         check env ctx u a
-        u' <- ceval ctx env u
+        u' <- runEval eval ctx env u
         case b u' of
           Right b' => pure (b', emptyEnvAndCtx)
           Left e => report ctx $ cast e
@@ -66,20 +61,20 @@ mutual
       go (Pi x a b) = do
         check env ctx a VU
         let newEnv = extend emptyEnv x (VVar x)
-            newCtx = extendCtx emptyCtx x !(ceval ctx env a)
+            newCtx = extendCtx emptyCtx x !(runEval eval ctx env a)
         check (newEnv <+> env) (newCtx <+> ctx) b VU
         pure (VU, (newEnv, newCtx))
       go (Postulate x a u) = do
         check env ctx a VU
         let newEnv = extend emptyEnv x (VVar x)
-            newCtx = extendCtx emptyCtx x !(ceval ctx env a)
+            newCtx = extendCtx emptyCtx x !(runEval eval ctx env a)
         (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
         pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
       go (Let x a t u) = do
         check env ctx a VU
-        a' <- ceval ctx env a
+        a' <- runEval eval ctx env a
         check env ctx t a'
-        let newEnv = extend emptyEnv x !(ceval ctx env t)
+        let newEnv = extend emptyEnv x !(runEval eval ctx env t)
             newCtx = extendCtx emptyCtx x a'
         (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
         pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
@@ -97,16 +92,16 @@ mutual
           Left err => report ctx $ cast err
       go (Let x a t u) _ = do
         check env ctx a VU
-        a' <- ceval ctx env a
+        a' <- runEval eval ctx env a
         check env ctx t a'
-        check (extend env x !(ceval ctx env t)) (extendCtx ctx x a') u a'
+        check (extend env x !(runEval eval ctx env t)) (extendCtx ctx x a') u a'
       go _ _ = do
         tty <- infer env ctx t
         case conv env tty a of
           Right convertable =>
             if convertable
               then pure ()
-              else report ctx $ TypeMismatch !(cquote ctx env a) !(cquote ctx env tty)
+              else report ctx $ TypeMismatch !(runEval quote ctx env a) !(runEval quote ctx env tty)
           Left err => report ctx $ cast err
 
   conv : Env -> Val -> Val -> Either EvalError Bool
