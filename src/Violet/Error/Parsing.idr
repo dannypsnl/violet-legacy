@@ -14,16 +14,16 @@ data PError : Type where
   LexFail : PError
 
 export
-prettyError : PError -> Doc AnsiStyle
-prettyError (CollectPError errs) = vsep $ map prettyError errs
-prettyError LexFail = annColor Red $ "error: failed to lex"
-prettyError (TokensLeave source (tok :: toks)) = vsep [
+prettyParsingError : PError -> Doc AnsiStyle
+prettyParsingError (CollectPError errs) = vsep $ map prettyParsingError errs
+prettyParsingError LexFail = annColor Red $ "error: failed to lex"
+prettyParsingError (TokensLeave source (tok :: toks)) = vsep [
     annColor Red $ "error: contains tokens that were not consumed",
     getCode source (cast tok.bounds.startLine) 2
   ]
-prettyError (TokensLeave source []) = annColor Red $ "error: contains tokens that were not consumed"
-prettyError (SinglePError source Nothing msg) = annColor Red $ pretty msg
-prettyError (SinglePError source (Just bound) msg) =
+prettyParsingError (TokensLeave source []) = annColor Red $ "error: contains tokens that were not consumed"
+prettyParsingError (SinglePError source Nothing msg) = annColor Red $ pretty msg
+prettyParsingError (SinglePError source (Just bound) msg) =
   let shift = bound.endLine
   in getCode source (cast bound.startLine) shift
   <++> line
