@@ -1,5 +1,6 @@
 module Violet.Parser
 
+import Data.List
 import Text.Parser.Core
 import Text.Parser
 import Text.Parser.Expression
