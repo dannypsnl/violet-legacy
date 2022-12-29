@@ -10,10 +10,16 @@ import Violet.Core.Term
 import public Violet.Core.Val
 import public Violet.Error.Check
 
-report : Has [Exception CheckError] e => Ctx -> CheckErrorKind -> App e a
+export
+interface Has [Exception CheckError] e => Check e where
+
+export
+Has [Exception CheckError] e => Check e where
+
+report : Check e => Ctx -> CheckErrorKind -> App e a
 report ctx err = throw $ MkCheckError ctx.filename ctx.source Nothing err
 
-addPos : Has [Exception CheckError] e => Bounds -> App e a -> App e a
+addPos : Check e => Bounds -> App e a -> App e a
 addPos bounds app = catch app
   (\ce => case ce.bounds of
     Nothing => let err : CheckError = {bounds := Just bounds} ce in throw err
@@ -23,7 +29,7 @@ cast : EvalError -> CheckErrorKind
 cast (NoVar x) = NoVar x
 
 export
-runEval : Has [Exception CheckError] es => (e -> a -> Either EvalError b) -> Ctx -> e -> a -> App es b
+runEval : Check es => (e -> a -> Either EvalError b) -> Ctx -> e -> a -> App es b
 runEval f ctx env a = do
   Right b <- pure $ f env a
     | Left e => report ctx $ cast e
@@ -33,14 +39,14 @@ emptyEnvAndCtx : (Env, Ctx)
 emptyEnvAndCtx = (emptyEnv, emptyCtx)
 
 mutual
-  infer : Has [Exception CheckError] e => Env -> Ctx -> Tm -> App e VTy
+  infer : Check e => Env -> Ctx -> Tm -> App e VTy
   infer env ctx tm = do
     (ty, _) <- infer' env ctx tm
     pure ty
 
   -- infer but with new introduced env and ctx (only top level)
   export
-  infer' : Has [Exception CheckError] e => Env -> Ctx -> Tm -> App e (VTy, (Env, Ctx))
+  infer' : Check e => Env -> Ctx -> Tm -> App e (VTy, (Env, Ctx))
   infer' env ctx tm = go tm
     where
       go : Tm -> App e (VTy, (Env, Ctx))
@@ -80,7 +86,7 @@ mutual
         pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
       go (Elim t cases) = ?todo2
 
-  check : Has [Exception CheckError] e => Env -> Ctx -> Tm -> VTy -> App e ()
+  check : Check e => Env -> Ctx -> Tm -> VTy -> App e ()
   check env ctx t a = go t a
     where
       go : Tm -> VTy -> App e ()
