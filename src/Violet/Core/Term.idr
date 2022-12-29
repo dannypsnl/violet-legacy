@@ -29,6 +29,9 @@ mutual
     | Elim Tm (List (Pat, Tm))
     -- FIXME?: maybe constructor should be treated special
     | Postulate Name Ty Tm -- posulate x : a; u
+    -- data
+    | Sum Name (List (Name, List Ty))
+    | Intro Name Tm
 
   public export
   Ty : Type
@@ -70,3 +73,5 @@ Pretty Tm where
     hsep ["postulate", pretty x, ":", hcat [pretty a, ";"]]
     <++> line
     <++> pretty u
+  pretty (Intro x u) = spaces 2 <++> hsep ["constructor", pretty x] <++> line <++> pretty u
+  pretty _ = emptyDoc

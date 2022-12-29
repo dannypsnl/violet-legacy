@@ -11,6 +11,8 @@ mutual
     | VLam Name (Val -> Val)
     | VPi Name VTy (Val -> Val)
     | VU
+    | VSum Name (List (Name, List VTy))
+    | VConstructor Name (List Val)
 
   public export
   VTy : Type

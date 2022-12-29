@@ -1,5 +1,6 @@
 module Violet.Core
 
+import System
 import Data.List
 import Data.String
 import Text.Parser.Core
@@ -29,6 +30,7 @@ eval env tm = case tm of
     _ => ?unreachable
   App t u => case (eval env t, eval env u) of
     (VLam _ t, u) => t u
+    (VConstructor x vs, u) => VConstructor x (vs ++ [u])
     (t, u) => VApp t u
   U => VU
   Lam x t => VLam x (\u => eval (extend env x u) t)
@@ -36,6 +38,8 @@ eval env tm = case tm of
   Let x a t u => eval (extend env x (eval env t)) u
   Postulate x a u => eval (extend env x (VVar x)) u
   Elim t cases => ?todo1
+  Sum x cases => VSum x $ map (\(x, ts) => (x, map (eval env) ts)) cases
+  Intro x u => eval (extend env x (VConstructor x [])) u
 
 export
 quote : Env -> Val -> Tm
@@ -49,6 +53,8 @@ quote env v = case v of
     let x = fresh env x
     in Pi x (quote env a) (quote (extend env x (VVar x)) (b (VVar x)))
   VU => U
+  VSum x cases => Sum x $ map (\(x, ts) => (x, map (quote env) ts)) cases
+  VConstructor x vs => foldl App (Var x) $ map (quote env) vs
 
 nf : Env -> Tm -> Tm
 nf env tm = quote env (eval env tm)
@@ -80,7 +86,7 @@ mutual
         | t' => report ctx (BadApp (quote env t'))
       check env ctx u a
       pure (b (eval env u), emptyEnvAndCtx)
-    Lam _ _ => report ctx (InferLam tm)
+    Lam {} => report ctx (InferLam tm)
     Pi x a b => do
       check env ctx a VU
       let newEnv = extend emptyEnv x (VVar x)
@@ -103,6 +109,11 @@ mutual
       (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
       pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
     Elim t cases => ?todo2
+    Intro x u => do
+      let newEnv = extend env x (VConstructor x [])
+      (ty, restEnvAndCtx) <- infer' (newEnv <+> env) ctx u
+      pure (ty, (newEnv, ctx) <+> restEnvAndCtx)
+    Sum {} => pure (VU, emptyEnvAndCtx)
 
   check : Env -> Ctx -> Tm -> VTy -> checkM ()
   check env ctx t a = case (t, a) of
@@ -115,6 +126,12 @@ mutual
       let a' = eval env a
       check env ctx t a'
       check (extend env x (eval env t)) (extendCtx ctx x a') u a'
+    (t, VSum x cases) => case eval env t of
+      VConstructor x vs => case lookup x cases of
+        Just (vty :: toCheck) => check env ctx t vty
+        Just _ => report ctx (NoConstructor x)
+        Nothing => report ctx (NoConstructor x)
+      _ => report ctx (NotExpectedType x)
     _ => do
       tty <- infer env ctx t
       if (conv env tty a)

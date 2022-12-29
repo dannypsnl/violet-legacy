@@ -37,13 +37,15 @@ mutual
 ||| The Raw top-level definition of violet
 public export
 data TopLevelRaw
-  = TLet Name RTy Raw       -- let x : a = t
+  = TSrcPos (WithBounds TopLevelRaw)
+  | TLet Name RTy Raw       -- let x : a = t
   | TPostulate Name RTy     -- posulate x : a
-  -- inductive type
   -- data Nat
-  -- | zero : Nat
-  -- | suc : Nat -> Nat
-  | TData Name (List (Name, RTy))
+  -- | zero
+  -- | suc Nat
+  | TData Name (List RTy)
+      -- constructors
+      (List (Name, (List RTy)))
 
 public export
 data ModuleInfoRaw = MkModuleInfoRaw Name
@@ -67,16 +69,21 @@ Cast Raw Tm where
   cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)
   cast (RElim r cases) = Elim (cast r) $ map (bimap cast cast) cases
 
+partial
+go : (next : Tm) -> TopLevelRaw -> Tm
+go next (TLet x a t) = Let x (cast a) (cast t) next
+go next (TPostulate x a) = Postulate x (cast a) next
+go next (TData x _ cases) = foldl
+  (\a, (x, _) => \u => a (Intro x u))
+  (\u => Let x U (Sum x (map (\(x, ts) => (x, map cast ts)) cases)) u)
+  cases
+  next
+partial
 toTTm : List TopLevelRaw -> Tm
 toTTm [] = U
-toTTm (TLet x a t :: xs) = Let x (cast a) (cast t) (toTTm xs)
-toTTm (TPostulate x a :: xs) = Postulate x (cast a) (toTTm xs)
-toTTm (TData x caseLst :: xs) = foldl
-  (\a, (x, t) => \u => a (Postulate x (cast t) u))
-  (\u => Postulate x U u)
-  caseLst
-  $ toTTm xs
+toTTm (TSrcPos top :: xs) =
+  SrcPos $ MkBounded (go (toTTm xs) top.val) True top.bounds
 
-export
+partial export
 Cast (List TopLevelRaw) Tm where
   cast = toTTm

@@ -110,14 +110,13 @@ ttmData = do
   name <- match VTIdentifier
   caseList <- many pCase
   match VTSemicolon
-  pure $ TData name caseList
+  pure $ TData name [] caseList
   where
-    pCase : Rule (Name, RTy)
+    pCase : Rule (Name, List RTy)
     pCase = do
       match VTVerticalLine
       name <- match VTIdentifier
-      match VTColon
-      a <- tm
+      a <- many tm
       pure (name, a)
 
 ttmPostulate : Rule TopLevelRaw
@@ -142,7 +141,7 @@ ttmLet = do
   pure $ TLet name a t
 
 ttm : Rule TopLevelRaw
-ttm = ttmData <|> ttmPostulate <|> ttmLet
+ttm = TSrcPos <$> bounds (ttmData <|> ttmPostulate <|> ttmLet)
 
 export
 ruleTm : Rule Raw

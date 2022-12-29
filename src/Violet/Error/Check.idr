@@ -11,12 +11,16 @@ public export
 data CheckErrorKind
   = NoVar String
   | InferLam Tm
+  | NotExpectedType Name
+  | NoConstructor Name
   | BadApp Tm
   | TypeMismatch Tm Tm
 
 prettyCheckErrorKind : CheckErrorKind -> Doc AnsiStyle
 prettyCheckErrorKind (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
-prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hcat ["cannot inference lambda: ", pretty tm]
+prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hsep ["cannot inference lambda:", pretty tm]
+prettyCheckErrorKind (NotExpectedType x) = annBold $ annColor Red $ hcat ["expected", pretty x, ",but not"]
+prettyCheckErrorKind (NoConstructor name) = annBold $ annColor Red $ hcat ["no constructor called", pretty name]
 prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hcat ["bad app on: ", pretty tm]
 prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
   [ annBold $ annColor Red $ "type mismatched"
