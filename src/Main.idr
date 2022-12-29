@@ -10,9 +10,6 @@ import Violet.Core
 import Violet.Syntax
 import Violet.Parser
 
-putErr : PrimIO e => (err -> Doc AnsiStyle) -> err -> App e a
-putErr prettyErr err = primIO $ do putDoc $ prettyErr err; exitSuccess
-
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
 
@@ -21,15 +18,16 @@ parseMod source = do
   Right (MkModuleRaw _ tops) <- pure $ parseViolet ruleModule source
     | Left err => throw err
   pure $ cast tops
-checkMod : PrimIO e => String -> String -> Tm -> App e (VTy, Env, Ctx)
+checkMod : Has [PrimIO] e => String -> String -> Tm -> App e (VTy, Env, Ctx)
 checkMod filename source tm = do
-  (vty, (env, ctx)) <- handle (infer' emptyEnv emptyCtx tm)
+  let ctx = (ctxFromFile filename source)
+  (vty, (env, ctx)) <- handle (new (MkCheckState ctx) $ infer' emptyEnv ctx tm)
     pure (putErr prettyCheckError)
   pure (vty, env, ctx)
 
 putCtx : PrimIO e => (VTy, Env, Ctx) -> App e ()
 putCtx (ty, env, ctx) = do
-  v <- handle (runEval quote ctx env ty) pure (putErr prettyCheckError)
+  v <- handle (new (MkCheckState ctx) (runEval quote env ty)) pure (putErr prettyCheckError)
   for_ ctx.map $ \(name, ty) => primIO $ putDoc $
     (annotate bold $ pretty name)
     <++> ":"
@@ -42,9 +40,9 @@ startREPL (_, env, ctx) = do
   Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
   let tm = cast raw
-  (ty, _) <- handle (infer' env ctx tm)
+  (ty, _) <- handle (new (MkCheckState ctx) (infer' env ctx tm))
     pure (putErr prettyCheckError)
-  v <- handle (runEval quote ctx env ty) pure (putErr prettyCheckError)
+  v <- handle (new (MkCheckState ctx) (runEval quote env ty)) pure (putErr prettyCheckError)
   primIO $ putDoc $ annBold (pretty tm)
     <++> ":"
     <++> (annBold $ annColor Blue $ pretty v)
