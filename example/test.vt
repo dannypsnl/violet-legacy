@@ -1,10 +1,20 @@
 module Test
 
+data Bool
+| True : Bool
+| False : Bool
+;
 data Nat
 | zero : Nat
 | suc : Nat → Nat
 ;
 
 let id : (A : U) -> (_ : A) -> A = \ A x => x;
+
+let zero? : Nat → Bool =
+\n => elim n
+| zero => True
+| suc _ => False
+;
 
 let main : Nat = id Nat $ id Nat (suc zero);
