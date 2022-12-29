@@ -11,23 +11,23 @@ import public Violet.Core.Val
 import public Violet.Error.Check
 
 report : Has [Exception CheckError] e => Ctx -> CheckErrorKind -> App e a
-report ctx err = do
-    throw $ MkCheckError ctx.filename ctx.source Nothing err
+report ctx err = throw $ MkCheckError ctx.filename ctx.source Nothing err
 
 addPos : Has [Exception CheckError] e => Bounds -> App e a -> App e a
 addPos bounds app = catch app
-    (\ce => case ce.bounds of
-      Nothing => let err : CheckError = {bounds := Just bounds} ce in throw err
-      Just _ => throw ce)
+  (\ce => case ce.bounds of
+    Nothing => let err : CheckError = {bounds := Just bounds} ce in throw err
+    Just _ => throw ce)
 
 cast : EvalError -> CheckErrorKind
 cast (NoVar x) = NoVar x
 
 export
-runEval : Has [Exception CheckError] e => (Env -> a -> Either EvalError b) -> Ctx -> Env -> a -> App e b
-runEval f ctx env a = case f env a of
-  Left e => report ctx $ cast e
-  Right b => pure b
+runEval : Has [Exception CheckError] es => (e -> a -> Either EvalError b) -> Ctx -> e -> a -> App es b
+runEval f ctx env a = do
+  Right b <- pure $ f env a
+    | Left e => report ctx $ cast e
+  pure b
 
 emptyEnvAndCtx : (Env, Ctx)
 emptyEnvAndCtx = (emptyEnv, emptyCtx)
@@ -97,12 +97,11 @@ mutual
         check (extend env x !(runEval eval ctx env t)) (extendCtx ctx x a') u a'
       go _ _ = do
         tty <- infer env ctx t
-        case conv env tty a of
-          Right convertable =>
-            if convertable
-              then pure ()
-              else report ctx $ TypeMismatch !(runEval quote ctx env a) !(runEval quote ctx env tty)
-          Left err => report ctx $ cast err
+        Right convertable <- pure $ conv env tty a
+          | Left err => report ctx $ cast err
+        if convertable
+          then pure ()
+          else report ctx $ TypeMismatch !(runEval quote ctx env a) !(runEval quote ctx env tty)
 
   conv : Env -> Val -> Val -> Either EvalError Bool
   conv env t u = go t u
