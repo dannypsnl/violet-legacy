@@ -74,7 +74,7 @@ go : (next : Tm) -> TopLevelRaw -> Tm
 go next (TLet x a t) = Let x (cast a) (cast t) next
 go next (TPostulate x a) = Postulate x (cast a) next
 go next (TData x _ cases) = foldl
-  (\a, (x, _) => \u => a (Intro x u))
+  (\a, (x', _) => \u => a (Intro x' (Var x) u))
   (\u => Let x U (Sum x (map (\(x, ts) => (x, map cast ts)) cases)) u)
   cases
   next

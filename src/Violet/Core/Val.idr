@@ -50,7 +50,7 @@ eval env tm = case tm of
   Postulate x a u => eval (extendEnv env x (VVar x)) u
   Elim t cases => ?todo1
   Sum x cases => pure $ VSum x $ map (\(name, ts) => (name, rights $ map (eval env) ts)) cases
-  Intro x u => eval (extendEnv env x (VConstructor x [])) u
+  Intro x _ u => eval (extendEnv env x (VConstructor x [])) u
 
 export
 fresh : Env -> Name -> Name
@@ -72,7 +72,7 @@ quote env v = case v of
     let x = fresh env x
     pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
   VU => pure U
-  VSum x cases => pure $ Sum x $ map (\(name, ts) => (name, rights $ map (quote env) ts)) cases
+  VSum x cases => pure $ Var x
   VConstructor x vs => pure $ foldl Apply (Var x) $ rights $ map (quote env) vs
 
 nf : Env -> Tm -> Either EvalError Tm

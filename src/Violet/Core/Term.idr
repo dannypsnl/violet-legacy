@@ -31,7 +31,7 @@ mutual
     | Postulate Name Ty Tm -- posulate x : a; u
     -- data
     | Sum Name (List (Name, List Ty))
-    | Intro Name Tm
+    | Intro Name Ty Tm
 
   public export
   Ty : Type
@@ -73,7 +73,7 @@ Pretty Tm where
     hsep ["postulate", pretty x, ":", hcat [pretty a, ";"]]
     <++> line
     <++> pretty u
-  pretty (Intro x u) = spaces 2 <++> hsep ["constructor", pretty x] <++> line <++> pretty u
+  pretty (Intro x t u) = spaces 2 <++> hsep ["constructor", pretty x] <++> line <++> pretty u
   pretty (Sum x cases) = vsep (hsep ["data", pretty x] :: map pp cases)
   where
     pp : (Name, List Ty) -> Doc ann

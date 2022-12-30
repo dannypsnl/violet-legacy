@@ -75,14 +75,15 @@ mutual
         Nothing => report (NoVar x)
         Just a => pure a
       go U = pure VU
-      go (Apply t u) = do
-        VPi _ a b <- infer env ctx t
-          | t' => report $ BadApp !(runEval quote env t')
-        check env ctx u a
-        u' <- runEval eval env u
-        Right b' <- pure $ b u'
-          | Left e => report $ cast e
-        pure b'
+      go (Apply t u) = case !(infer env ctx t) of
+        VPi _ a b => do
+          check env ctx u a
+          u' <- runEval eval env u
+          Right b' <- pure $ b u'
+            | Left e => report $ cast e
+          pure b'
+        VSum x cs => pure $ VSum x cs
+        t' => report $ BadApp !(runEval quote env t')
       go (Lam {}) = report (InferLam tm)
       go (Pi x a b) = do
         check env ctx a VU
@@ -109,10 +110,12 @@ mutual
         pure ty
       go (Elim t cases) = ?todo2
       go (Sum {}) = pure VU
-      go (Intro x u) = do
+      go (Intro x t u) = do
         let env' = extendEnv env x (VConstructor x [])
+            ctx' = extendCtx ctx x !(runEval eval env t)
         updateEnv x (VConstructor x [])
-        infer env' ctx u
+        updateCtx x !(runEval eval env t)
+        infer env' ctx' u
 
   check : Check e => Env -> Ctx -> Tm -> VTy -> App e ()
   check env ctx t a = go t a
