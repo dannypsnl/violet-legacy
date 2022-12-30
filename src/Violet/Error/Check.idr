@@ -1,9 +1,8 @@
 module Violet.Error.Check
 
-import Text.Parser.Core
+import Text.Bounded
 import Text.PrettyPrint.Prettyprinter.Doc
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
-
 import Violet.Core.Term
 import public Violet.Error.Common
 
@@ -11,7 +10,7 @@ public export
 data CheckErrorKind
   = NoVar String
   | InferLam Tm
-  | NotExpectedType Name
+  | NotExpectedType Name Tm
   | NoConstructor Name
   | BadApp Tm
   | TypeMismatch Tm Tm
@@ -19,9 +18,12 @@ data CheckErrorKind
 prettyCheckErrorKind : CheckErrorKind -> Doc AnsiStyle
 prettyCheckErrorKind (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
 prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hsep ["cannot inference lambda:", pretty tm]
-prettyCheckErrorKind (NotExpectedType x) = annBold $ annColor Red $ hcat ["expected", pretty x, ",but not"]
-prettyCheckErrorKind (NoConstructor name) = annBold $ annColor Red $ hcat ["no constructor called", pretty name]
-prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hcat ["bad app on: ", pretty tm]
+prettyCheckErrorKind (NotExpectedType x tm) = annBold $ annColor Red $
+  hsep ["expected", hcat [pretty x, ","], "but not"]
+  <++> line
+  <++> hsep ["term", pretty tm]
+prettyCheckErrorKind (NoConstructor name) = annBold $ annColor Red $ hsep ["no constructor called", pretty name]
+prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hsep ["bad app on:", pretty tm]
 prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
   [ annBold $ annColor Red $ "type mismatched"
   , "expected type:"

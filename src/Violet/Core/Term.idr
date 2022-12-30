@@ -1,7 +1,7 @@
 module Violet.Core.Term
 
 import Data.String
-import Text.Parser.Core
+import public Text.Bounded
 import Text.PrettyPrint.Prettyprinter.Doc
 import Text.PrettyPrint.Prettyprinter.Symbols
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
@@ -22,7 +22,7 @@ mutual
     = SrcPos (WithBounds Tm)
     | Var Name             -- x
     | Lam Name Tm          -- λ x => t
-    | App Tm Tm            -- t u
+    | Apply Tm Tm          -- t u
     | U                    -- U
     | Pi Name Ty Ty        -- (x : a) → b
     | Let Name Ty Tm Tm    -- let x : a = t; u
@@ -47,9 +47,9 @@ Pretty Tm where
   pretty (SrcPos t) = pretty t.val
   pretty (Var name) = pretty name
   pretty (Lam x t) = hsep ["λ", pretty x, "=>", pretty t]
-  pretty (App t u) = pretty t <++> case u of
+  pretty (Apply t u) = pretty t <++> case u of
     SrcPos t => parens $ pretty t.val
-    App {}   => parens $ pretty u
+    Apply {}   => parens $ pretty u
     _        => pretty u
   pretty U = "U"
   pretty (Pi x a b) =
@@ -74,4 +74,7 @@ Pretty Tm where
     <++> line
     <++> pretty u
   pretty (Intro x u) = spaces 2 <++> hsep ["constructor", pretty x] <++> line <++> pretty u
-  pretty _ = emptyDoc
+  pretty (Sum x cases) = vsep (hsep ["data", pretty x] :: map pp cases)
+  where
+    pp : (Name, List Ty) -> Doc ann
+    pp (x, ts) = "|" <++> pretty x <++> hsep (map pretty ts)

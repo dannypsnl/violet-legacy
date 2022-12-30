@@ -1,5 +1,7 @@
 module Violet.Error.Common
 
+import System
+import Control.App
 import public Data.String
 import public Text.PrettyPrint.Prettyprinter.Doc
 import public Text.PrettyPrint.Prettyprinter.Render.Terminal
@@ -24,3 +26,7 @@ getCode source line shift =
           pretty (line+1)
           <++> pretty "|")
           <++> pretty curLine
+
+export
+putErr : PrimIO e => (err -> Doc AnsiStyle) -> err -> App e a
+putErr prettyErr err = primIO $ do putDoc $ prettyErr err; exitSuccess
