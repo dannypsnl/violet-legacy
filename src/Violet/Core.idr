@@ -14,13 +14,30 @@ public export
 record CheckState where
   constructor MkCheckState
   topCtx : Ctx
+  topEnv : Env
 
 export
 interface Has [Exception CheckError, State CheckState CheckState] e => Check e where
+  getState : App e CheckState
+  putState : CheckState -> App e ()
+
+  updateEnv : Name -> Val -> App e()
+  updateCtx : Name -> VTy -> App e()
+
   report : CheckErrorKind -> App e a
   addPos : Bounds -> App e a -> App e a
 export
 Has [Exception CheckError, State CheckState CheckState] e => Check e where
+  getState = get CheckState
+  putState = put CheckState
+
+  updateEnv x v = do
+    state <- getState
+    putState $ { topEnv := extendEnv state.topEnv x v } state
+  updateCtx x vty = do
+    state <- getState
+    putState $ { topCtx := extendCtx state.topCtx x vty } state
+
   report err = do
     state <- get CheckState
     let ctx = state.topCtx
@@ -30,8 +47,9 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
       Nothing => let err : CheckError = {bounds := Just bounds} ce in throw err
       Just _ => throw ce)
 
-cast : EvalError -> CheckErrorKind
-cast (NoVar x) = NoVar x
+export
+Cast EvalError CheckErrorKind where
+  cast (NoVar x) = NoVar x
 
 export
 runEval : Check es => (e -> a -> Either EvalError b) -> e -> a -> App es b
@@ -40,55 +58,55 @@ runEval f env a = do
     | Left e => report $ cast e
   pure b
 
-emptyEnvAndCtx : (Env, Ctx)
-emptyEnvAndCtx = (emptyEnv, emptyCtx)
-
 mutual
-  infer : Check e => Env -> Ctx -> Tm -> App e VTy
-  infer env ctx tm = do
-    (ty, _) <- infer' env ctx tm
-    pure ty
-
-  -- infer but with new introduced env and ctx (only top level)
   export
-  infer' : Check e => Env -> Ctx -> Tm -> App e (VTy, (Env, Ctx))
-  infer' env ctx tm = go tm
+  infer' : Check e => Tm -> App e (VTy, CheckState)
+  infer' tm = do
+    state <- getState
+    vty <- infer state.topEnv state.topCtx tm
+    pure (vty, !getState)
+
+  infer : Check e => Env -> Ctx -> Tm -> App e VTy
+  infer env ctx tm = go tm
     where
-      go : Tm -> App e (VTy, (Env, Ctx))
+      go : Tm -> App e VTy
       go (SrcPos t) = addPos t.bounds (go t.val)
       go (Var x) = case lookupCtx ctx x of
         Nothing => report (NoVar x)
-        Just a => pure (a, emptyEnvAndCtx)
-      go U = pure (VU, emptyEnvAndCtx)
+        Just a => pure a
+      go U = pure VU
       go (Apply t u) = do
         VPi _ a b <- infer env ctx t
           | t' => report $ BadApp !(runEval quote env t')
         check env ctx u a
         u' <- runEval eval env u
-        case b u' of
-          Right b' => pure (b', emptyEnvAndCtx)
-          Left e => report $ cast e
+        Right b' <- pure $ b u'
+          | Left e => report $ cast e
+        pure b'
       go (Lam {}) = report (InferLam tm)
       go (Pi x a b) = do
         check env ctx a VU
-        let newEnv = extend emptyEnv x (VVar x)
-            newCtx = extendCtx emptyCtx x !(runEval eval env a)
-        check (newEnv <+> env) (newCtx <+> ctx) b VU
-        pure (VU, (newEnv, newCtx))
+        check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
+        pure VU
       go (Postulate x a u) = do
         check env ctx a VU
-        let newEnv = extend emptyEnv x (VVar x)
-            newCtx = extendCtx emptyCtx x !(runEval eval env a)
-        (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
-        pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
+        let env' = extendEnv env x (VVar x)
+            ctx' = extendCtx ctx x !(runEval eval env a)
+        updateEnv x (VVar x)
+        updateCtx x !(runEval eval env a)
+        ty <- infer env' ctx' u
+        pure ty
       go (Let x a t u) = do
         check env ctx a VU
         a' <- runEval eval env a
         check env ctx t a'
-        let newEnv = extend emptyEnv x !(runEval eval env t)
-            newCtx = extendCtx emptyCtx x a'
-        (ty, restEnvAndCtx) <- infer' (newEnv <+> env) (newCtx <+> ctx) u
-        pure (ty, (newEnv, newCtx) <+> restEnvAndCtx)
+        t' <- runEval eval env t
+        let env' = extendEnv env x t'
+            ctx' = extendCtx ctx x a'
+        updateEnv x t'
+        updateCtx x a'
+        ty <- infer env' ctx' u
+        pure ty
       go (Elim t cases) = ?todo2
 
   check : Check e => Env -> Ctx -> Tm -> VTy -> App e ()
@@ -99,13 +117,17 @@ mutual
       go (Lam x t) (VPi x' a b) = do
         let x' = fresh env x'
         case b (VVar x') of
-          Right u => check (extend env x (VVar x)) (extendCtx ctx x a) t u
+          Right u => check (extendEnv env x (VVar x)) (extendCtx ctx x a) t u
           Left err => report $ cast err
       go (Let x a t u) _ = do
         check env ctx a VU
         a' <- runEval eval env a
         check env ctx t a'
-        check (extend env x !(runEval eval env t)) (extendCtx ctx x a') u a'
+        let env' = (extendEnv env x !(runEval eval env t))
+            ctx' = (extendCtx ctx x a')
+        updateEnv x !(runEval eval env t)
+        updateCtx x a'
+        check env' ctx' u a'
       go _ _ = do
         tty <- infer env ctx t
         Right convertable <- pure $ conv env tty a
@@ -121,17 +143,17 @@ mutual
       go VU VU = pure True
       go (VPi x a b) (VPi _ a' b') = do
         let x' = fresh env x
-        pure $ !(conv env a a') && !(conv (extend env x' (VVar x')) !(b (VVar x')) !(b' (VVar x')))
+        pure $ !(conv env a a') && !(conv (extendEnv env x' (VVar x')) !(b (VVar x')) !(b' (VVar x')))
       go (VLam x t) (VLam _ t') = do
         let x = fresh env x
-        conv (extend env x (VVar x)) !(t (VVar x)) !(t' (VVar x))
+        conv (extendEnv env x (VVar x)) !(t (VVar x)) !(t' (VVar x))
       -- checking eta conversion for Lam
       go (VLam x t) u = do
         let x = fresh env x
-        conv (extend env x (VVar x)) !(t (VVar x)) (VApp u (VVar x))
+        conv (extendEnv env x (VVar x)) !(t (VVar x)) (VApp u (VVar x))
       go u (VLam x t) = do
         let x = fresh env x
-        conv (extend env x (VVar x)) (VApp u (VVar x)) !(t (VVar x))
+        conv (extendEnv env x (VVar x)) (VApp u (VVar x)) !(t (VVar x))
       go (VVar x) (VVar x') = pure $ x == x'
       go (VApp t u) (VApp t' u') = pure $ !(conv env t t') && !(conv env u u')
       go _ _ = pure False

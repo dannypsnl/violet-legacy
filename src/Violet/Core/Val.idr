@@ -33,8 +33,8 @@ fresh env x = case lookup x env of
   _ => x
 
 export
-extend : Env -> Name -> Val -> Env
-extend env x v = (x, v) :: env
+extendEnv : Env -> Name -> Val -> Env
+extendEnv env x v = (x, v) :: env
 
 export
 eval : Env -> Tm -> Either EvalError Val
@@ -47,10 +47,10 @@ eval env tm = case tm of
     (VLam _ t, u) => t u
     (t, u) => pure $ VApp t u
   U => pure VU
-  Lam x t => pure $ VLam x (\u => eval (extend env x u) t)
-  Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extend env x u) b)
-  Let x a t u => eval (extend env x !(eval env t)) u
-  Postulate x a u => eval (extend env x (VVar x)) u
+  Lam x t => pure $ VLam x (\u => eval (extendEnv env x u) t)
+  Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
+  Let x a t u => eval (extendEnv env x !(eval env t)) u
+  Postulate x a u => eval (extendEnv env x (VVar x)) u
   Elim t cases => ?todo1
 
 export
@@ -61,10 +61,10 @@ quote env v = case v of
   VLam x t => do
     let x = fresh env x
     let vx = (VVar x)
-    pure $ Lam x !(quote (extend env x vx) !(t vx))
+    pure $ Lam x !(quote (extendEnv env x vx) !(t vx))
   VPi x a b => do
     let x = fresh env x
-    pure $ Pi x !(quote env a) !(quote (extend env x (VVar x)) !(b (VVar x)))
+    pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
   VU => pure U
 
 nf : Env -> Tm -> Either EvalError Tm
@@ -80,10 +80,6 @@ record Ctx where
   constructor MkCtx
   filename, source : String
   map : List (Name, VTy)
-
-export
-Semigroup Ctx where
-  a <+> b = MkCtx b.filename b.source (a.map ++ b.map)
 
 export
 ctxFromFile : String -> String -> Ctx
