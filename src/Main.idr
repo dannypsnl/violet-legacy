@@ -31,11 +31,11 @@ checkMod filename source tm = do
 
 putCtx : PrimIO e => (VTy, CheckState) -> App e ()
 putCtx (ty, state) = do
-  v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
-  for_ (reverse state.topCtx.map) $ \(name, ty) => primIO $ putDoc $
-    (annotate bold $ pretty name)
-    <++> ":"
-    <++> (annBold $ annColor Blue $ pretty v)
+  for_ (reverse state.topCtx.map) $ \(name, ty) => do
+    v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
+    primIO $ putDoc $ (annotate bold $ pretty name)
+      <++> ":"
+      <++> (annBold $ annColor Blue $ pretty v)
 
 startREPL : PrimIO e => (VTy, CheckState) -> App e ()
 startREPL (_, state) = do
@@ -44,13 +44,12 @@ startREPL (_, state) = do
   Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
   let tm = cast raw
-  (ty, _) <- handle (new state (infer' tm))
-    pure (putErr prettyCheckError)
-  v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
+  (ty, s) <- handle (new state $ infer' tm) pure (putErr prettyCheckError)
+  v <- handle (new state (runEval quote s.topEnv ty)) pure (putErr prettyCheckError)
   primIO $ putDoc $ annBold (pretty tm)
     <++> ":"
     <++> (annBold $ annColor Blue $ pretty v)
-  startREPL (ty, state)
+  startREPL (ty, s)
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
