@@ -14,22 +14,22 @@ import Violet.Parser
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
 
-parseMod : HasErr PError e => String -> App e (List Definition)
+parseMod : HasErr PError e => String -> App e ModuleRaw
 parseMod source = do
-	Right (MkModuleRaw _ tops) <- pure $ parseViolet ruleModule source
-		| Left err => throw err
-	pure $ map cast tops
+  Right raw <- pure $ parseViolet ruleModule source
+    | Left err => throw err
+  pure raw
 
-checkMod : Has [PrimIO] e => String -> String -> List Definition -> App e CheckState
-checkMod filename source defs = do
+checkMod : Has [PrimIO] e => String -> String -> ModuleRaw -> App e CheckState
+checkMod filename source raw = do
 	let ctx = (ctxFromFile filename source)
-	new (checkState ctx) $ checkModule defs `handleErr` putErr prettyCheckError
+	new (checkState ctx) $ checkModule (map cast raw.tops) `handleErr` putErr prettyCheckError
 
 loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
 loadModuleFile filename = do
 	source <- readFile filename `handleErr` putErr prettyIOError
-	defs <- parseMod source `handleErr` putErr prettyParsingError
-	checkMod filename source defs
+	raw <- parseMod source `handleErr` putErr prettyParsingError
+	checkMod filename source raw
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do

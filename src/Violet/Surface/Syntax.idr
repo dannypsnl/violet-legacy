@@ -72,7 +72,10 @@ record ModuleInfoRaw where
   imports : List ModuleImportStmt
 
 public export
-data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
+record ModuleRaw where
+  constructor MkModuleRaw
+  info : ModuleInfoRaw
+  tops : List TopLevelRaw
 
 export
 Cast Raw STm where
