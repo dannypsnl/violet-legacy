@@ -19,10 +19,17 @@ parseMod source = do
 	Right (MkModuleRaw _ tops) <- pure $ parseViolet ruleModule source
 		| Left err => throw err
 	pure $ map cast tops
+
 checkMod : Has [PrimIO] e => String -> String -> List Definition -> App e CheckState
 checkMod filename source defs = do
 	let ctx = (ctxFromFile filename source)
 	new (checkState ctx) $ checkModule defs `handleErr` putErr prettyCheckError
+
+loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
+loadModuleFile filename = do
+	source <- readFile filename `handleErr` putErr prettyIOError
+	defs <- parseMod source `handleErr` putErr prettyParsingError
+	checkMod filename source defs
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
@@ -56,15 +63,9 @@ replLoop = do
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
-entry ["check", filename] = do
-	source <- readFile filename `handleErr` putErr prettyIOError
-	defs <- parseMod source `handleErr` putErr prettyParsingError
-	checkMod filename source defs >>= putCtx
+entry ["check", filename] = loadModuleFile filename >>= putCtx
 -- `violet ./sample.vt` will load `sample` into REPL
-entry [filename] = do
-	source <- readFile filename `handleErr` putErr prettyIOError
-	defs <- parseMod source `handleErr` putErr prettyParsingError
-	checkMod filename source defs >>= \state => new state $ do replLoop
+entry [filename] = loadModuleFile filename >>= \state => new state $ do replLoop
 entry xs = primIO $ putDoc $ hsep [
 		pretty "unknown command",
 		dquotes $ hsep $ map pretty xs
