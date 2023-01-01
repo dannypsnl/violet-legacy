@@ -59,7 +59,7 @@ runEval f env a = do
   pure b
 
 mutual
-  export partial
+  export
   checkModule : Check e => List Definition -> App e CheckState
   checkModule [] = getState
   checkModule (d :: ds) = go d *> checkModule ds
