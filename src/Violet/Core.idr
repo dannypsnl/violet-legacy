@@ -122,8 +122,6 @@ mutual
         t' <- runEval eval env t
         let env' = extendEnv env x t'
             ctx' = extendCtx ctx x a'
-        updateEnv x t'
-        updateCtx x a'
         ty <- infer env' ctx' u
         pure ty
       go (Elim t cases) = ?todo2
@@ -144,8 +142,6 @@ mutual
         check env ctx t a'
         let env' = (extendEnv env x !(runEval eval env t))
             ctx' = (extendCtx ctx x a')
-        updateEnv x !(runEval eval env t)
-        updateCtx x a'
         check env' ctx' u a'
       go _ _ = do
         tty <- infer env ctx t
