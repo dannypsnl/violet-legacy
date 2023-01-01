@@ -119,15 +119,6 @@ ttmData = do
       a <- many tm
       pure (name, a)
 
-ttmPostulate : Rule TopLevelRaw
-ttmPostulate = do
-  match VTPostulate
-  name <- match VTIdentifier
-  match VTColon
-  a <- tm
-  match VTSemicolon
-  pure $ TPostulate name a
-
 -- let x : a = t
 ttmLet : Rule TopLevelRaw
 ttmLet = do
@@ -141,7 +132,7 @@ ttmLet = do
   pure $ TLet name a t
 
 ttm : Rule TopLevelRaw
-ttm = TSrcPos <$> bounds (ttmData <|> ttmPostulate <|> ttmLet)
+ttm = TSrcPos <$> bounds (ttmData <|> ttmLet)
 
 export
 ruleTm : Rule Raw

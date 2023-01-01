@@ -1,8 +1,9 @@
 module AModule
 
 data Nat
-  | zero : Nat
-  | suc : Nat → Nat;
+| zero
+| suc Nat
+;
 
 data SomethingElse;
 

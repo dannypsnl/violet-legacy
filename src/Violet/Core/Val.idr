@@ -13,8 +13,6 @@ mutual
     | VLam Name (Val -> Either EvalError Val)
     | VPi Name VTy (Val -> Either EvalError Val)
     | VU
-    | VSum Name (List (Name, List VTy))
-    | VConstructor Name (List Val)
 
   public export
   VTy : Type
@@ -41,16 +39,12 @@ eval env tm = case tm of
     _ => Left $ NoVar x
   Apply t u => case (!(eval env t), !(eval env u)) of
     (VLam _ t, u) => t u
-    (VConstructor x vs, u) => pure $ VConstructor x $ vs ++ [u]
     (t, u) => pure $ VApp t u
   U => pure VU
   Lam x t => pure $ VLam x (\u => eval (extendEnv env x u) t)
   Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
   Let x a t u => eval (extendEnv env x !(eval env t)) u
-  Postulate x a u => eval (extendEnv env x (VVar x)) u
   Elim t cases => ?todo1
-  Sum x cases => pure $ VSum x $ map (\(name, ts) => (name, rights $ map (eval env) ts)) cases
-  Intro x _ u => eval (extendEnv env x (VConstructor x [])) u
 
 export
 fresh : Env -> Name -> Name
@@ -72,8 +66,6 @@ quote env v = case v of
     let x = fresh env x
     pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
   VU => pure U
-  VSum x cases => pure $ Var x
-  VConstructor x vs => pure $ foldl Apply (Var x) $ rights $ map (quote env) vs
 
 nf : Env -> Tm -> Either EvalError Tm
 nf env tm = quote env !(eval env tm)

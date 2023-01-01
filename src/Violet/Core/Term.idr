@@ -27,15 +27,23 @@ mutual
     | Pi Name Ty Ty        -- (x : a) → b
     | Let Name Ty Tm Tm    -- let x : a = t; u
     | Elim Tm (List (Pat, Tm))
-    -- FIXME?: maybe constructor should be treated special
-    | Postulate Name Ty Tm -- posulate x : a; u
-    -- data
-    | Sum Name (List (Name, List Ty))
-    | Intro Name Ty Tm
 
   public export
   Ty : Type
   Ty = Tm
+
+  public export
+  data DataCase = C Name (List Ty)
+
+  public export
+  data Definition
+    = DSrcPos (WithBounds Definition)
+    -- data Nat
+    -- | zero
+    -- | suc Nat
+    | Data Name (List DataCase)
+    -- let x : a = t;
+    | Def Name Ty Tm
 
 export
 Pretty Pat where
@@ -69,12 +77,3 @@ Pretty Tm where
     where
       prettyCase : (Pat, Tm) -> Doc ann
       prettyCase (p, t) = pipe <++> pretty p <++> "=>" <++> pretty tm
-  pretty (Postulate x a u) =
-    hsep ["postulate", pretty x, ":", hcat [pretty a, ";"]]
-    <++> line
-    <++> pretty u
-  pretty (Intro x t u) = spaces 2 <++> hsep ["constructor", pretty x] <++> line <++> pretty u
-  pretty (Sum x cases) = vsep (hsep ["data", pretty x] :: map pp cases)
-  where
-    pp : (Name, List Ty) -> Doc ann
-    pp (x, ts) = "|" <++> pretty x <++> hsep (map pretty ts)

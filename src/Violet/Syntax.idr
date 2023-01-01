@@ -39,7 +39,6 @@ public export
 data TopLevelRaw
   = TSrcPos (WithBounds TopLevelRaw)
   | TLet Name RTy Raw       -- let x : a = t
-  | TPostulate Name RTy     -- posulate x : a
   -- data Nat
   -- | zero
   -- | suc Nat
@@ -69,21 +68,11 @@ Cast Raw Tm where
   cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)
   cast (RElim r cases) = Elim (cast r) $ map (bimap cast cast) cases
 
-partial
-go : (next : Tm) -> TopLevelRaw -> Tm
-go next (TLet x a t) = Let x (cast a) (cast t) next
-go next (TPostulate x a) = Postulate x (cast a) next
-go next (TData x _ cases) = foldl
-  (\a, (x', _) => \u => a (Intro x' (Var x) u))
-  (\u => Let x U (Sum x (map (\(x, ts) => (x, map cast ts)) cases)) u)
-  cases
-  next
-partial
-toTTm : List TopLevelRaw -> Tm
-toTTm [] = U
-toTTm (TSrcPos top :: xs) =
-  SrcPos $ MkBounded (go (toTTm xs) top.val) True top.bounds
-
-partial export
-Cast (List TopLevelRaw) Tm where
-  cast = toTTm
+export
+Cast TopLevelRaw Definition where
+  cast (TSrcPos top) = DSrcPos $ MkBounded (cast top.val) True top.bounds
+  cast (TLet x a t) = Def x (cast a) (cast t)
+  cast (TData x _ cases) = Data x (map toCase cases)
+    where
+      toCase : (Name, (List RTy)) -> DataCase
+      toCase (x, tys) = C x (map cast tys)
