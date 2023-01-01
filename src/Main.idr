@@ -42,12 +42,12 @@ startREPL state = do
   Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
   let tm = cast raw
-  (ty, s) <- handle (new state $ infer' tm) pure (putErr prettyCheckError)
-  v <- handle (new state (runEval quote s.topEnv ty)) pure (putErr prettyCheckError)
+  ty <- handle (new state $ infer' tm) pure (putErr prettyCheckError)
+  v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
   primIO $ putDoc $ annBold (pretty tm)
     <++> ":"
     <++> (annBold $ annColor Blue $ pretty v)
-  startREPL s
+  startREPL state
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`

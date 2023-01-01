@@ -87,11 +87,10 @@ mutual
         updateCtx x a'
 
   export
-  infer' : Check e => Tm -> App e (VTy, CheckState)
+  infer' : Check e => Tm -> App e VTy
   infer' tm = do
     state <- getState
-    vty <- infer state.topEnv state.topCtx tm
-    pure (vty, !getState)
+    infer state.topEnv state.topCtx tm
 
   infer : Check e => Env -> Ctx -> Tm -> App e VTy
   infer env ctx tm = go tm
