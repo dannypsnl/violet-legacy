@@ -9,6 +9,17 @@ import Violet.Lexer
 import Violet.Syntax
 import public Violet.Error.Parsing
 
+public export
+record ParsingState where
+  constructor MkParsingState
+
+export
+Semigroup ParsingState where
+  s1 <+> s2 = s1
+export
+Semigroup ParsingState => Monoid ParsingState where
+  neutral = MkParsingState
+
 -- `Grammar state tok consumes ty`
 -- * `state` can be defined, but didn't be used here
 -- * `tok` is the token type of the language
@@ -16,7 +27,7 @@ import public Violet.Error.Parsing
 -- * `ty` is the returned type of parser
 public export
 Rule : (ty : Type) -> Type
-Rule = Grammar () VToken True
+Rule = Grammar ParsingState VToken True
 
 tmU : Rule Raw
 tmU = match VTUniverse $> RU
@@ -157,20 +168,18 @@ ruleModule = do
   pure $ MkModuleRaw (MkModuleInfoRaw name) bindings
 
 export
-parseViolet : Rule a -> String -> Either PError a
+parseViolet : Monoid ParsingState => Rule a -> String -> Either PError a
 parseViolet rule source =
   case lexViolet source of
     Just toks => parseTokens toks source
     Nothing => Left LexFail
   where
+    ignored : WithBounds VToken -> Bool
+    ignored (MkBounded (Tok VTIgnore _) _ _) = True
+    ignored _ = False
+
     parseTokens : List (WithBounds VToken) -> (source : String) -> Either PError a
-    parseTokens toks source =
-      let toks' = filter (not . ignored) toks
-      in case parse rule toks' of
-        Right (l, []) => Right l
-        Right (_, leftTokens) => Left $ TokensLeave source leftTokens
-        Left es => Left $ CollectPError $ map (\(Error msg bounds) => SinglePError source bounds msg) $ forget es
-      where
-        ignored : WithBounds VToken -> Bool
-        ignored (MkBounded (Tok VTIgnore _) _ _) = True
-        ignored _ = False
+    parseTokens toks source = case parseWith rule $ filter (not . ignored) toks of
+      Right (state, result, []) => Right result
+      Right (state, result, leftTokens) => Left $ TokensLeave source leftTokens
+      Left es => Left $ CollectPError $ map (\(Error msg bounds) => SinglePError source bounds msg) $ forget es
