@@ -1,0 +1,10 @@
+module Leibniz
+
+let Eq : (A : U) -> A -> A -> U =
+  λ A x y => (P : A -> U) -> P x -> P y;
+
+let refl : (A : U) -> (x : A) -> Eq A x x =
+  λ A x _ Px => Px;
+
+let sym : (A : U) -> (x : A) -> (y : A) -> Eq A x y -> Eq A y x =
+  λ A x y p => p (λ y => Eq A y x) (refl A x);
