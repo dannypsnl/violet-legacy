@@ -15,8 +15,8 @@ data CheckErrorKind
 
 prettyCheckErrorKind : CheckErrorKind -> Doc AnsiStyle
 prettyCheckErrorKind (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
-prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hcat ["cannot inference lambda: ", pretty tm]
-prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hcat ["bad app on: ", pretty tm]
+prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hsep ["cannot inference lambda:", pretty tm]
+prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hsep ["bad app on:", pretty tm]
 prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
   [ annBold $ annColor Red $ "type mismatched"
   , "expected type:"

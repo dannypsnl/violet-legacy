@@ -1,5 +1,6 @@
 module Violet.Core.Val
 
+import Data.Either
 import Data.List
 import Violet.Core.Term
 import public Violet.Error.Eval
@@ -26,13 +27,6 @@ emptyEnv : Env
 emptyEnv = []
 
 export
-fresh : Env -> Name -> Name
-fresh _ "_" = "_"
-fresh env x = case lookup x env of
-  Just _ => fresh env (x ++ "'")
-  _ => x
-
-export
 extendEnv : Env -> Name -> Val -> Env
 extendEnv env x v = (x, v) :: env
 
@@ -50,8 +44,14 @@ eval env tm = case tm of
   Lam x t => pure $ VLam x (\u => eval (extendEnv env x u) t)
   Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
   Let x a t u => eval (extendEnv env x !(eval env t)) u
-  Postulate x a u => eval (extendEnv env x (VVar x)) u
   Elim t cases => ?todo1
+
+export
+fresh : Env -> Name -> Name
+fresh _ "_" = "_"
+fresh env x = case lookup x env of
+  Just _ => fresh env (x ++ "'")
+  _ => x
 
 export
 quote : Env -> Val -> Either EvalError Tm
