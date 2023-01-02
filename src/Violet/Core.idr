@@ -48,10 +48,6 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
       Just _ => throw ce)
 
 export
-Cast EvalError CheckErrorKind where
-  cast (NoVar x) = NoVar x
-
-export
 runEval : Check es => (e -> a -> Either EvalError b) -> e -> a -> App es b
 runEval f env a = do
   Right b <- pure $ f env a
@@ -123,7 +119,8 @@ mutual
             ctx' = extendCtx ctx x a'
         ty <- infer env' ctx' u
         pure ty
-      go (Elim t cases) = ?todo2
+      -- FIXME: add correct infer here
+      go (Elim t cases) = pure $ VVar "Bool"
 
   check : Check e => Env -> Ctx -> Tm -> VTy -> App e ()
   check env ctx t a = go t a

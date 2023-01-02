@@ -31,22 +31,6 @@ extendEnv : Env -> Name -> Val -> Env
 extendEnv env x v = (x, v) :: env
 
 export
-eval : Env -> Tm -> Either EvalError Val
-eval env tm = case tm of
-  SrcPos tm => eval env tm.val
-  Var x => case lookup x env of
-    Just a => pure a
-    _ => Left $ NoVar x
-  Apply t u => case (!(eval env t), !(eval env u)) of
-    (VLam _ t, u) => t u
-    (t, u) => pure $ VApp t u
-  U => pure VU
-  Lam x t => pure $ VLam x (\u => eval (extendEnv env x u) t)
-  Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
-  Let x a t u => eval (extendEnv env x !(eval env t)) u
-  Elim t cases => ?todo1
-
-export
 fresh : Env -> Name -> Name
 fresh _ "_" = "_"
 fresh env x = case lookup x env of
@@ -66,6 +50,40 @@ quote env v = case v of
     let x = fresh env x
     pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
   VU => pure U
+
+toSpine : Env -> Val -> Either EvalError $ List Val
+toSpine env (VVar x) = pure [VVar x]
+toSpine env (VApp t u) = pure (!(toSpine env t) ++ !(toSpine env u))
+toSpine env v = Left $ BadSpine !(quote env v)
+
+export
+eval : Env -> Tm -> Either EvalError Val
+eval env tm = case tm of
+  SrcPos tm => eval env tm.val
+  Var x => case lookup x env of
+    Just a => pure a
+    _ => Left $ NoVar x
+  Apply t u => case (!(eval env t), !(eval env u)) of
+    (VLam _ t, u) => t u
+    (t, u) => pure $ VApp t u
+  U => pure VU
+  Lam x t => pure $ VLam x (\u => eval (extendEnv env x u) t)
+  Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
+  Let x a t u => eval (extendEnv env x !(eval env t)) u
+  Elim t cases => do
+    spine <- toSpine env !(eval env t)
+    go spine cases
+    where
+      matches : Pat -> List Val -> (Bool, Env)
+      matches (PVar x) [VVar x'] = (x == x', emptyEnv)
+      matches (PCons head rest) (VVar head' :: rest') = (head == head', zip rest rest')
+      matches _ _ = (False, emptyEnv)
+
+      go : List Val -> List (Pat, Tm) -> Either EvalError Val
+      go spine ((pat, rhs) :: rest) = case matches pat spine of
+        (True, env') => eval (env' ++ env) rhs
+        (False, _) => go spine rest
+      go spine [] = Left OutOfCase
 
 nf : Env -> Tm -> Either EvalError Tm
 nf env tm = quote env !(eval env tm)
