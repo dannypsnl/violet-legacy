@@ -13,6 +13,7 @@ data CheckErrorKind
   | InferLam Tm
   | BadApp Tm
   | TypeMismatch Tm Tm
+  | Many (List Tm)
   | EvalE EvalError
 
 export
@@ -30,6 +31,7 @@ prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
   , "actual type:"
   , annBold $ annColor Yellow $ indent 2 $ pretty t2
   ]
+prettyCheckErrorKind (Many tms) = hsep (map pretty tms)
 prettyCheckErrorKind (EvalE e) = prettyEvalError e
 
 public export

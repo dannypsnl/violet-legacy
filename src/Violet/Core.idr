@@ -10,19 +10,30 @@ import Violet.Core.Term
 import public Violet.Core.Val
 import public Violet.Error.Check
 
+ConstructorSet : Type
+ConstructorSet = List (Name, List VTy)
+
 public export
 record CheckState where
   constructor MkCheckState
   topCtx : Ctx
   topEnv : Env
+  dataDefs : List (Name, ConstructorSet)
+
+export
+checkState : Ctx -> Env -> CheckState
+checkState ctx env = MkCheckState ctx env []
 
 export
 interface Has [Exception CheckError, State CheckState CheckState] e => Check e where
   getState : App e CheckState
   putState : CheckState -> App e ()
 
-  updateEnv : Name -> Val -> App e()
-  updateCtx : Name -> VTy -> App e()
+  updateEnv : Name -> Val -> App e ()
+  updateCtx : Name -> VTy -> App e ()
+
+  addIndType : Name -> ConstructorSet -> App e ()
+  findConstructorSet : Name -> App e ConstructorSet
 
   report : CheckErrorKind -> App e a
   addPos : Bounds -> App e a -> App e a
@@ -37,6 +48,15 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
   updateCtx x vty = do
     state <- getState
     putState $ { topCtx := extendCtx state.topCtx x vty } state
+
+  addIndType dataName cs = do
+    state <- getState
+    putState $ { dataDefs := (dataName, cs) :: state.dataDefs } state
+  findConstructorSet dataName = do
+    state <- getState
+    Just cs <- pure $ lookup dataName state.dataDefs
+      | Nothing => ?raiseFindConstructors
+    pure cs
 
   report err = do
     state <- get CheckState
@@ -66,6 +86,12 @@ mutual
         t' <- runEval eval state.topEnv (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
         updateCtx x t'
         updateEnv x (VVar x)
+      
+      toConstructor : DataCase -> App e (Name, List VTy)
+      toConstructor (C x tys) = do
+        state <- getState
+        tys' <- for tys (runEval eval state.topEnv)
+        pure (x, tys')
 
       go : Definition -> App e ()
       go (DSrcPos def) = addPos def.bounds (go def.val)
@@ -73,6 +99,7 @@ mutual
         updateCtx dataName VU
         updateEnv dataName (VVar dataName)
         for_ cases $ goCase (Var dataName)
+        addIndType dataName !(for cases toConstructor)
       go (Def x a t) = do
         state <- getState
         check state.topEnv state.topCtx a VU
@@ -120,7 +147,39 @@ mutual
         ty <- infer env' ctx' u
         pure ty
       -- FIXME: add correct infer here
-      go (Elim t cases) = pure $ VVar "Bool"
+      go (Elim t cases) = do
+        ty <- infer env ctx t
+        [VVar x] <- runEval toSpine env ty
+          | ts => report $ Many !(for ts (runEval quote env))
+        cs <- findConstructorSet x
+        Just rhs_ty <- goCase env ctx cs Nothing cases
+          | Nothing => ?raise5
+        pure $ rhs_ty
+        where
+          maybeConv : Env -> Maybe VTy -> VTy -> App e (Maybe VTy)
+          maybeConv env Nothing t = pure $ Just t
+          maybeConv env (Just t) t' = do
+            Right covertable <- pure $ conv env t t'
+              | Left err => report $ cast err
+            if covertable
+              then pure $ Just t
+              else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
+
+          -- start with a rhs type & a list of case
+          goCase : Env -> Ctx -> ConstructorSet -> Maybe VTy -> List (Pat, Tm) -> App e (Maybe VTy)
+          goCase env ctx cs rhs_ty ((PVar x, rhs) :: cases) = do
+            Just _ <- pure $ lookup x cs
+              | Nothing => ?raise3
+            new_rhs_ty <- infer env ctx rhs
+            goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
+          goCase env ctx cs rhs_ty ((PCons head vars, rhs) :: cases) = do
+            Just tys <- pure $ lookup head cs
+              | Nothing => ?raise6
+            let env' : Env = zip vars (map VVar vars) ++ env
+                ctx' : Ctx = extendCtxWithBinds ctx (zip vars tys)
+            new_rhs_ty <- infer env' ctx' rhs
+            goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
+          goCase env ctx cs rhs_ty [] = pure rhs_ty
 
   check : Check e => Env -> Ctx -> Tm -> VTy -> App e ()
   check env ctx t a = go t a

@@ -51,6 +51,7 @@ quote env v = case v of
     pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
   VU => pure U
 
+export
 toSpine : Env -> Val -> Either EvalError $ List Val
 toSpine env (VVar x) = pure [VVar x]
 toSpine env (VApp t u) = pure (!(toSpine env t) ++ !(toSpine env u))
@@ -110,6 +111,10 @@ emptyCtx = MkCtx "<no file>" "<empty>" []
 export
 extendCtx : Ctx -> Name -> VTy -> Ctx
 extendCtx ctx x v = { map := (x, v) :: ctx.map } ctx
+export
+extendCtxWithBinds : Ctx -> List (Name, VTy) -> Ctx
+extendCtxWithBinds ctx binds = { map := binds ++ ctx.map } ctx
+
 export
 lookupCtx : Ctx -> Name -> Maybe VTy
 lookupCtx ctx x = lookup x ctx.map

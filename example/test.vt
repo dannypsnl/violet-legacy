@@ -17,4 +17,10 @@ let zero? : Nat → Bool =
 | suc _ => False
 ;
 
-let main : Nat = id Nat $ id Nat (suc zero);
+let not : Bool → Bool =
+\b => elim b
+| True => False
+| False => True
+;
+
+let main : Bool = not $ not $ zero? $ id Nat $ id Nat (suc zero);

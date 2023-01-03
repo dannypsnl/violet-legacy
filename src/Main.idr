@@ -10,9 +10,6 @@ import Violet.Core
 import Violet.Syntax
 import Violet.Parser
 
-checkState : Ctx -> Env -> CheckState
-checkState ctx env = MkCheckState ctx env
-
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
 
@@ -44,7 +41,9 @@ startREPL state = do
   let tm = cast raw
   ty <- handle (new state $ infer' tm) pure (putErr prettyCheckError)
   v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
-  primIO $ putDoc $ annBold (pretty tm)
+  ntm <- handle (new state (runEval eval state.topEnv tm)) pure (putErr prettyCheckError)
+  ntm' <- handle (new state (runEval quote state.topEnv ntm)) pure (putErr prettyCheckError)
+  primIO $ putDoc $ annBold (pretty ntm')
     <++> ":"
     <++> (annBold $ annColor Blue $ pretty v)
   startREPL state
