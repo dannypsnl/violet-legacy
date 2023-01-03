@@ -55,7 +55,7 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
   findConstructorSet dataName = do
     state <- getState
     Just cs <- pure $ lookup dataName state.dataDefs
-      | Nothing => ?raiseFindConstructors
+      | Nothing => report $ NotADataType dataName
     pure cs
 
   report err = do
@@ -79,18 +79,14 @@ mutual
   checkModule : Check e => List Definition -> App e CheckState
   checkModule [] = getState
   checkModule (d :: ds) = go d *> checkModule ds
-    where
-      goCase : Tm -> DataCase -> App e ()
-      goCase returned_ty (C x tys) = do
+    where      
+      handleDataCase : Tm -> DataCase -> App e (Name, List VTy)
+      handleDataCase returned_ty (C x tys) = do
         state <- getState
+        tys' <- for tys (runEval eval state.topEnv)
         t' <- runEval eval state.topEnv (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
         updateCtx x t'
         updateEnv x (VVar x)
-      
-      toConstructor : DataCase -> App e (Name, List VTy)
-      toConstructor (C x tys) = do
-        state <- getState
-        tys' <- for tys (runEval eval state.topEnv)
         pure (x, tys')
 
       go : Definition -> App e ()
@@ -98,8 +94,7 @@ mutual
       go (Data dataName cases) = do
         updateCtx dataName VU
         updateEnv dataName (VVar dataName)
-        for_ cases $ goCase (Var dataName)
-        addIndType dataName !(for cases toConstructor)
+        addIndType dataName !(for cases $ handleDataCase (Var dataName))
       go (Def x a t) = do
         state <- getState
         check state.topEnv state.topCtx a VU
@@ -146,14 +141,16 @@ mutual
             ctx' = extendCtx ctx x a'
         ty <- infer env' ctx' u
         pure ty
-      -- FIXME: add correct infer here
       go (Elim t cases) = do
         ty <- infer env ctx t
+        -- TODO: to enable indexed data type, we will need to extend `findConstructorSet` in the future
         [VVar x] <- runEval toSpine env ty
-          | ts => report $ Many !(for ts (runEval quote env))
+          | ts => report $ BadElimType !(for ts (runEval quote env))
+        -- find a constructor set from definition context
         cs <- findConstructorSet x
+        -- if we can do so, then we use this set to check every case of elimination
         Just rhs_ty <- goCase env ctx cs Nothing cases
-          | Nothing => ?raise5
+          | Nothing => report $ ElimInfer (Elim t cases)
         pure $ rhs_ty
         where
           maybeConv : Env -> Maybe VTy -> VTy -> App e (Maybe VTy)
@@ -165,18 +162,22 @@ mutual
               then pure $ Just t
               else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
 
+          getTelescope : ConstructorSet -> Name -> App e (List VTy)
+          getTelescope cs x = do
+            Just tys <- pure $ lookup x cs
+              | Nothing => report $ BadConstructor x
+            pure tys
+
           -- start with a rhs type & a list of case
           goCase : Env -> Ctx -> ConstructorSet -> Maybe VTy -> List (Pat, Tm) -> App e (Maybe VTy)
           goCase env ctx cs rhs_ty ((PVar x, rhs) :: cases) = do
-            Just _ <- pure $ lookup x cs
-              | Nothing => ?raise3
+            _ <- getTelescope cs x
             new_rhs_ty <- infer env ctx rhs
             goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
           goCase env ctx cs rhs_ty ((PCons head vars, rhs) :: cases) = do
-            Just tys <- pure $ lookup head cs
-              | Nothing => ?raise6
-            let env' : Env = zip vars (map VVar vars) ++ env
-                ctx' : Ctx = extendCtxWithBinds ctx (zip vars tys)
+            tys <- getTelescope cs head
+            let env' = zip vars (map VVar vars) ++ env
+                ctx' = extendCtxWithBinds ctx (zip vars tys)
             new_rhs_ty <- infer env' ctx' rhs
             goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
           goCase env ctx cs rhs_ty [] = pure rhs_ty
