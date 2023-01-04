@@ -118,16 +118,25 @@ ttmData = do
       a <- many tm
       pure (name, a)
 
--- let x : a = t
+-- def x (xi : Ti) : T =>
+--   u
 ttmDef : Rule TopLevelRaw
 ttmDef = do
   match VTDef
   name <- match VTIdentifier
+  tele <- many $ parens binding
   match VTColon
   a <- tm
-  match VTAssign
+  match VTLambdaArrow
   t <- tm
-  pure $ TDef name a t
+  pure $ TDef name tele a t
+  where
+    binding : Rule (Name, RTy)
+    binding = do
+      name <- match VTIdentifier
+      match VTColon
+      ty <- tm
+      pure (name, ty)
 
 ttm : Rule TopLevelRaw
 ttm = TSrcPos <$> bounds (ttmData <|> ttmDef)

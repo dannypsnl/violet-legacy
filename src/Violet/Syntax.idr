@@ -11,12 +11,16 @@ data PatRaw
   | RPCons Name (List Name)
 
 mutual
+  public export
+  RTelescope : Type
+  RTelescope = List (Name, RTy)
+
   ||| The Raw top-level definition of violet
   public export
   data TopLevelRaw
     = TSrcPos (WithBounds TopLevelRaw)
     -- def x : a => t
-    | TDef Name RTy Raw
+    | TDef Name RTelescope RTy Raw
     -- data Nat
     -- | zero
     -- | suc Nat
@@ -72,7 +76,15 @@ Cast Raw Tm where
 export
 Cast TopLevelRaw Definition where
   cast (TSrcPos top) = DSrcPos $ MkBounded (cast top.val) True top.bounds
-  cast (TDef x a t) = Def x (cast a) (cast t)
+  cast (TDef x tele a t) = Def x (toPi tele $ cast a) (toLam tele $ cast t)
+  where
+    toPi : RTelescope -> Tm -> Tm
+    toPi ((x, ty) :: tele) t = Pi x (cast ty) (toPi tele t)
+    toPi [] t = t
+
+    toLam : RTelescope -> Tm -> Tm
+    toLam ((x, _) :: tele) t = Lam x (toLam tele t)
+    toLam [] t = t
   cast (TData x _ cases) = Data x (map toCase cases)
     where
       toCase : (Name, (List RTy)) -> DataCase

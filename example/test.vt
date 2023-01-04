@@ -8,17 +8,15 @@ data Nat
 | zero
 | suc Nat
 
-def id : (A : U) -> (_ : A) -> A = \ A x => x
+def id (A : U) (x : A) : A => x
 
-def zero? : Nat → Bool =
-\n => elim n
+def zero? (n : Nat) : Bool => elim n
 | zero => True
 | suc _ => False
 
-def not : Bool → Bool =
-\b => elim b
+def not (b : Bool) : Bool => elim b
 | True => False
 | False => True
 
-def main : Bool = not $ not $ zero? $
+def main : Bool => not $ not $ zero? $
   id Nat $ id Nat (suc zero)
