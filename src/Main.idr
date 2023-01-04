@@ -1,6 +1,7 @@
 module Main
 
 import System
+import System.File.Virtual
 import Control.App
 import Control.App.Console
 import Control.App.FileIO
@@ -32,21 +33,24 @@ putCtx state = do
       <++> ":"
       <++> (annBold $ annColor Blue $ pretty v)
 
-startREPL : PrimIO e => CheckState -> App e ()
-startREPL state = do
+replLoop : PrimIO e => CheckState -> App e ()
+replLoop state = do
   putStr "> "
   src <- getLine
   Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
   let tm = cast raw
-  ty <- handle (new state $ infer' tm) pure (putErr prettyCheckError)
-  v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
-  ntm <- handle (new state (runEval eval state.topEnv tm)) pure (putErr prettyCheckError)
-  ntm' <- handle (new state (runEval quote state.topEnv ntm)) pure (putErr prettyCheckError)
-  primIO $ putDoc $ annBold (pretty ntm')
-    <++> ":"
-    <++> (annBold $ annColor Blue $ pretty v)
-  startREPL state
+  ty <- handle (new state $ do
+    t <- infer' tm
+    runEval quote state.topEnv t)
+    pure (putErr prettyCheckError)
+  v <- handle (new state $ do
+    v <- runEval eval state.topEnv tm
+    runEval quote state.topEnv v)
+    pure (putErr prettyCheckError)
+  primIO $ putDoc $
+    hsep [annBold (pretty v), ":", (annBold $ annColor Blue $ pretty ty)]
+  replLoop state
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
@@ -58,7 +62,7 @@ entry ["check", filename] = do
 entry [filename] = do
   source <- handle (readFile filename) pure (putErr prettyIOError)
   defs <- handle (parseMod source) pure (putErr prettyParsingError)
-  checkMod filename source defs >>= startREPL
+  checkMod filename source defs >>= replLoop
 entry xs = primIO $ putDoc $ hsep [
     pretty "unknown command",
     dquotes $ hsep $ map pretty xs
