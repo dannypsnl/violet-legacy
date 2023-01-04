@@ -10,6 +10,7 @@ import Data.SortedSet
 public export
 data VTokenKind
   = VTIdentifier        -- x
+  | VTDef               -- def
   | VTData              -- data
   | VTLet               -- let
   | VTElim              -- elim
@@ -31,6 +32,7 @@ data VTokenKind
 export
 Eq VTokenKind where
   (==) VTIdentifier VTIdentifier = True
+  (==) VTDef VTDef = True
   (==) VTData VTData = True
   (==) VTLet VTLet = True
   (==) VTElim VTElim = True
@@ -52,6 +54,7 @@ Eq VTokenKind where
 export
 Show VTokenKind where
   show VTIdentifier   = "<identifer>"
+  show VTDef          = "def"
   show VTData         = "data"
   show VTLet          = "let"
   show VTElim         = "elim"
@@ -84,6 +87,7 @@ TokenKind VTokenKind where
   TokType _ = ()
 
   tokValue VTIdentifier s = s
+  tokValue VTDef _ = ()
   tokValue VTData _ = ()
   tokValue VTLet _ = ()
   tokValue VTElim _ = ()
@@ -120,6 +124,7 @@ comment = is '-' <+> is '-' <+> many (isNot '\n')
 
 keywords : List (String, VTokenKind)
 keywords = [
+  ("def", VTDef),
   ("data", VTData),
   ("let", VTLet),
   ("elim", VTElim),

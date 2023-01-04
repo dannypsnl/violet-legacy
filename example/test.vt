@@ -3,24 +3,22 @@ module Test
 data Bool
 | True
 | False
-;
+
 data Nat
 | zero
 | suc Nat
-;
 
-let id : (A : U) -> (_ : A) -> A = \ A x => x;
+def id : (A : U) -> (_ : A) -> A = \ A x => x
 
-let zero? : Nat → Bool =
+def zero? : Nat → Bool =
 \n => elim n
 | zero => True
 | suc _ => False
-;
 
-let not : Bool → Bool =
+def not : Bool → Bool =
 \b => elim b
 | True => False
 | False => True
-;
 
-let main : Bool = not $ not $ zero? $ id Nat $ id Nat (suc zero);
+def main : Bool = not $ not $ zero? $
+  id Nat $ id Nat (suc zero)
