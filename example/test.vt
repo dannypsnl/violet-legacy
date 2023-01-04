@@ -11,10 +11,16 @@ data Nat
 
 let id : (A : U) -> (_ : A) -> A = \ A x => x;
 
--- let zero? : Nat → Bool =
--- \n => elim n
--- | zero => True
--- | suc _ => False
--- ;
+let zero? : Nat → Bool =
+\n => elim n
+| zero => True
+| suc _ => False
+;
 
-let main : Nat = id Nat $ id Nat (suc zero);
+let not : Bool → Bool =
+\b => elim b
+| True => False
+| False => True
+;
+
+let main : Bool = not $ not $ zero? $ id Nat $ id Nat (suc zero);

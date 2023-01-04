@@ -5,6 +5,7 @@ import Text.PrettyPrint.Prettyprinter.Doc
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
 import Violet.Core.Term
 import public Violet.Error.Common
+import Violet.Error.Eval
 
 public export
 data CheckErrorKind
@@ -12,6 +13,15 @@ data CheckErrorKind
   | InferLam Tm
   | BadApp Tm
   | TypeMismatch Tm Tm
+  | NotADataType Name
+  | BadElimType (List Tm)
+  | ElimInfer Tm
+  | BadConstructor Name
+  | EvalE EvalError
+
+export
+Cast EvalError CheckErrorKind where
+  cast e = EvalE e
 
 prettyCheckErrorKind : CheckErrorKind -> Doc AnsiStyle
 prettyCheckErrorKind (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
@@ -24,6 +34,15 @@ prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
   , "actual type:"
   , annBold $ annColor Yellow $ indent 2 $ pretty t2
   ]
+prettyCheckErrorKind (NotADataType name) = annBold $ annColor Red $
+  hsep [pretty name, "is not a data type"]
+prettyCheckErrorKind (BadElimType tms) = annBold $ annColor Red $
+  vsep ["cannot eliminate type:", indent 4 $ hsep (map pretty tms)]
+prettyCheckErrorKind (ElimInfer tm) = annBold $ annColor Red $
+  vsep ["cannot infer this elimination:", indent 4 $ pretty tm]
+prettyCheckErrorKind (BadConstructor name) = annBold $ annColor Red $
+  hsep ["cannot find constructor in current context:", pretty name]
+prettyCheckErrorKind (EvalE e) = prettyEvalError e
 
 public export
 record CheckError where
