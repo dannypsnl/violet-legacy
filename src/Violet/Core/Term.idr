@@ -61,11 +61,11 @@ Pretty Tm where
     _        => pretty u
   pretty U = "U"
   pretty (Pi x a b) =
-    hsep [ hcat ["(", pretty x],
-           ":",
-           hcat [pretty a, ")"],
-           "→", pretty b
-         ]
+    (if x == "_"
+      then pretty a
+      else hsep [ hcat ["(", pretty x], ":", hcat [pretty a, ")"] ])
+    <++> "→"
+    <++> pretty b
   pretty (Let x a t u) =
     hsep [ "let", pretty x, ":", pretty a, "=", hcat [pretty t, ";"] ]
     <++> line
