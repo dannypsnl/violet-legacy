@@ -84,32 +84,29 @@ mutual
     match VTSemicolon
     u <- tm
     pure $ RLet name a t u
-  
+
+  patRule : Rule PatRaw
+  patRule = pure $ let (h ::: vs) = !(some (match VTIdentifier))
+    in if isNil vs then RPVar h else RPCons h vs
+  caseRule : Rule (PatRaw, Raw)
+  caseRule = do
+    match VTVerticalLine
+    p <- patRule
+    match VTLambdaArrow
+    (p,) <$> tm
   -- elim n
   -- | C x => x
   -- | z => z
   tmElim : Rule Raw
   tmElim = do
     match VTElim
-    pure $ RElim !tm !(many vcase)
-    where
-      pat : Rule PatRaw
-      pat = pure $
-            let (h ::: vs) = !(some (match VTIdentifier))
-            in if isNil vs then RPVar h else RPCons h vs
-      vcase : Rule (PatRaw, Raw)
-      vcase = do
-        match VTVerticalLine
-        p <- pat
-        match VTLambdaArrow
-        (p,) <$> tm
+    pure $ RElim !tm !(many caseRule)
 
 ttmData : Rule TopLevelRaw
 ttmData = do
   match VTData
   name <- match VTIdentifier
   caseList <- many pCase
-  match VTSemicolon
   pure $ TData name [] caseList
   where
     pCase : Rule (Name, List RTy)
@@ -119,20 +116,28 @@ ttmData = do
       a <- many tm
       pure (name, a)
 
--- let x : a = t
-ttmLet : Rule TopLevelRaw
-ttmLet = do
-  match VTLet
+-- def x (xi : Ti) : T =>
+--   u
+ttmDef : Rule TopLevelRaw
+ttmDef = do
+  match VTDef
   name <- match VTIdentifier
+  tele <- many $ parens binding
   match VTColon
   a <- tm
-  match VTAssign
+  match VTLambdaArrow
   t <- tm
-  match VTSemicolon
-  pure $ TLet name a t
+  pure $ TDef name tele a t
+  where
+    binding : Rule (Name, RTy)
+    binding = do
+      name <- match VTIdentifier
+      match VTColon
+      ty <- tm
+      pure (name, ty)
 
 ttm : Rule TopLevelRaw
-ttm = TSrcPos <$> bounds (ttmData <|> ttmLet)
+ttm = TSrcPos <$> bounds (ttmData <|> ttmDef)
 
 export
 ruleTm : Rule Raw
