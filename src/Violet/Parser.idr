@@ -84,25 +84,23 @@ mutual
     match VTSemicolon
     u <- tm
     pure $ RLet name a t u
-  
+
+  patRule : Rule PatRaw
+  patRule = pure $ let (h ::: vs) = !(some (match VTIdentifier))
+    in if isNil vs then RPVar h else RPCons h vs
+  caseRule : Rule (PatRaw, Raw)
+  caseRule = do
+    match VTVerticalLine
+    p <- patRule
+    match VTLambdaArrow
+    (p,) <$> tm
   -- elim n
   -- | C x => x
   -- | z => z
   tmElim : Rule Raw
   tmElim = do
     match VTElim
-    pure $ RElim !tm !(many vcase)
-    where
-      pat : Rule PatRaw
-      pat = pure $
-            let (h ::: vs) = !(some (match VTIdentifier))
-            in if isNil vs then RPVar h else RPCons h vs
-      vcase : Rule (PatRaw, Raw)
-      vcase = do
-        match VTVerticalLine
-        p <- pat
-        match VTLambdaArrow
-        (p,) <$> tm
+    pure $ RElim !tm !(many caseRule)
 
 ttmData : Rule TopLevelRaw
 ttmData = do
