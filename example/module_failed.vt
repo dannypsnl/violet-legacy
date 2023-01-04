@@ -3,10 +3,9 @@ module AModule
 data Nat
 | zero
 | suc Nat
-;
 
-data SomethingElse;
+data SomethingElse
 
-let id : (A : U) → (_ : A) → A = λ A x => x;
+def id (A : U) (x : A) : A => x
 
-let main : SomethingElse = id Nat $ id Nat (suc zero);
+def main : SomethingElse => id Nat $ id Nat (suc zero)
