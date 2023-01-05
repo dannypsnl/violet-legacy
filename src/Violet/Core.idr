@@ -137,9 +137,7 @@ mutual
 				a' <- runEval eval env a
 				check env ctx t a'
 				t' <- runEval eval env t
-				let env' = extendEnv env x t'
-						ctx' = extendCtx ctx x a'
-				ty <- infer env' ctx' u
+				ty <- infer (extendEnv env x t') (extendCtx ctx x a') u
 				pure ty
 			go (Elim t cases) = do
 				ty <- infer env ctx t
@@ -177,7 +175,7 @@ mutual
 					goCase env ctx cs rhs_ty ((PCons head vars, rhs) :: cases) = do
 						tys <- getTelescope cs head
 						let env' = zip vars (map VVar vars) ++ env
-								ctx' = extendCtxWithBinds ctx (zip vars tys)
+						let ctx' = extendCtxWithBinds ctx (zip vars tys)
 						new_rhs_ty <- infer env' ctx' rhs
 						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
 					goCase env ctx cs rhs_ty [] = pure rhs_ty
@@ -197,7 +195,7 @@ mutual
 				a' <- runEval eval env a
 				check env ctx t a'
 				let env' = (extendEnv env x !(runEval eval env t))
-						ctx' = (extendCtx ctx x a')
+				let ctx' = (extendCtx ctx x a')
 				check env' ctx' u a'
 			go _ _ = do
 				tty <- infer env ctx t

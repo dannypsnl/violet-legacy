@@ -23,8 +23,7 @@ parseMod source = do
 checkMod : Has [PrimIO] e => String -> String -> List Definition -> App e CheckState
 checkMod filename source defs = do
 	let ctx = (ctxFromFile filename source)
-			env = emptyEnv
-	new (checkState ctx env) $ checkModule defs `handleErr` putErr prettyCheckError
+	new (checkState ctx emptyEnv) $ checkModule defs `handleErr` putErr prettyCheckError
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
