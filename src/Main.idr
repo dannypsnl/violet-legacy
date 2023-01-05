@@ -3,6 +3,7 @@ module Main
 import System
 import System.File.Virtual
 import Control.App
+import Control.App.Handler
 import Control.App.Console
 import Control.App.FileIO
 import Text.PrettyPrint.Prettyprinter.Symbols
@@ -23,12 +24,12 @@ checkMod : Has [PrimIO] e => String -> String -> List Definition -> App e CheckS
 checkMod filename source defs = do
   let ctx = (ctxFromFile filename source)
       env = emptyEnv
-  handle (new (checkState ctx env) $ checkModule defs) pure (putErr prettyCheckError)
+  new (checkState ctx env) $ checkModule defs `handleErr` putErr prettyCheckError
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
   for_ (reverse state.topCtx.map) $ \(name, ty) => do
-    v <- handle (new state (runEval quote state.topEnv ty)) pure (putErr prettyCheckError)
+    v <- new state (runEval quote state.topEnv ty) `handleErr` putErr prettyCheckError
     primIO $ putDoc $ (annotate bold $ pretty name)
       <++> ":"
       <++> (annBold $ annColor Blue $ pretty v)
@@ -40,14 +41,12 @@ replLoop state = do
   Right raw <- pure $ parseViolet ruleTm src
     | Left err => putErr prettyParsingError err
   let tm = cast raw
-  ty <- handle (new state $ do
+  ty <- (new state $ do
     t <- infer' tm
-    runEval quote state.topEnv t)
-    pure (putErr prettyCheckError)
-  v <- handle (new state $ do
+    runEval quote state.topEnv t) `handleErr` putErr prettyCheckError
+  v <- (new state $ do
     v <- runEval eval state.topEnv tm
-    runEval quote state.topEnv v)
-    pure (putErr prettyCheckError)
+    runEval quote state.topEnv v) `handleErr` putErr prettyCheckError
   primIO $ putDoc $
     hsep [annBold (pretty v), ":", (annBold $ annColor Blue $ pretty ty)]
   replLoop state
@@ -55,13 +54,13 @@ replLoop state = do
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
 entry ["check", filename] = do
-  source <- handle (readFile filename) pure (putErr prettyIOError)
-  defs <- handle (parseMod source) pure (putErr prettyParsingError)
+  source <- readFile filename `handleErr` putErr prettyIOError
+  defs <- parseMod source `handleErr` putErr prettyParsingError
   checkMod filename source defs >>= putCtx
 -- `violet ./sample.vt` will load `sample` into REPL
 entry [filename] = do
-  source <- handle (readFile filename) pure (putErr prettyIOError)
-  defs <- handle (parseMod source) pure (putErr prettyParsingError)
+  source <- readFile filename `handleErr` putErr prettyIOError
+  defs <- parseMod source `handleErr` putErr prettyParsingError
   checkMod filename source defs >>= replLoop
 entry xs = primIO $ putDoc $ hsep [
     pretty "unknown command",
