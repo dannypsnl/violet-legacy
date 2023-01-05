@@ -7,11 +7,11 @@ bugtracker = "http://www.github.com/dannypsnl/violet/issues"
 depends = contrib
 
 modules = Violet.Parser
-        , Violet.Core
-        , Violet.Core.Val
-        , Violet.Core.Term
-        , Violet.Syntax
-        , Violet.Lexer
+				, Violet.Core
+				, Violet.Core.Val
+				, Violet.Core.Term
+				, Violet.Syntax
+				, Violet.Lexer
 
 sourcedir = "src"
 -- application

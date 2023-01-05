@@ -1,10 +1,10 @@
 module Leibniz
 
 def Eq (A : U) (x : A) (y : A) : U =>
-  (P : A -> U) -> P x -> P y
+	(P : A -> U) -> P x -> P y
 
 def refl (A : U) (x : A) : Eq A x x =>
-  λ _ Px => Px
+	λ _ Px => Px
 
 def sym (A : U) (x : A) (y : A) : Eq A x y -> Eq A y x =>
-  λ p => p (λ y => Eq A y x) (refl A x)
+	λ p => p (λ y => Eq A y x) (refl A x)

@@ -9,5 +9,5 @@ data SomethingElse
 def id (A : U) (x : A) : A => x
 
 def main : Nat =>
-  let one : Nat = suc zero;
-  id Nat $ id Nat one
+	let one : Nat = suc zero;
+	id Nat $ id Nat one

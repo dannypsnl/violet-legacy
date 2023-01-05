@@ -9,69 +9,69 @@ import Data.SortedSet
 
 public export
 data VTokenKind
-  = VTIdentifier        -- x
-  | VTDef               -- def
-  | VTData              -- data
-  | VTLet               -- let
-  | VTElim              -- elim
-  | VTPostulate         -- postulate
-  | VTUniverse          -- U
-  | VTVerticalLine      -- |
-  | VTAssign            -- =
-  | VTColon             -- :
-  | VTSemicolon         -- ;
-  | VTOpenP             -- (
-  | VTCloseP            -- )
-  | VTArrow             -- → or ->
-  | VTLambda            -- λ or \
-  | VTLambdaArrow       -- =>
-  | VTDollar            -- $
-  | VTIgnore            -- single line comment or whitespace
-  | VTModule             -- module
+	= VTIdentifier        -- x
+	| VTDef               -- def
+	| VTData              -- data
+	| VTLet               -- let
+	| VTElim              -- elim
+	| VTPostulate         -- postulate
+	| VTUniverse          -- U
+	| VTVerticalLine      -- |
+	| VTAssign            -- =
+	| VTColon             -- :
+	| VTSemicolon         -- ;
+	| VTOpenP             -- (
+	| VTCloseP            -- )
+	| VTArrow             -- → or ->
+	| VTLambda            -- λ or \
+	| VTLambdaArrow       -- =>
+	| VTDollar            -- $
+	| VTIgnore            -- single line comment or whitespace
+	| VTModule             -- module
 
 export
 Eq VTokenKind where
-  (==) VTIdentifier VTIdentifier = True
-  (==) VTDef VTDef = True
-  (==) VTData VTData = True
-  (==) VTLet VTLet = True
-  (==) VTElim VTElim = True
-  (==) VTPostulate VTPostulate = True
-  (==) VTUniverse VTUniverse = True
-  (==) VTVerticalLine VTVerticalLine = True
-  (==) VTAssign VTAssign = True
-  (==) VTColon VTColon = True
-  (==) VTSemicolon VTSemicolon = True
-  (==) VTOpenP VTOpenP = True
-  (==) VTCloseP VTCloseP = True
-  (==) VTArrow VTArrow = True
-  (==) VTLambda VTLambda = True
-  (==) VTLambdaArrow VTLambdaArrow = True
-  (==) VTDollar VTDollar = True
-  (==) VTModule VTModule = True
-  (==) _ _ = False
+	(==) VTIdentifier VTIdentifier = True
+	(==) VTDef VTDef = True
+	(==) VTData VTData = True
+	(==) VTLet VTLet = True
+	(==) VTElim VTElim = True
+	(==) VTPostulate VTPostulate = True
+	(==) VTUniverse VTUniverse = True
+	(==) VTVerticalLine VTVerticalLine = True
+	(==) VTAssign VTAssign = True
+	(==) VTColon VTColon = True
+	(==) VTSemicolon VTSemicolon = True
+	(==) VTOpenP VTOpenP = True
+	(==) VTCloseP VTCloseP = True
+	(==) VTArrow VTArrow = True
+	(==) VTLambda VTLambda = True
+	(==) VTLambdaArrow VTLambdaArrow = True
+	(==) VTDollar VTDollar = True
+	(==) VTModule VTModule = True
+	(==) _ _ = False
 
 export
 Show VTokenKind where
-  show VTIdentifier   = "<identifer>"
-  show VTDef          = "def"
-  show VTData         = "data"
-  show VTLet          = "let"
-  show VTElim         = "elim"
-  show VTPostulate    = "postulate"
-  show VTUniverse     = "U"
-  show VTAssign       = "="
-  show VTColon        = ":"
-  show VTSemicolon    = ";"
-  show VTVerticalLine = "|"
-  show VTOpenP        = "("
-  show VTCloseP       = ")"
-  show VTArrow        = "→"
-  show VTLambda       = "λ"
-  show VTLambdaArrow  = "=>"
-  show VTDollar       = "$"
-  show VTIgnore       = "<ignore>"
-  show VTModule       = "module"
+	show VTIdentifier   = "<identifer>"
+	show VTDef          = "def"
+	show VTData         = "data"
+	show VTLet          = "let"
+	show VTElim         = "elim"
+	show VTPostulate    = "postulate"
+	show VTUniverse     = "U"
+	show VTAssign       = "="
+	show VTColon        = ":"
+	show VTSemicolon    = ";"
+	show VTVerticalLine = "|"
+	show VTOpenP        = "("
+	show VTCloseP       = ")"
+	show VTArrow        = "→"
+	show VTLambda       = "λ"
+	show VTLambdaArrow  = "=>"
+	show VTDollar       = "$"
+	show VTIgnore       = "<ignore>"
+	show VTModule       = "module"
 
 public export
 VToken : Type
@@ -79,32 +79,32 @@ VToken = Token VTokenKind
 
 export
 Show VToken where
-  show (Tok kind text) = "Tok kind: " ++ show kind ++ "\n text: " ++ text
+	show (Tok kind text) = "Tok kind: " ++ show kind ++ "\n text: " ++ text
 
 export
 TokenKind VTokenKind where
-  TokType VTIdentifier = String
-  TokType _ = ()
+	TokType VTIdentifier = String
+	TokType _ = ()
 
-  tokValue VTIdentifier s = s
-  tokValue VTDef _ = ()
-  tokValue VTData _ = ()
-  tokValue VTLet _ = ()
-  tokValue VTElim _ = ()
-  tokValue VTPostulate _ = ()
-  tokValue VTUniverse _ = ()
-  tokValue VTVerticalLine _ = ()
-  tokValue VTAssign _ = ()
-  tokValue VTColon _ = ()
-  tokValue VTSemicolon _ = ()
-  tokValue VTOpenP _ = ()
-  tokValue VTCloseP _ = ()
-  tokValue VTArrow _ = ()
-  tokValue VTLambda _ = ()
-  tokValue VTLambdaArrow _ = ()
-  tokValue VTDollar _ = ()
-  tokValue VTIgnore _ = ()
-  tokValue VTModule _ = ()
+	tokValue VTIdentifier s = s
+	tokValue VTDef _ = ()
+	tokValue VTData _ = ()
+	tokValue VTLet _ = ()
+	tokValue VTElim _ = ()
+	tokValue VTPostulate _ = ()
+	tokValue VTUniverse _ = ()
+	tokValue VTVerticalLine _ = ()
+	tokValue VTAssign _ = ()
+	tokValue VTColon _ = ()
+	tokValue VTSemicolon _ = ()
+	tokValue VTOpenP _ = ()
+	tokValue VTCloseP _ = ()
+	tokValue VTArrow _ = ()
+	tokValue VTLambda _ = ()
+	tokValue VTLambdaArrow _ = ()
+	tokValue VTDollar _ = ()
+	tokValue VTIgnore _ = ()
+	tokValue VTModule _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
@@ -124,40 +124,40 @@ comment = is '-' <+> is '-' <+> many (isNot '\n')
 
 keywords : List (String, VTokenKind)
 keywords = [
-  ("def", VTDef),
-  ("data", VTData),
-  ("let", VTLet),
-  ("elim", VTElim),
-  ("postulate", VTPostulate),
-  ("U", VTUniverse),
-  ("module", VTModule)
+	("def", VTDef),
+	("data", VTData),
+	("let", VTLet),
+	("elim", VTElim),
+	("postulate", VTPostulate),
+	("U", VTUniverse),
+	("module", VTModule)
 ]
 
 violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
-    (spaces, VTIgnore),
-    (comment, VTIgnore),
-    (exact "->" <|> is '→', VTArrow),
-    (is 'λ' <|> is '\\', VTLambda),
-    (exact "=>" <|> is '⇒', VTLambdaArrow),
-    (exact "|", VTVerticalLine),
-    (exact ":", VTColon),
-    (exact ";", VTSemicolon),
-    (exact "$", VTDollar),
-    (exact "(", VTOpenP),
-    (exact ")", VTCloseP),
-    (exact "=", VTAssign)
-  ] ++
-  [ (identifier, \s =>
-      case lookup s keywords of
-        (Just kind) => Tok kind s
-        Nothing => Tok VTIdentifier s
-    )
-  ]
+		(spaces, VTIgnore),
+		(comment, VTIgnore),
+		(exact "->" <|> is '→', VTArrow),
+		(is 'λ' <|> is '\\', VTLambda),
+		(exact "=>" <|> is '⇒', VTLambdaArrow),
+		(exact "|", VTVerticalLine),
+		(exact ":", VTColon),
+		(exact ";", VTSemicolon),
+		(exact "$", VTDollar),
+		(exact "(", VTOpenP),
+		(exact ")", VTCloseP),
+		(exact "=", VTAssign)
+	] ++
+	[ (identifier, \s =>
+			case lookup s keywords of
+				(Just kind) => Tok kind s
+				Nothing => Tok VTIdentifier s
+		)
+	]
 
 export
 lexViolet : String -> Maybe (List (WithBounds VToken))
 lexViolet str =
-  case lex violetTokenMap str of
-    (tokens, _, _, "") => Just tokens
-    _ => Nothing
+	case lex violetTokenMap str of
+		(tokens, _, _, "") => Just tokens
+		_ => Nothing

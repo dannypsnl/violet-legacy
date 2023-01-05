@@ -7,9 +7,9 @@ import Violet.Error.Common
 
 public export
 data EvalError
-  = NoVar String
-  | BadSpine Tm
-  | OutOfCase
+	= NoVar String
+	| BadSpine Tm
+	| OutOfCase
 
 export
 prettyEvalError : EvalError -> Doc AnsiStyle

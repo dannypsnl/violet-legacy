@@ -19,4 +19,4 @@ def not (b : Bool) : Bool => elim b
 | False => True
 
 def main : Bool => not $ not $ zero? $
-  id Nat $ id Nat (suc zero)
+	id Nat $ id Nat (suc zero)
