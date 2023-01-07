@@ -122,19 +122,26 @@ ttmDef : Rule TopLevelRaw
 ttmDef = do
 	match VTDef
 	name <- match VTIdentifier
-	tele <- many $ parens binding
+	raw_tele <- many $ parens binding
 	match VTColon
 	a <- tm
 	match VTLambdaArrow
 	t <- tm
-	pure $ TDef name tele a t
+	pure $ TDef name
+	  (transform (map (\(ns, ty) => (forget ns, ty)) raw_tele))
+		a t
 	where
-		binding : Rule (Name, RTy)
+		transform : List (List Name, RTy) -> List (Name, RTy)
+		transform [] = []
+		transform (([], ty) :: rest) = transform rest
+		transform ((n :: ns, ty) :: rest) = (n, ty) :: transform ((ns, ty) :: rest)
+
+		binding : Rule (List1 Name, RTy)
 		binding = do
-			name <- match VTIdentifier
+			names <- some $ match VTIdentifier
 			match VTColon
 			ty <- tm
-			pure (name, ty)
+			pure (names, ty)
 
 ttm : Rule TopLevelRaw
 ttm = TSrcPos <$> bounds (ttmData <|> ttmDef)
