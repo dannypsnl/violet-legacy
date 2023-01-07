@@ -99,7 +99,7 @@ mutual
 				state <- getState
 				check state.topEnv state.topCtx a VU
 				a' <- runEval eval state.topEnv a
-				check state.topEnv state.topCtx t a'
+				check (extendEnv state.topEnv x (VVar x)) (extendCtx state.topCtx x a') t a'
 				t' <- runEval eval state.topEnv t
 				updateEnv x t'
 				updateCtx x a'
