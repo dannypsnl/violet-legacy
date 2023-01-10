@@ -86,12 +86,9 @@ eval env tm = case tm of
 				(False, _) => go spine rest
 			go spine [] = Left OutOfCase
 
+export
 nf : Env -> Tm -> Either EvalError Tm
 nf env tm = quote env !(eval env tm)
-
-export
-nf0 : Tm -> Either EvalError Tm
-nf0 = nf emptyEnv
 
 -- context
 public export

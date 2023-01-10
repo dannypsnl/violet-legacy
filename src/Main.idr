@@ -33,22 +33,18 @@ putCtx state = do
 			<++> ":"
 			<++> (annBold $ annColor Blue $ pretty v)
 
-replLoop : PrimIO e => CheckState -> App e ()
-replLoop state = do
+replLoop : Has [PrimIO, State CheckState CheckState] e => App e ()
+replLoop = do
 	putStr "> "
-	src <- getLine
-	Right raw <- pure $ parseViolet ruleTm src
+	Right raw <- pure $ parseViolet ruleTm !(getLine)
 		| Left err => putErr prettyParsingError err
 	let tm = cast raw
-	ty <- (new state $ do
-		t <- infer' tm
-		runEval quote state.topEnv t) `handleErr` putErr prettyCheckError
-	v <- (new state $ do
-		v <- runEval eval state.topEnv tm
-		runEval quote state.topEnv v) `handleErr` putErr prettyCheckError
-	primIO $ putDoc $
-		hsep [annBold (pretty v), ":", (annBold $ annColor Blue $ pretty ty)]
-	replLoop state
+	state <- get CheckState
+	t <- infer' tm `handleErr` putErr prettyCheckError
+	ty <- runEval quote state.topEnv t `handleErr` putErr prettyCheckError
+	v <- runEval nf state.topEnv tm `handleErr` putErr prettyCheckError
+	primIO $ putDoc $ hsep [annBold (pretty v), ":", (annBold $ annColor Blue $ pretty ty)]
+	replLoop
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
@@ -60,7 +56,7 @@ entry ["check", filename] = do
 entry [filename] = do
 	source <- readFile filename `handleErr` putErr prettyIOError
 	defs <- parseMod source `handleErr` putErr prettyParsingError
-	checkMod filename source defs >>= replLoop
+	checkMod filename source defs >>= \state => new state $ do replLoop
 entry xs = primIO $ putDoc $ hsep [
 		pretty "unknown command",
 		dquotes $ hsep $ map pretty xs
