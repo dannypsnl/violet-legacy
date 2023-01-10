@@ -23,12 +23,12 @@ parseMod source = do
 checkMod : Has [PrimIO] e => String -> String -> List Definition -> App e CheckState
 checkMod filename source defs = do
 	let ctx = (ctxFromFile filename source)
-	new (checkState ctx emptyEnv) $ checkModule defs `handleErr` putErr prettyCheckError
+	new (checkState ctx []) $ checkModule defs `handleErr` putErr prettyCheckError
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
 	for_ (reverse state.topCtx.map) $ \(name, ty) => do
-		v <- new state (runEval quote state.topEnv ty) `handleErr` putErr prettyCheckError
+		v <- new state (runEval quote (MkEnv state.topEnv []) ty) `handleErr` putErr prettyCheckError
 		primIO $ putDoc $ (annotate bold $ pretty name)
 			<++> ":"
 			<++> (annBold $ annColor Blue $ pretty v)
@@ -40,9 +40,10 @@ replLoop = do
 		| Left err => putErr prettyParsingError err
 	let tm = cast raw
 	state <- get CheckState
+	let env = MkEnv state.topEnv []
 	t <- infer' tm `handleErr` putErr prettyCheckError
-	ty <- runEval quote state.topEnv t `handleErr` putErr prettyCheckError
-	v <- runEval nf state.topEnv tm `handleErr` putErr prettyCheckError
+	ty <- runEval quote env t `handleErr` putErr prettyCheckError
+	v <- runEval nf env tm `handleErr` putErr prettyCheckError
 	primIO $ putDoc $ hsep [annBold (pretty v), ":", (annBold $ annColor Blue $ pretty ty)]
 	replLoop
 

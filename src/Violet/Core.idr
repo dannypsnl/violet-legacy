@@ -17,11 +17,11 @@ public export
 record CheckState where
 	constructor MkCheckState
 	topCtx : Ctx
-	topEnv : Env
+	topEnv : GlobalEnv
 	dataDefs : List (Name, ConstructorSet)
 
 export
-checkState : Ctx -> Env -> CheckState
+checkState : Ctx -> GlobalEnv -> CheckState
 checkState ctx env = MkCheckState ctx env []
 
 export
@@ -44,7 +44,7 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
 
 	updateEnv x v = do
 		state <- getState
-		putState $ { topEnv := extendEnv state.topEnv x v } state
+		putState $ { topEnv := (x, v) :: state.topEnv  } state
 	updateCtx x vty = do
 		state <- getState
 		putState $ { topCtx := extendCtx state.topCtx x vty } state
@@ -83,8 +83,8 @@ mutual
 			handleDataCase : Tm -> DataCase -> App e (Name, List VTy)
 			handleDataCase returned_ty (C x tys) = do
 				state <- getState
-				tys' <- for tys (runEval eval state.topEnv)
-				t' <- runEval eval state.topEnv (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
+				tys' <- for tys (runEval eval (MkEnv state.topEnv []))
+				t' <- runEval eval (MkEnv state.topEnv []) (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
 				updateCtx x t'
 				updateEnv x (VVar x)
 				pure (x, tys')
@@ -97,18 +97,20 @@ mutual
 				addIndType dataName !(for cases $ handleDataCase (Var dataName))
 			go (Def x a t) = do
 				state <- getState
-				check state.topEnv state.topCtx a VU
-				a' <- runEval eval state.topEnv a
-				check (extendEnv state.topEnv x (VVar x)) (extendCtx state.topCtx x a') t a'
-				t' <- runEval eval state.topEnv t
-				updateEnv x t'
+				check (MkEnv state.topEnv []) state.topCtx a VU
+				a' <- runEval eval (MkEnv state.topEnv []) a
 				updateCtx x a'
+
+				state <- getState
+				check (MkEnv state.topEnv [(x, VVar x)]) state.topCtx t a'
+				t' <- runEval eval (MkEnv state.topEnv []) t
+				updateEnv x t'
 
 	export
 	infer' : Check e => Tm -> App e VTy
 	infer' tm = do
 		state <- getState
-		infer state.topEnv state.topCtx tm
+		infer (MkEnv state.topEnv []) state.topCtx tm
 
 	infer : Check e => Env -> Ctx -> Tm -> App e VTy
 	infer env ctx tm = go tm
@@ -123,21 +125,21 @@ mutual
 				VPi _ a b => do
 					check env ctx u a
 					u' <- runEval eval env u
-					Right b' <- pure $ b u'
+					Right b' <- pure $ eApp env.globalEnv b u'
 						| Left e => report $ cast e
 					pure b'
 				t' => report $ BadApp !(runEval quote env t')
 			go (Lam {}) = report (InferLam tm)
 			go (Pi x a b) = do
 				check env ctx a VU
-				check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
+				check (extendLocalEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
 				pure VU
 			go (Let x a t u) = do
 				check env ctx a VU
 				a' <- runEval eval env a
 				check env ctx t a'
 				t' <- runEval eval env t
-				ty <- infer (extendEnv env x t') (extendCtx ctx x a') u
+				ty <- infer (extendLocalEnv env x t') (extendCtx ctx x a') u
 				pure ty
 			go (Elim t cases) = do
 				ty <- infer env ctx t
@@ -174,7 +176,7 @@ mutual
 						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
 					goCase env ctx cs rhs_ty ((PCons head vars, rhs) :: cases) = do
 						tys <- getTelescope cs head
-						let env' = zip vars (map VVar vars) ++ env
+						let env' = { localEnv := zip vars (map VVar vars) ++ env.localEnv } env
 						let ctx' = extendCtxWithBinds ctx (zip vars tys)
 						new_rhs_ty <- infer env' ctx' rhs
 						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
@@ -187,14 +189,14 @@ mutual
 			go (SrcPos t) a = addPos t.bounds (go t.val a)
 			go (Lam x t) (VPi x' a b) = do
 				let x' = fresh env x'
-				case b (VVar x') of
-					Right u => check (extendEnv env x (VVar x)) (extendCtx ctx x a) t u
+				case eApp env.globalEnv b (VVar x') of
+					Right u => check (extendLocalEnv env x (VVar x)) (extendCtx ctx x a) t u
 					Left err => report $ cast err
 			go (Let x a t u) _ = do
 				check env ctx a VU
 				a' <- runEval eval env a
 				check env ctx t a'
-				let env' = (extendEnv env x !(runEval eval env t))
+				let env' = (extendLocalEnv env x !(runEval eval env t))
 				let ctx' = (extendCtx ctx x a')
 				check env' ctx' u a'
 			go _ _ = do
@@ -212,17 +214,23 @@ mutual
 			go VU VU = pure True
 			go (VPi x a b) (VPi _ a' b') = do
 				let x' = fresh env x
-				pure $ !(conv env a a') && !(conv (extendEnv env x' (VVar x')) !(b (VVar x')) !(b' (VVar x')))
+				b1 <- eApp env.globalEnv b (VVar x')
+				b2 <- eApp env.globalEnv b' (VVar x')
+				pure $ !(conv env a a') && !(conv (extendLocalEnv env x' (VVar x')) b1 b2)
 			go (VLam x t) (VLam _ t') = do
 				let x = fresh env x
-				conv (extendEnv env x (VVar x)) !(t (VVar x)) !(t' (VVar x))
+				t1 <- eApp env.globalEnv t (VVar x)
+				t2 <- eApp env.globalEnv t' (VVar x)
+				conv (extendLocalEnv env x (VVar x)) t1 t2
 			-- checking eta conversion for Lam
 			go (VLam x t) u = do
 				let x = fresh env x
-				conv (extendEnv env x (VVar x)) !(t (VVar x)) (VApp u (VVar x))
+				t1 <- eApp env.globalEnv t (VVar x)
+				conv (extendLocalEnv env x (VVar x)) t1 (VApp u (VVar x))
 			go u (VLam x t) = do
 				let x = fresh env x
-				conv (extendEnv env x (VVar x)) (VApp u (VVar x)) !(t (VVar x))
+				t1 <- eApp env.globalEnv t (VVar x)
+				conv (extendLocalEnv env x (VVar x)) (VApp u (VVar x)) t1
 			go (VVar x) (VVar x') = pure $ x == x'
 			go (VApp t u) (VApp t' u') = pure $ !(conv env t t') && !(conv env u u')
 			go _ _ = pure False
