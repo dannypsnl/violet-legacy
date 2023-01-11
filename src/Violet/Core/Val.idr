@@ -13,6 +13,8 @@ mutual
 		| VLam Name (LocalEnv -> Val -> Either EvalError Val)
 		| VPi Name VTy (Val -> Either EvalError Val)
 		| VU
+		-- constructor
+		| VCtor Name
 
 	public export
 	VTy : Type
@@ -70,9 +72,11 @@ quote env v = case v of
 		let x = fresh env x
 		pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
 	VU => pure U
+	VCtor x => pure $ Var x
 
 export
 toSpine : Env -> Val -> Either EvalError $ List Val
+toSpine env (VCtor x) = pure [VCtor x]
 toSpine env (VVar x) = pure [VVar x]
 toSpine env (VApp t u) = pure (!(toSpine env t) ++ !(toSpine env u))
 toSpine env v = Left $ BadSpine !(quote env v)
@@ -97,8 +101,8 @@ eval env tm = case tm of
 		go spine cases
 		where
 			matches : Pat -> List Val -> (Bool, LocalEnv)
-			matches (PVar x) [VVar x'] = (x == x', [])
-			matches (PCons head rest) (VVar head' :: rest') = (head == head', zip rest rest')
+			matches (PVar x) [VCtor x'] = (x == x', [])
+			matches (PCons head rest) (VCtor head' :: rest') = (head == head', zip rest rest')
 			matches _ _ = (False, [])
 
 			go : List Val -> List (Pat, Tm) -> Either EvalError Val

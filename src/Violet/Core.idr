@@ -10,15 +10,15 @@ import Violet.Core.Term
 import public Violet.Core.Val
 import public Violet.Error.Check
 
-ConstructorSet : Type
-ConstructorSet = List (Name, List VTy)
+CtorSet : Type
+CtorSet = List (Name, List VTy)
 
 public export
 record CheckState where
 	constructor MkCheckState
 	topCtx : Ctx
 	topEnv : GlobalEnv
-	dataDefs : List (Name, ConstructorSet)
+	dataDefs : List (Name, CtorSet)
 
 export
 checkState : Ctx -> CheckState
@@ -32,8 +32,10 @@ interface Has [Exception CheckError, State CheckState CheckState] e => Check e w
 	updateEnv : Name -> Val -> App e ()
 	updateCtx : Name -> VTy -> App e ()
 
-	addIndType : Name -> ConstructorSet -> App e ()
-	findConstructorSet : Name -> App e ConstructorSet
+	-- add inductive data type
+	addIndType : Name -> CtorSet -> App e ()
+	-- find constructor set for data type
+	findCtorSet : Name -> App e CtorSet
 
 	report : CheckErrorKind -> App e a
 	addPos : Bounds -> App e a -> App e a
@@ -52,7 +54,7 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
 	addIndType dataName cs = do
 		state <- getState
 		putState $ { dataDefs := (dataName, cs) :: state.dataDefs } state
-	findConstructorSet dataName = do
+	findCtorSet dataName = do
 		state <- getState
 		Just cs <- pure $ lookup dataName state.dataDefs
 			| Nothing => report $ NotADataType dataName
@@ -87,7 +89,7 @@ mutual
 				tys' <- for tys (runEval eval env)
 				t' <- runEval eval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
 				updateCtx x t'
-				updateEnv x (VVar x)
+				updateEnv x (VCtor x)
 				pure (x, tys')
 
 			go : Definition -> App e ()
@@ -144,11 +146,11 @@ mutual
 				pure ty
 			go (Elim t cases) = do
 				ty <- infer env ctx t
-				-- TODO: to enable indexed data type, we will need to extend `findConstructorSet` in the future
+				-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
 				[VVar x] <- runEval toSpine env ty
 					| ts => report $ BadElimType !(for ts (runEval quote env))
 				-- find a constructor set from definition context
-				cs <- findConstructorSet x
+				cs <- findCtorSet x
 				-- if we can do so, then we use this set to check every case of elimination
 				Just rhs_ty <- goCase env ctx cs Nothing cases
 					| Nothing => report $ ElimInfer (Elim t cases)
@@ -163,14 +165,14 @@ mutual
 							then pure $ Just t
 							else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
 
-					getTelescope : ConstructorSet -> Name -> App e (List VTy)
+					getTelescope : CtorSet -> Name -> App e (List VTy)
 					getTelescope cs x = do
 						Just tys <- pure $ lookup x cs
 							| Nothing => report $ BadConstructor x
 						pure tys
 
 					-- start with a rhs type & a list of case
-					goCase : Env -> Ctx -> ConstructorSet -> Maybe VTy -> List (Pat, Tm) -> App e (Maybe VTy)
+					goCase : Env -> Ctx -> CtorSet -> Maybe VTy -> List (Pat, Tm) -> App e (Maybe VTy)
 					goCase env ctx cs rhs_ty ((PVar x, rhs) :: cases) = do
 						_ <- getTelescope cs x
 						new_rhs_ty <- infer env ctx rhs
