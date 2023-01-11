@@ -179,8 +179,9 @@ mutual
 						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
 					goCase env ctx cs rhs_ty ((PCons head vars, rhs) :: cases) = do
 						tys <- getTelescope cs head
-						let env' = { local := zip vars (map VVar vars) ++ env.local } env
-						let ctx' = extendCtxWithBinds ctx (zip vars tys)
+						let patternEnv = vars `zip` (map VVar vars)
+						let env' = { local := patternEnv ++ env.local } env
+						let ctx' = extendCtxWithBinds ctx (vars `zip` tys)
 						new_rhs_ty <- infer env' ctx' rhs
 						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
 					goCase env ctx cs rhs_ty [] = pure rhs_ty

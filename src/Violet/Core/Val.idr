@@ -96,19 +96,19 @@ eval env tm = case tm of
 	Lam x t => pure $ VLam x (\global, u => eval (extendEnv (MkEnv global env.local) x u) t)
 	Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
 	Let x a t u => eval (extendEnv env x !(eval env t)) u
-	Elim t cases => do
-		spine <- toSpine env !(eval env t)
-		go spine cases
+	Elim t cases => go !(eval env t) cases
 		where
-			matches : Pat -> List Val -> (Bool, LocalEnv)
-			matches (PVar x) [VCtor x'] = (x == x', [])
-			matches (PCons head rest) (VCtor head' :: rest') = (head == head', zip rest rest')
+			matches : Pat -> Val -> (Bool, LocalEnv)
+			matches (PVar x) (VCtor x') = (x == x', [])
+			-- TODO: how to recognize the size of constructor to have proper spine extraction?
+			matches (PCons head [name]) (VApp (VCtor head') val) =
+				(head == head', (name, val) :: [])
 			matches _ _ = (False, [])
 
-			go : List Val -> List (Pat, Tm) -> Either EvalError Val
-			go spine ((pat, rhs) :: rest) = case matches pat spine of
-				(True, env') => eval ({ local := env' ++ env.local } env) rhs
-				(False, _) => go spine rest
+			go : Val -> List (Pat, Tm) -> Either EvalError Val
+			go spine ((pat, rhs) :: nextPat) = case matches pat spine of
+				(True, lenv) => eval ({ local := lenv ++ env.local } env) rhs
+				(False, _) => go spine nextPat
 			go spine [] = Left OutOfCase
 
 export
