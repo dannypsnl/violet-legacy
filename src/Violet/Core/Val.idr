@@ -45,11 +45,8 @@ extendEnv env x v = { local := (x, v) :: env.local } env
 export
 lookupEnv : Name -> Env -> Either EvalError Val
 lookupEnv x env = do
-	Just v <- pure $ lookup x env.local
-		| Nothing => do
-			Just v <- pure $ lookup x env.global
-				| Nothing => Left $ NoVar x
-			pure v
+	Just v <- pure $ lookup x env.local <|> lookup x env.global
+		| Nothing => Left $ NoVar x
 	pure v
 
 export
