@@ -144,46 +144,39 @@ mutual
 				t' <- runEval eval env t
 				ty <- infer (extendEnv env x t') (extendCtx ctx x a') u
 				pure ty
-			go (Elim t cases) = do
-				-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
-				VData x <- infer env ctx t
-					| t => report $ BadElimType [!(runEval quote env t)]
-				-- find a constructor set from definition context
-				cs <- findCtorSet x
+			go (Elim ts cases) = do
+				tys <- for ts (infer env ctx)
 				-- if we can do so, then we use this set to check every case of elimination
-				Just rhs_ty <- goCase env ctx cs Nothing cases
-					| Nothing => report $ ElimInfer (Elim t cases)
-				pure $ rhs_ty
+				rhs_tys <- for cases (checkCase env ctx tys)
+				convTys (ElimInfer (Elim ts cases)) env rhs_tys
 				where
-					maybeConv : Env -> Maybe VTy -> VTy -> App e (Maybe VTy)
-					maybeConv env Nothing t = pure $ Just t
-					maybeConv env (Just t) t' = do
-						Right covertable <- pure $ conv env t t'
-							| Left err => report $ cast err
-						if covertable
-							then pure $ Just t
-							else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
-
 					getTelescope : CtorSet -> Name -> App e (List VTy)
 					getTelescope cs x = do
 						Just tys <- pure $ lookup x cs
 							| Nothing => report $ BadConstructor x
 						pure tys
 
-					-- start with a rhs type & a list of case
-					goCase : Env -> Ctx -> CtorSet -> Maybe VTy -> List (Pat, Tm) -> App e (Maybe VTy)
-					goCase env ctx cs rhs_ty ((PVar x, rhs) :: cases) = do
-						_ <- getTelescope cs x
-						new_rhs_ty <- infer env ctx rhs
-						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
-					goCase env ctx cs rhs_ty ((PCons head vars, rhs) :: cases) = do
-						tys <- getTelescope cs head
+					checkCase : Env -> Ctx -> List VTy -> ElimCase -> App e VTy
+					-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
+					checkCase env ctx (VData x :: ts) (PCons head vars :: pats, rhs) = do
+						-- find a constructor set from definition context
+						cs <- findCtorSet x
 						let patternEnv = vars `zip` (map VVar vars)
 						let env' = { local := patternEnv ++ env.local } env
-						let ctx' = extendCtxWithBinds ctx (vars `zip` tys)
-						new_rhs_ty <- infer env' ctx' rhs
-						goCase env ctx cs !(maybeConv env rhs_ty new_rhs_ty) cases
-					goCase env ctx cs rhs_ty [] = pure rhs_ty
+						let ctx' = extendCtxWithBinds ctx $ vars `zip` !(getTelescope cs head)
+						checkCase env' ctx' ts (pats, rhs)
+					checkCase env ctx ([]) ([], rhs) = infer env ctx rhs
+					checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
+
+					convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
+					convTys err env (t :: t' :: ts) = do
+						Right covertable <- pure $ conv env t t'
+							| Left err => report $ cast err
+						if covertable
+							then pure t
+							else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
+					convTys err env [t] = pure t
+					convTys err env [] = report err
 
 	check : Check e => Env -> Ctx -> Tm -> VTy -> App e ()
 	check env ctx t a = go t a

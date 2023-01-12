@@ -76,9 +76,7 @@ quote env v = case v of
 		pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
 	VU => pure U
 	VData x => pure $ Var x
-	VCtor x spine => do
-		spine_tm <- for spine (quote env)
-		pure $ foldl (\acc, s => acc `Apply` s) (Var x) spine_tm
+	VCtor x spine => pure $ foldl (\acc, s => acc `Apply` s) (Var x) !(for spine (quote env))
 
 app : GlobalEnv -> Val -> Val -> Either EvalError Val
 app env t' u with (t')
@@ -96,19 +94,21 @@ eval env tm = case tm of
 	Lam x t => pure $ VLam x (\global, u => eval (extendEnv (MkEnv global env.local) x u) t)
 	Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
 	Let x a t u => eval (extendEnv env x !(eval env t)) u
-	Elim t cases => go !(eval env t) cases
+	Elim ts cases => go !(for ts (eval env)) cases
 		where
-			matches : Pat -> Val -> (Bool, LocalEnv)
-			matches (PVar x) (VCtor x' []) = (x == x', [])
-			matches (PCons head names) (VCtor head' vals) =
-				(head == head' && length names == length vals, names `zip` vals)
-			matches _ _ = (False, [])
+			matches : List Pat -> List Val -> Either EvalError LocalEnv
+			matches (PCons c names :: next) (VCtor c' vals :: next') =
+				if c == c' && length names == length vals
+					then pure $ !(matches next next') ++ (names `zip` vals)
+					else Left OutOfCase
+			matches [] [] = pure []
+			matches _ _  = Left OutOfCase
 
-			go : Val -> List (Pat, Tm) -> Either EvalError Val
-			go spine ((pat, rhs) :: nextPat) = case matches pat spine of
-				(True, lenv) => eval ({ local := lenv ++ env.local } env) rhs
-				(False, _) => go spine nextPat
-			go spine [] = Left OutOfCase
+			go : List Val -> List (List Pat, Tm) -> Either EvalError Val
+			go vals ((pats, rhs) :: nextPat) = case matches pats vals of
+				Right lenv => eval ({ local := lenv ++ env.local } env) rhs
+				Left _ => go vals nextPat
+			go vals [] = Left OutOfCase
 
 export
 nf : Env -> Tm -> Either EvalError Tm

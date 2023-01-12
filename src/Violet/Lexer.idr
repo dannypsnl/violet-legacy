@@ -27,7 +27,8 @@ data VTokenKind
 	| VTLambdaArrow       -- =>
 	| VTDollar            -- $
 	| VTIgnore            -- single line comment or whitespace
-	| VTModule             -- module
+	| VTModule            -- module
+	| VTComma             -- ,
 
 export
 Eq VTokenKind where
@@ -41,6 +42,7 @@ Eq VTokenKind where
 	(==) VTVerticalLine VTVerticalLine = True
 	(==) VTAssign VTAssign = True
 	(==) VTColon VTColon = True
+	(==) VTComma VTComma = True
 	(==) VTSemicolon VTSemicolon = True
 	(==) VTOpenP VTOpenP = True
 	(==) VTCloseP VTCloseP = True
@@ -63,6 +65,7 @@ Show VTokenKind where
 	show VTAssign       = "="
 	show VTColon        = ":"
 	show VTSemicolon    = ";"
+	show VTComma        = ","
 	show VTVerticalLine = "|"
 	show VTOpenP        = "("
 	show VTCloseP       = ")"
@@ -105,6 +108,7 @@ TokenKind VTokenKind where
 	tokValue VTDollar _ = ()
 	tokValue VTIgnore _ = ()
 	tokValue VTModule _ = ()
+	tokValue VTComma _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
@@ -146,7 +150,8 @@ violetTokenMap = toTokenMap [
 		(exact "$", VTDollar),
 		(exact "(", VTOpenP),
 		(exact ")", VTCloseP),
-		(exact "=", VTAssign)
+		(exact "=", VTAssign),
+		(exact ",", VTComma)
 	] ++
 	[ (identifier, \s =>
 			case lookup s keywords of
