@@ -89,14 +89,14 @@ mutual
 				tys' <- for tys (runEval eval env)
 				t' <- runEval eval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
 				updateCtx x t'
-				updateEnv x (VCtor x)
+				updateEnv x (VCtor x [])
 				pure (x, tys')
 
 			go : Definition -> App e ()
 			go (DSrcPos def) = addPos def.bounds (go def.val)
 			go (Data dataName cases) = do
 				updateCtx dataName VU
-				updateEnv dataName (VVar dataName)
+				updateEnv dataName (VData dataName)
 				addIndType dataName !(for cases $ handleDataCase (Var dataName))
 			go (Def x a t) = do
 				state <- getState
@@ -145,10 +145,9 @@ mutual
 				ty <- infer (extendEnv env x t') (extendCtx ctx x a') u
 				pure ty
 			go (Elim t cases) = do
-				ty <- infer env ctx t
 				-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
-				[VVar x] <- runEval toSpine env ty
-					| ts => report $ BadElimType !(for ts (runEval quote env))
+				VData x <- infer env ctx t
+					| t => report $ BadElimType [!(runEval quote env t)]
 				-- find a constructor set from definition context
 				cs <- findCtorSet x
 				-- if we can do so, then we use this set to check every case of elimination
@@ -230,5 +229,6 @@ mutual
 				let x = fresh env x
 				conv (extendEnv env x (VVar x)) (VApp u (VVar x)) !(t env.global (VVar x))
 			go (VVar x) (VVar x') = pure $ x == x'
+			go (VData x) (VData x') = pure $ x == x'
 			go (VApp t u) (VApp t' u') = pure $ !(conv env t t') && !(conv env u u')
 			go _ _ = pure False

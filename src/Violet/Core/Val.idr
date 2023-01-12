@@ -13,8 +13,10 @@ mutual
 		| VLam Name (LocalEnv -> Val -> Either EvalError Val)
 		| VPi Name VTy (Val -> Either EvalError Val)
 		| VU
+		-- data type
+		| VData Name
 		-- constructor
-		| VCtor Name
+		| VCtor Name Spine
 
 	public export
 	VTy : Type
@@ -23,6 +25,10 @@ mutual
 	public export
 	LocalEnv : Type
 	LocalEnv = List (Name, Val)
+
+	public export
+	Spine : Type
+	Spine = List Val
 
 public export
 GlobalEnv : Type
@@ -69,18 +75,15 @@ quote env v = case v of
 		let x = fresh env x
 		pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
 	VU => pure U
-	VCtor x => pure $ Var x
-
-export
-toSpine : Env -> Val -> Either EvalError $ List Val
-toSpine env (VCtor x) = pure [VCtor x]
-toSpine env (VVar x) = pure [VVar x]
-toSpine env (VApp t u) = pure (!(toSpine env t) ++ !(toSpine env u))
-toSpine env v = Left $ BadSpine !(quote env v)
+	VData x => pure $ Var x
+	VCtor x spine => do
+		spine_tm <- for spine (quote env)
+		pure $ foldl (\acc, s => acc `Apply` s) (Var x) spine_tm
 
 app : GlobalEnv -> Val -> Val -> Either EvalError Val
 app env t' u with (t')
 	_ | (VLam _ t) = t env u
+	_ | (VCtor x spine) = pure $ VCtor x (spine ++ [u])
 	_ | t = pure $ VApp t u
 
 export
@@ -96,10 +99,9 @@ eval env tm = case tm of
 	Elim t cases => go !(eval env t) cases
 		where
 			matches : Pat -> Val -> (Bool, LocalEnv)
-			matches (PVar x) (VCtor x') = (x == x', [])
-			-- TODO: how to recognize the size of constructor to have proper spine extraction?
-			matches (PCons head [name]) (VApp (VCtor head') val) =
-				(head == head', (name, val) :: [])
+			matches (PVar x) (VCtor x' []) = (x == x', [])
+			matches (PCons head names) (VCtor head' vals) =
+				(head == head' && length names == length vals, names `zip` vals)
 			matches _ _ = (False, [])
 
 			go : Val -> List (Pat, Tm) -> Either EvalError Val
