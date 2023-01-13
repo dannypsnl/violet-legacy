@@ -100,7 +100,7 @@ mutual
 	tmElim : Rule Raw
 	tmElim = do
 		match VTElim
-		pure $ RElim !(many tm) !(many caseRule)
+		pure $ RElim !(sepBy (match VTComma) tm) !(many caseRule)
 
 ttmData : Rule TopLevelRaw
 ttmData = do

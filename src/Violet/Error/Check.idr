@@ -16,7 +16,7 @@ data CheckErrorKind
 	| NotADataType Name
 	| BadElimType (List Tm)
 	| ElimInfer Tm
-	| BadConstructor Name
+	| BadConstructor Name Name
 	| EvalE EvalError
 
 export
@@ -40,8 +40,14 @@ prettyCheckErrorKind (BadElimType tms) = annBold $ annColor Red $
 	vsep ["cannot eliminate type:", indent 4 $ hsep (map pretty tms)]
 prettyCheckErrorKind (ElimInfer tm) = annBold $ annColor Red $
 	vsep ["cannot infer this elimination:", indent 4 $ pretty tm]
-prettyCheckErrorKind (BadConstructor name) = annBold $ annColor Red $
-	hsep ["cannot find constructor in current context:", pretty name]
+prettyCheckErrorKind (BadConstructor name dataName) =
+	annBold $ (annColor Red $ "cannot find constructor")
+	<++> line
+	<++> hsep [
+		annColor Blue $ pretty name,
+		"is not a constructor of data type",
+		annColor Blue $ pretty dataName
+	]
 prettyCheckErrorKind (EvalE e) = prettyEvalError e
 
 public export

@@ -150,20 +150,18 @@ mutual
 				rhs_tys <- for cases (checkCase env ctx tys)
 				convTys (ElimInfer (Elim ts cases)) env rhs_tys
 				where
-					getTelescope : CtorSet -> Name -> App e (List VTy)
-					getTelescope cs x = do
-						Just tys <- pure $ lookup x cs
-							| Nothing => report $ BadConstructor x
-						pure tys
-
 					checkCase : Env -> Ctx -> List VTy -> ElimCase -> App e VTy
 					-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
 					checkCase env ctx (VData x :: ts) (PCons head vars :: pats, rhs) = do
 						-- find a constructor set from definition context
 						cs <- findCtorSet x
-						let patternEnv = vars `zip` (map VVar vars)
+						lookupTy <- pure $ lookup head cs
+						(patternEnv, patternCtx) <- case (vars, lookupTy) of
+							([], Nothing) => pure ([(head, VCtor head [])], [(head, VData x)])
+							(_, Just tys) => pure (vars `zip` (map VVar vars), vars `zip` tys)
+							(_, Nothing) => report $ BadConstructor head x
 						let env' = { local := patternEnv ++ env.local } env
-						let ctx' = extendCtxWithBinds ctx $ vars `zip` !(getTelescope cs head)
+						let ctx' = extendCtxWithBinds ctx $ patternCtx
 						checkCase env' ctx' ts (pats, rhs)
 					checkCase env ctx ([]) ([], rhs) = infer env ctx rhs
 					checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
