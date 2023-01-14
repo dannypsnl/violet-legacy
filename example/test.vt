@@ -1,8 +1,8 @@
 module Test
 
 data Bool
-| True
-| False
+| true
+| false
 
 data Nat
 | zero
@@ -11,15 +11,15 @@ data Nat
 def id (A : U) (x : A) : A => x
 
 def zero? (n : Nat) : Bool => elim n
-| zero => True
-| suc _ => False
+| zero => true
+| suc _ => false
 
 def plus (n m : Nat) : Nat => elim n, m
 | zero, m => m
 | suc n, m => suc $ plus n m
 
 def not (b : Bool) : Bool => elim b
-| True => False
-| False => True
+| true => false
+| false => true
 
 def main : Nat => plus (suc $ suc zero) zero

@@ -98,14 +98,28 @@ eval env tm = case tm of
 		where
 			matches : List Pat -> List Val -> Maybe LocalEnv
 			matches (PCons c [] :: next) (VCtor c' vals :: next') =
-				if not (c == c')
-					then pure $ (c, (VCtor c' vals)) :: !(matches next next')
-					else if 0 == length vals
-						then matches next next'
-						else Nothing
+				if c == c'
+					-- since the names are same, c must be an ctor pattern
+					--
+					-- e.g. with context `data Nat | zero | suc Nat`
+					--
+					--   zero matches zero
+					--
+					-- since this is a non-product ctor, therefore, has no environment introduced
+					then if 0 == length vals then matches next next' else Nothing
+					-- or it's a var pattern
+					--
+					-- e.g. with context `data Nat | zero | suc Nat`
+					--
+					--   m matches zero
+					else pure $ (c, (VCtor c' vals)) :: !(matches next next')
+			-- for non-destructable type like `Nat → Nat`, the only way can pattern matching on them is using var pattern
+			-- since type check should ensure the well behavior, here we just bind pattern var into local env
+			matches (PCons c [] :: next) (val :: next') = pure $ (c, val) :: !(matches next next')
+			-- for non-null case, must be ctor pattern
 			matches (PCons c names :: next) (VCtor c' vals :: next') =
 				if c == c' && length names == length vals
-					then pure $ !(matches next next') ++ (names `zip` vals)
+					then pure $ (names `zip` vals) ++ !(matches next next')
 					else Nothing
 			matches [] [] = pure []
 			matches _ _  = Nothing
