@@ -12,7 +12,10 @@ Name = String
 
 public export
 data Pat
-	= PCons Name (List Name)
+	-- var pattern
+	= PVar Name
+	-- ctor pattern
+	| PCons Name (List Name)
 
 mutual
 	||| The Core Term of violet language
@@ -50,6 +53,7 @@ mutual
 
 export
 Pretty Pat where
+	pretty (PVar x) = pretty x
 	pretty (PCons h vs) = pretty h <++> hsep (map pretty vs)
 
 export
