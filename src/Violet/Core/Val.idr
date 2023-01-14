@@ -97,6 +97,12 @@ eval env tm = case tm of
 	Elim ts cases => go !(for ts (eval env)) cases
 		where
 			matches : List Pat -> List Val -> Either EvalError LocalEnv
+			matches (PCons c [] :: next) (VCtor c' vals :: next') =
+				if not (c == c')
+					then pure $ (c, (VCtor c' vals)) :: !(matches next next')
+					else if 0 == length vals
+						then matches next next'
+						else Left OutOfCase
 			matches (PCons c names :: next) (VCtor c' vals :: next') =
 				if c == c' && length names == length vals
 					then pure $ !(matches next next') ++ (names `zip` vals)
