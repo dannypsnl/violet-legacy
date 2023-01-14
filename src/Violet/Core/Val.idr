@@ -96,24 +96,24 @@ eval env tm = case tm of
 	Let x a t u => eval (extendEnv env x !(eval env t)) u
 	Elim ts cases => go !(for ts (eval env)) cases
 		where
-			matches : List Pat -> List Val -> Either EvalError LocalEnv
+			matches : List Pat -> List Val -> Maybe LocalEnv
 			matches (PCons c [] :: next) (VCtor c' vals :: next') =
 				if not (c == c')
 					then pure $ (c, (VCtor c' vals)) :: !(matches next next')
 					else if 0 == length vals
 						then matches next next'
-						else Left OutOfCase
+						else Nothing
 			matches (PCons c names :: next) (VCtor c' vals :: next') =
 				if c == c' && length names == length vals
 					then pure $ !(matches next next') ++ (names `zip` vals)
-					else Left OutOfCase
+					else Nothing
 			matches [] [] = pure []
-			matches _ _  = Left OutOfCase
+			matches _ _  = Nothing
 
 			go : List Val -> List (List Pat, Tm) -> Either EvalError Val
 			go vals ((pats, rhs) :: nextPat) = case matches pats vals of
-				Right lenv => eval ({ local := lenv ++ env.local } env) rhs
-				Left _ => go vals nextPat
+				Just lenv => eval ({ local := lenv ++ env.local } env) rhs
+				Nothing => go vals nextPat
 			go vals [] = Left OutOfCase
 
 export
