@@ -160,11 +160,11 @@ mutual
 						-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
 						-- find a constructor set from definition context
 						cs <- findCtorSet x
-						(newPat, patternCtx) <- elabPattern head x vars (lookup head cs)
-						let patternEnv : LocalEnv = case newPat of
+						(newPat, patCtx) <- elabPattern head x vars (lookup head cs)
+						let patEnv : LocalEnv = case newPat of
 						      PVar _ => [(head, VVar head)]
 						      PCons _ _ => (vars `zip` (map VVar vars))
-						(pats, ty) <- checkCase ({ local := patternEnv ++ env.local } env) (extendCtxWithBinds ctx $ patternCtx) ts (pats, rhs)
+						(pats, ty) <- checkCase ({ local := patEnv ++ env.local } env) (extendCtxWithBinds ctx $ patCtx) ts (pats, rhs)
 						pure (newPat :: pats, ty)
 					checkCase env ctx ([]) ([], rhs) = do
 						(_, ty) <- infer env ctx rhs
