@@ -150,17 +150,17 @@ mutual
 				let tm = Elim ts cases'
 				pure (tm, !(convTys (ElimInfer $ tm) env rhs_tys))
 				where
-					kk : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
-					kk head x [] Nothing = pure (PVar head, [(head, VData x)])
-					kk head _ vars (Just tys) = pure (PCons head vars, vars `zip` tys)
-					kk head x _ Nothing = report $ BadConstructor head x
+					elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
+					elabPattern head x [] Nothing = pure (PVar head, [(head, VData x)])
+					elabPattern head _ vars (Just tys) = pure (PCons head vars, vars `zip` tys)
+					elabPattern head x _ Nothing = report $ BadConstructor head x
 
 					checkCase : Env -> Ctx -> List VTy -> ElimCase -> App e (List Pat, VTy)
 					checkCase env ctx (VData x :: ts) (PCons head vars :: pats, rhs) = do
 						-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
 						-- find a constructor set from definition context
 						cs <- findCtorSet x
-						(newPat, patternCtx) <- kk head x vars (lookup head cs)
+						(newPat, patternCtx) <- elabPattern head x vars (lookup head cs)
 						let patternEnv : LocalEnv = case newPat of
 						      PVar _ => [(head, VVar head)]
 						      PCons _ _ => (vars `zip` (map VVar vars))
