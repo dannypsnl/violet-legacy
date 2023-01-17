@@ -148,7 +148,7 @@ mutual
 						pure ((pats', rhs) :: cases, ty :: ts))
 					([], []) cases
 				let tm = Elim ts cases'
-				pure (tm, !(convTys (ElimInfer $ tm) env rhs_tys))
+				pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
 				where
 					elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
 					elabPattern head x [] Nothing = pure (PVar head, [(head, VData x)])
