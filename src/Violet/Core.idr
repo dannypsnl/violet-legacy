@@ -130,7 +130,7 @@ mutual
 			go (Lam {}) = report (InferLam tm)
 			go (Pi x a b) = do
 				a <- check env ctx a VU
-				_ <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
+				b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
 				pure (Pi x a b, VU)
 			go (Let x a t u) = do
 				a <- check env ctx a VU
@@ -194,9 +194,9 @@ mutual
 			go (Let x a t u) _ = do
 				a <- check env ctx a VU
 				a' <- runEval eval env a
-				t' <- check env ctx t a'
-				_ <- check (extendEnv env x !(runEval eval env t')) (extendCtx ctx x a') u a'
-				pure (Let x a t' u)
+				t <- check env ctx t a'
+				u <- check (extendEnv env x !(runEval eval env t)) (extendCtx ctx x a') u a'
+				pure (Let x a t u)
 			go _ expected = do
 				(t', inferred) <- infer env ctx t
 				Right convertable <- pure $ conv env inferred expected
