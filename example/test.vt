@@ -22,4 +22,8 @@ def not (b : Bool) : Bool => elim b
 | true => false
 | false => true
 
-def main : Nat => plus (suc $ suc zero) zero
+def NoB (b : Bool) : U => elim b
+| true => Nat
+| false => Bool
+
+def main : NoB true => plus (suc $ suc zero) (suc zero)
