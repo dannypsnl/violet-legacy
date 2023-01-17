@@ -12,7 +12,9 @@ Name = String
 
 public export
 data Pat
+	-- var pattern
 	= PVar Name
+	-- ctor pattern
 	| PCons Name (List Name)
 
 mutual
@@ -26,11 +28,15 @@ mutual
 		| U                    -- U
 		| Pi Name Ty Ty        -- (x : a) → b
 		| Let Name Ty Tm Tm    -- let x : a = t; u
-		| Elim Tm (List (Pat, Tm))
+		| Elim (List Tm) (List ElimCase)
 
 	public export
 	Ty : Type
 	Ty = Tm
+
+	public export
+	ElimCase : Type
+	ElimCase = (List Pat, Tm)
 
 	public export
 	data DataCase = C Name (List Ty)
@@ -47,7 +53,7 @@ mutual
 
 export
 Pretty Pat where
-	pretty (PVar n) = pretty n
+	pretty (PVar x) = pretty x
 	pretty (PCons h vs) = pretty h <++> hsep (map pretty vs)
 
 export
@@ -57,7 +63,7 @@ Pretty Tm where
 	pretty (Lam x t) = hsep ["λ", pretty x, "=>", pretty t]
 	pretty (Apply t u) = pretty t <++> case u of
 		SrcPos t => parens $ pretty t.val
-		Apply {}   => parens $ pretty u
+		Apply {} => parens $ pretty u
 		_        => pretty u
 	pretty U = "U"
 	pretty (Pi x a b) =
@@ -75,5 +81,5 @@ Pretty Tm where
 		<++> line
 		<++> vsep (map prettyCase cases)
 		where
-			prettyCase : (Pat, Tm) -> Doc ann
-			prettyCase (p, t) = pipe <++> pretty p <++> "=>" <++> pretty t
+			prettyCase : (List Pat, Tm) -> Doc ann
+			prettyCase (ps, t) = pipe <++> (encloseSep emptyDoc emptyDoc comma $ map pretty ps) <++> "=>" <++> pretty t

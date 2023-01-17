@@ -45,7 +45,7 @@ mutual
 		-- elim trichotomy a b
 		-- | greater _ => u1
 		-- | less p | equals p => f p
-		| RElim Raw (List (PatRaw, Raw))
+		| RElim (List Raw) (List (List PatRaw, Raw))
 
 	public export
 	RTy : Type
@@ -59,7 +59,7 @@ data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
 
 export
 Cast PatRaw Pat where
-	cast (RPVar n) = PVar n
+	cast (RPVar n) = PCons n []
 	cast (RPCons h vs) = PCons h vs
 
 export
@@ -71,7 +71,7 @@ Cast Raw Tm where
 	cast RU = U
 	cast (RPi x a b) = Pi x (cast a) (cast b)
 	cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)
-	cast (RElim r cases) = Elim (cast r) $ map (bimap cast cast) cases
+	cast (RElim rs cases) = Elim (map cast rs) $ map (bimap (map cast) cast) cases
 
 export
 Cast TopLevelRaw Definition where

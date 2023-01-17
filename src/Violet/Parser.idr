@@ -88,19 +88,19 @@ mutual
 	patRule : Rule PatRaw
 	patRule = pure $ let (h ::: vs) = !(some (match VTIdentifier))
 		in if isNil vs then RPVar h else RPCons h vs
-	caseRule : Rule (PatRaw, Raw)
+	caseRule : Rule (List PatRaw, Raw)
 	caseRule = do
 		match VTVerticalLine
-		p <- patRule
+		ps <- sepBy (match VTComma) patRule
 		match VTLambdaArrow
-		(p,) <$> tm
+		(ps,) <$> tm
 	-- elim n
 	-- | C x => x
 	-- | z => z
 	tmElim : Rule Raw
 	tmElim = do
 		match VTElim
-		pure $ RElim !tm !(many caseRule)
+		pure $ RElim !(sepBy (match VTComma) tm) !(many caseRule)
 
 ttmData : Rule TopLevelRaw
 ttmData = do
