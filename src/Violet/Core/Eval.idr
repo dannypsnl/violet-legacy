@@ -15,7 +15,6 @@ mutual
 	export
 	eval : Env -> Tm -> Either EvalError Val
 	eval env tm = case tm of
-		SrcPos tm => eval env tm.val
 		Var x => lookupEnv x env
 		Apply t u => app env.global !(eval env t) !(eval env u)
 		U => pure VU
@@ -24,8 +23,8 @@ mutual
 		Let x a t u => eval (extendEnv env x !(eval env t)) u
 		Elim ts cases => go !(for ts (eval env)) cases
 		where
-			go : List Val -> List (List Pat, Tm) -> Either EvalError Val
-			go vals ((pats, rhs) :: nextPat) = case matches pats vals of
+			go : List Val -> List ElimCase -> Either EvalError Val
+			go vals (ECase pats rhs :: nextPat) = case matches pats vals of
 				Just lenv => eval ({ local := lenv ++ env.local } env) rhs
 				Nothing => go vals nextPat
 			go vals [] = Left OutOfCase

@@ -40,7 +40,7 @@ replLoop = do
 		| Left err => putErr prettyParsingError err
 	let tm = cast raw
 	state <- get CheckState
-	(_, t) <- infer (MkEnv state.topEnv []) state.topCtx tm `handleErr` putErr prettyCheckError
+	(tm, t) <- infer (MkEnv state.topEnv []) state.topCtx tm `handleErr` putErr prettyCheckError
 	let env = MkEnv state.topEnv []
 	ty <- runEval quote env t `handleErr` putErr prettyCheckError
 	v <- runEval nf env tm `handleErr` putErr prettyCheckError

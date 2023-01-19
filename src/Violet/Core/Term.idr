@@ -5,10 +5,7 @@ import public Text.Bounded
 import Text.PrettyPrint.Prettyprinter.Doc
 import Text.PrettyPrint.Prettyprinter.Symbols
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
-
-public export
-Name : Type
-Name = String
+import public Violet.Core.Common
 
 public export
 data Pat
@@ -21,8 +18,7 @@ mutual
 	||| The Core Term of violet language
 	public export
 	data Tm
-		= SrcPos (WithBounds Tm)
-		| Var Name             -- x
+		= Var Name             -- x
 		| Lam Name Tm          -- λ x => t
 		| Apply Tm Tm          -- t u
 		| U                    -- U
@@ -35,21 +31,7 @@ mutual
 	Ty = Tm
 
 	public export
-	ElimCase : Type
-	ElimCase = (List Pat, Tm)
-
-	public export
-	data DataCase = C Name (List Ty)
-
-	public export
-	data Definition
-		= DSrcPos (WithBounds Definition)
-		-- data Nat
-		-- | zero
-		-- | suc Nat
-		| Data Name (List DataCase)
-		-- let x : a = t;
-		| Def Name Ty Tm
+	data ElimCase = ECase (List Pat) Tm
 
 export
 Pretty Pat where
@@ -58,11 +40,9 @@ Pretty Pat where
 
 export
 Pretty Tm where
-	pretty (SrcPos t) = pretty t.val
 	pretty (Var name) = pretty name
 	pretty (Lam x t) = hsep ["λ", pretty x, "=>", pretty t]
 	pretty (Apply t u) = pretty t <++> case u of
-		SrcPos t => parens $ pretty t.val
 		Apply {} => parens $ pretty u
 		_        => pretty u
 	pretty U = "U"
@@ -81,5 +61,5 @@ Pretty Tm where
 		<++> line
 		<++> vsep (map prettyCase cases)
 		where
-			prettyCase : (List Pat, Tm) -> Doc ann
-			prettyCase (ps, t) = pipe <++> (encloseSep emptyDoc emptyDoc comma $ map pretty ps) <++> "=>" <++> pretty t
+			prettyCase : ElimCase -> Doc ann
+			prettyCase (ECase ps t) = pipe <++> (encloseSep emptyDoc emptyDoc comma $ map pretty ps) <++> "=>" <++> pretty t

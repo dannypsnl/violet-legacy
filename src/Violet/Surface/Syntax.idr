@@ -3,7 +3,7 @@ module Violet.Surface.Syntax
 import Data.String
 import Data.List1
 import Text.Parser.Core
-import public Violet.Core.Term
+import public Violet.Core.Syntax
 
 mutual
 	public export
@@ -53,27 +53,27 @@ public export
 data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
 
 export
-Cast Raw Tm where
+Cast Raw STm where
 	cast (RSrcPos raw) = SrcPos $ MkBounded (cast raw.val) True raw.bounds
-	cast (RVar x) = Var x
-	cast (RLam x t) = Lam x (cast t)
-	cast (RApp t u) = Apply (cast t) (cast u)
-	cast RU = U
-	cast (RPi x a b) = Pi x (cast a) (cast b)
-	cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)
-	cast (RElim rs cases) = Elim (map cast rs) $ map (bimap (map (\(h ::: vs) => PCtor h vs)) cast) cases
+	cast (RVar x) = SVar x
+	cast (RLam x t) = SLam x (cast t)
+	cast (RApp t u) = SApply (cast t) (cast u)
+	cast RU = SU
+	cast (RPi x a b) = SPi x (cast a) (cast b)
+	cast (RLet x a t u) = SLet x (cast a) (cast t) (cast u)
+	cast (RElim rs cases) = SElim (map cast rs) $ map (bimap (map (\x => x)) cast) cases
 
 export
 Cast TopLevelRaw Definition where
 	cast (TSrcPos top) = DSrcPos $ MkBounded (cast top.val) True top.bounds
 	cast (TDef x tele a t) = Def x (toPi tele $ cast a) (toLam tele $ cast t)
 	where
-		toPi : RTelescope -> Tm -> Tm
-		toPi ((x, ty) :: tele) t = Pi x (cast ty) (toPi tele t)
+		toPi : RTelescope -> STm -> STm
+		toPi ((x, ty) :: tele) t = SPi x (cast ty) (toPi tele t)
 		toPi [] t = t
 
-		toLam : RTelescope -> Tm -> Tm
-		toLam ((x, _) :: tele) t = Lam x (toLam tele t)
+		toLam : RTelescope -> STm -> STm
+		toLam ((x, _) :: tele) t = SLam x (toLam tele t)
 		toLam [] t = t
 	cast (TData x _ cases) = Data x (map toCase cases)
 		where

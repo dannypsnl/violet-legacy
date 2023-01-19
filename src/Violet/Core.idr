@@ -6,7 +6,8 @@ import Control.App.Console
 import Data.List
 import Data.String
 import Text.Bounded
-import Violet.Core.Term
+import Violet.Core.Syntax
+import public Violet.Core.Term
 import public Violet.Core.Eval
 import public Violet.Error.Check
 
@@ -77,6 +78,13 @@ runEval f env a = do
 	pure b
 
 mutual
+	elab : Check e => Env -> Ctx -> STm -> App e Tm
+	elab env ctx tm = case tm of
+		SrcPos t => addPos t.bounds (elab env ctx t.val)
+		st => do
+			(t, _) <- infer env ctx st
+			pure t
+
 	export
 	checkModule : Check e => List Definition -> App e CheckState
 	checkModule [] = getState
@@ -86,6 +94,7 @@ mutual
 			handleDataCase returned_ty (C x tys) = do
 				state <- getState
 				let env = MkEnv state.topEnv []
+				tys <- for tys (elab env state.topCtx)
 				tys' <- for tys (runEval eval env)
 				t' <- runEval eval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
 				updateCtx x t'
@@ -110,16 +119,16 @@ mutual
 				updateCtx x a'
 
 	export
-	infer : Check e => Env -> Ctx -> Tm -> App e (Tm, VTy)
+	infer : Check e => Env -> Ctx -> STm -> App e (Tm, VTy)
 	infer env ctx tm = go tm
 		where
-			go : Tm -> App e (Tm, VTy)
+			go : STm -> App e (Tm, VTy)
 			go (SrcPos t) = addPos t.bounds (go t.val)
-			go (Var x) = case lookupCtx ctx x of
+			go (SVar x) = case lookupCtx ctx x of
 				Nothing => report (NoVar x)
 				Just a => pure (Var x, a)
-			go U = pure (U, VU)
-			go (Apply t u) = do
+			go SU = pure (U, VU)
+			go (SApply t u) = do
 				(t, VPi _ a b) <- infer env ctx t
 					| (_, t') => report $ BadApp !(runEval quote env t')
 				u <- check env ctx u a
@@ -127,27 +136,22 @@ mutual
 				Right b' <- pure $ b u'
 					| Left e => report $ cast e
 				pure (Apply t u, b')
-			go (Lam {}) = report (InferLam tm)
-			go (Pi x a b) = do
+			go (SLam {}) = report InferLam
+			go (SPi x a b) = do
 				a <- check env ctx a VU
 				b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
 				pure (Pi x a b, VU)
-			go (Let x a t u) = do
+			go (SLet x a t u) = do
 				a <- check env ctx a VU
 				a' <- runEval eval env a
 				t <- check env ctx t a'
 				t' <- runEval eval env t
-				(_, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
+				(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
 				pure (Let x a t u, ty)
-			go (Elim ts cases) = do
-				tys <- for ts (infer env ctx)
-				(cases', rhs_tys) <- foldlM
-					(\(cases, ts), elim_case => do
-						let (_, rhs) = elim_case
-						(pats', ty) <- checkCase env ctx (map snd tys) elim_case
-						pure ((pats', rhs) :: cases, ty :: ts))
-					([], []) cases
-				let tm = Elim ts cases'
+			go (SElim targets cases) = do
+				tTys <- for targets (infer env ctx)
+				(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases
+				let tm = Elim (map fst tTys) cases'
 				pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
 				where
 					elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
@@ -157,8 +161,8 @@ mutual
 					elabPattern head _ vars (Just tys) = pure (PCtor head vars, vars `zip` tys)
 					elabPattern head x _ Nothing = report $ BadConstructor head x
 
-					checkCase : Env -> Ctx -> List VTy -> ElimCase -> App e (List Pat, VTy)
-					checkCase env ctx (VData x :: ts) (PCtor head vars :: pats, rhs) = do
+					checkCase : Env -> Ctx -> List VTy -> SElimCase -> App e (ElimCase, VTy)
+					checkCase env ctx (VData x :: ts) ((head ::: vars) :: pats, rhs) = do
 						-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
 						-- find a constructor set from definition context
 						cs <- findCtorSet x
@@ -166,12 +170,18 @@ mutual
 						let patEnv : LocalEnv = case newPat of
 						      PVar _ => [(head, VVar head)]
 						      PCtor _ _ => (vars `zip` (map VVar vars))
-						(pats, ty) <- checkCase ({ local := patEnv ++ env.local } env) (extendCtxWithBinds ctx $ patCtx) ts (pats, rhs)
-						pure (newPat :: pats, ty)
+						(ECase pats rhs, ty) <- checkCase ({ local := patEnv ++ env.local } env) (extendCtxWithBinds ctx $ patCtx) ts (pats, rhs)
+						pure (ECase (newPat :: pats) rhs, ty)
 					checkCase env ctx ([]) ([], rhs) = do
-						(_, ty) <- infer env ctx rhs
-						pure ([], ty)
+						(rhs, ty) <- infer env ctx rhs
+						pure (ECase [] rhs, ty)
 					checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
+
+					elabCase : (List VTy) -> (List ElimCase, List VTy) -> SElimCase -> App e (List ElimCase, List VTy)
+					elabCase ttys (cases, tys) elim_case = do
+						let (_, rhs) = elim_case
+						(c, ty) <- checkCase env ctx ttys elim_case
+						pure (c :: cases, ty :: tys)
 
 					convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
 					convTys err env (t :: t' :: ts) = do
@@ -183,17 +193,17 @@ mutual
 					convTys err env [t] = pure t
 					convTys err env [] = report err
 
-	check : Check e => Env -> Ctx -> Tm -> VTy -> App e Tm
+	check : Check e => Env -> Ctx -> STm -> VTy -> App e Tm
 	check env ctx t a = go t a
 		where
-			go : Tm -> VTy -> App e Tm
+			go : STm -> VTy -> App e Tm
 			go (SrcPos t) a = addPos t.bounds (go t.val a)
-			go (Lam x t) (VPi x' a b) = do
+			go (SLam x t) (VPi x' a b) = do
 				let x' = fresh env x'
 				case b (VVar x') of
 					Right u => Lam x <$> check (extendEnv env x (VVar x)) (extendCtx ctx x a) t u
 					Left err => report $ cast err
-			go (Let x a t u) _ = do
+			go (SLet x a t u) _ = do
 				a <- check env ctx a VU
 				a' <- runEval eval env a
 				t <- check env ctx t a'

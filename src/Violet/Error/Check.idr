@@ -10,7 +10,7 @@ import Violet.Error.Eval
 public export
 data CheckErrorKind
 	= NoVar String
-	| InferLam Tm
+	| InferLam
 	| BadApp Tm
 	| TypeMismatch Tm Tm
 	| NotADataType Name
@@ -25,7 +25,7 @@ Cast EvalError CheckErrorKind where
 
 prettyCheckErrorKind : CheckErrorKind -> Doc AnsiStyle
 prettyCheckErrorKind (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
-prettyCheckErrorKind (InferLam tm) = annBold $ annColor Red $ hsep ["cannot inference lambda:", pretty tm]
+prettyCheckErrorKind InferLam = annBold $ annColor Red $ hsep ["cannot inference lambda"]
 prettyCheckErrorKind (BadApp tm) = annBold $ annColor Red $ hsep ["bad app on:", pretty tm]
 prettyCheckErrorKind (TypeMismatch t1 t2) = vcat
 	[ annBold $ annColor Red $ "type mismatched"
