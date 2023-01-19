@@ -78,11 +78,9 @@ runEval f env a = do
 
 mutual
 	elab : Check e => Env -> Ctx -> STm -> App e Tm
-	elab env ctx tm = case tm of
-		SrcPos t => addPos t.bounds (elab env ctx t.val)
-		st => do
-			(t, _) <- infer env ctx st
-			pure t
+	elab env ctx tm = do
+		(t, _) <- infer env ctx tm
+		pure t
 
 	export
 	checkModule : Check e => List Definition -> App e CheckState
