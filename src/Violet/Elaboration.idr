@@ -9,17 +9,15 @@ import Text.Bounded
 import Violet.Core.Syntax
 import public Violet.Core.Term
 import public Violet.Core.Eval
+import Violet.Core.DataType
 import public Violet.Error.Check
-
-CtorSet : Type
-CtorSet = List (Name, List VTy)
 
 public export
 record CheckState where
 	constructor MkCheckState
 	topCtx : Ctx
 	topEnv : GlobalEnv
-	dataDefs : List (Name, CtorSet)
+	dataDefs : DataCtx
 
 export
 checkState : Ctx -> CheckState
