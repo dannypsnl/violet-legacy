@@ -8,7 +8,7 @@ import Control.App.Console
 import Control.App.FileIO
 import Text.PrettyPrint.Prettyprinter.Symbols
 
-import Violet.Core
+import Violet.Elaboration
 import Violet.Parser
 
 prettyIOError : IOError -> Doc AnsiStyle

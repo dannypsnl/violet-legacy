@@ -1,4 +1,4 @@
-module Violet.Core
+module Violet.Elaboration
 
 import System
 import Control.App
