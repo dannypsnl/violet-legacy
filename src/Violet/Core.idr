@@ -7,7 +7,7 @@ import Data.List
 import Data.String
 import Text.Bounded
 import Violet.Core.Term
-import public Violet.Core.Val
+import public Violet.Core.Eval
 import public Violet.Error.Check
 
 CtorSet : Type
@@ -151,19 +151,21 @@ mutual
 				pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
 				where
 					elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
+					-- when a pattern seems like a ctor, but it is not in constructor set, it's a variable pattern
+					-- for example, `m` is var pattern when pattern matching on `Nat`
 					elabPattern head x [] Nothing = pure (PVar head, [(head, VData x)])
-					elabPattern head _ vars (Just tys) = pure (PCons head vars, vars `zip` tys)
+					elabPattern head _ vars (Just tys) = pure (PCtor head vars, vars `zip` tys)
 					elabPattern head x _ Nothing = report $ BadConstructor head x
 
 					checkCase : Env -> Ctx -> List VTy -> ElimCase -> App e (List Pat, VTy)
-					checkCase env ctx (VData x :: ts) (PCons head vars :: pats, rhs) = do
+					checkCase env ctx (VData x :: ts) (PCtor head vars :: pats, rhs) = do
 						-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
 						-- find a constructor set from definition context
 						cs <- findCtorSet x
 						(newPat, patCtx) <- elabPattern head x vars (lookup head cs)
 						let patEnv : LocalEnv = case newPat of
 						      PVar _ => [(head, VVar head)]
-						      PCons _ _ => (vars `zip` (map VVar vars))
+						      PCtor _ _ => (vars `zip` (map VVar vars))
 						(pats, ty) <- checkCase ({ local := patEnv ++ env.local } env) (extendCtxWithBinds ctx $ patCtx) ts (pats, rhs)
 						pure (newPat :: pats, ty)
 					checkCase env ctx ([]) ([], rhs) = do

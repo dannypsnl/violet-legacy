@@ -5,10 +5,7 @@ import Text.Parser.Core
 import public Violet.Core.Term
 
 public export
-data PatRaw
-	= RPVar Name
-	-- weak-head pattern
-	| RPCons Name (List Name)
+data PatRaw = RPat Name (List Name)
 
 mutual
 	public export
@@ -59,8 +56,7 @@ data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
 
 export
 Cast PatRaw Pat where
-	cast (RPVar n) = PCons n []
-	cast (RPCons h vs) = PCons h vs
+	cast (RPat h vs) = PCtor h vs
 
 export
 Cast Raw Tm where

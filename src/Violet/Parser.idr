@@ -86,8 +86,7 @@ mutual
 		pure $ RLet name a t u
 
 	patRule : Rule PatRaw
-	patRule = pure $ let (h ::: vs) = !(some (match VTIdentifier))
-		in if isNil vs then RPVar h else RPCons h vs
+	patRule = pure $ let (h ::: vs) = !(some (match VTIdentifier)) in RPat h vs
 	caseRule : Rule (List PatRaw, Raw)
 	caseRule = do
 		match VTVerticalLine
