@@ -32,6 +32,7 @@ mutual
 		| RApp Raw Raw            -- t u
 		| RU                      -- U
 		| RPi Name RTy RTy        -- (x : a) → b
+		| RHole Name              -- ?x
 		| RLet Name RTy Raw Raw   -- let x : a = t; u
 		-- elim n
 		-- | zero => u1
@@ -60,6 +61,7 @@ Cast Raw STm where
 	cast (RApp t u) = SApply (cast t) (cast u)
 	cast RU = SU
 	cast (RPi x a b) = SPi x (cast a) (cast b)
+	cast (RHole x) = Hole x
 	cast (RLet x a t u) = SLet x (cast a) (cast t) (cast u)
 	cast (RElim rs cases) = SElim (map cast rs) $ map (bimap (map (\x => x)) cast) cases
 

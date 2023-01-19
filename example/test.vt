@@ -10,6 +10,8 @@ data Nat
 
 def id (A : U) (x : A) : A => x
 
+def rholeId (A : U) (x : A) : A => id ?a x
+
 def zero? (n : Nat) : Bool => elim n
 | zero => true
 | suc _ => false

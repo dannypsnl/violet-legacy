@@ -29,6 +29,7 @@ data VTokenKind
 	| VTIgnore            -- single line comment or whitespace
 	| VTModule            -- module
 	| VTComma             -- ,
+	| VTQuestionMark      -- ?
 
 export
 Eq VTokenKind where
@@ -51,6 +52,7 @@ Eq VTokenKind where
 	(==) VTLambdaArrow VTLambdaArrow = True
 	(==) VTDollar VTDollar = True
 	(==) VTModule VTModule = True
+	(==) VTQuestionMark VTQuestionMark = True
 	(==) _ _ = False
 
 export
@@ -73,6 +75,7 @@ Show VTokenKind where
 	show VTLambda       = "λ"
 	show VTLambdaArrow  = "=>"
 	show VTDollar       = "$"
+	show VTQuestionMark = "?"
 	show VTIgnore       = "<ignore>"
 	show VTModule       = "module"
 
@@ -109,6 +112,7 @@ TokenKind VTokenKind where
 	tokValue VTIgnore _ = ()
 	tokValue VTModule _ = ()
 	tokValue VTComma _ = ()
+	tokValue VTQuestionMark _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
@@ -141,6 +145,7 @@ violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
 		(spaces, VTIgnore),
 		(comment, VTIgnore),
+		(is '?', VTQuestionMark),
 		(exact "->" <|> is '→', VTArrow),
 		(is 'λ' <|> is '\\', VTLambda),
 		(exact "=>" <|> is '⇒', VTLambdaArrow),

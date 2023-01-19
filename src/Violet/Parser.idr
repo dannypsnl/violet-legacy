@@ -24,12 +24,17 @@ tmU = match VTUniverse $> RU
 tmVar : Rule Raw
 tmVar = RVar <$> match VTIdentifier
 
+tmHole : Rule Raw
+tmHole = do
+	match VTQuestionMark
+	RHole <$> match VTIdentifier
+
 parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
 
 mutual
 	atom : Rule Raw
-	atom = tmU <|> tmVar <|> (parens tm)
+	atom = tmHole <|> tmU <|> tmVar <|> (parens tm)
 
 	spine : Rule Raw
 	spine = foldl1 RApp <$> some atom

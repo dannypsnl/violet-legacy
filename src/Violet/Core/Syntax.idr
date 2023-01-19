@@ -16,6 +16,7 @@ mutual
 		| SApply STm STm           -- t u
 		| SU                       -- U
 		| SPi Name STy STy         -- (x : a) → b
+		| Hole Name                -- ?x
 		| SLet Name STy STm STm    -- let x : a = t; u
 		| SElim (List STm) (List SElimCase)
 

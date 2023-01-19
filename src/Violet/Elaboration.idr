@@ -143,6 +143,7 @@ mutual
 			t' <- runEval eval env t
 			(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
 			pure (Let x a t u, ty)
+		Hole x => ?freshMeta
 		SElim targets cases => do
 			tTys <- for targets (infer env ctx)
 			(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases
