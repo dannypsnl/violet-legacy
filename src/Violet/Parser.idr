@@ -5,9 +5,9 @@ import Text.Parser.Core
 import Text.Parser
 import Text.Parser.Expression
 
-import Violet.Lexer
-import Violet.Syntax
-import public Violet.Error.Parsing
+import Violet.Surface.Lexer
+import public Violet.Surface.Syntax
+import public Violet.Surface.Error
 
 -- `Grammar state tok consumes ty`
 -- * `state` can be defined, but didn't be used here
@@ -85,9 +85,9 @@ mutual
 		u <- tm
 		pure $ RLet name a t u
 
-	patRule : Rule PatRaw
-	patRule = pure $ let (h ::: vs) = !(some (match VTIdentifier)) in RPat h vs
-	caseRule : Rule (List PatRaw, Raw)
+	patRule : Rule (List1 Name)
+	patRule = some (match VTIdentifier)
+	caseRule : Rule (List (List1 Name), Raw)
 	caseRule = do
 		match VTVerticalLine
 		ps <- sepBy (match VTComma) patRule

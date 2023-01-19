@@ -1,4 +1,4 @@
-module Violet.Lexer
+module Violet.Surface.Lexer
 
 import Text.Lexer
 import Text.Token

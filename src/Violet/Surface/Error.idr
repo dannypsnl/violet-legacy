@@ -1,10 +1,9 @@
-module Violet.Error.Parsing
+module Violet.Surface.Error
 
 import Data.String
 import Text.Parser
-
 import Violet.Error.Common
-import Violet.Lexer
+import Violet.Surface.Lexer
 
 public export
 data PError : Type where

@@ -1,11 +1,9 @@
-module Violet.Syntax
+module Violet.Surface.Syntax
 
 import Data.String
+import Data.List1
 import Text.Parser.Core
 import public Violet.Core.Term
-
-public export
-data PatRaw = RPat Name (List Name)
 
 mutual
 	public export
@@ -42,7 +40,7 @@ mutual
 		-- elim trichotomy a b
 		-- | greater _ => u1
 		-- | less p | equals p => f p
-		| RElim (List Raw) (List (List PatRaw, Raw))
+		| RElim (List Raw) (List (List (List1 Name), Raw))
 
 	public export
 	RTy : Type
@@ -55,10 +53,6 @@ public export
 data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
 
 export
-Cast PatRaw Pat where
-	cast (RPat h vs) = PCtor h vs
-
-export
 Cast Raw Tm where
 	cast (RSrcPos raw) = SrcPos $ MkBounded (cast raw.val) True raw.bounds
 	cast (RVar x) = Var x
@@ -67,7 +61,7 @@ Cast Raw Tm where
 	cast RU = U
 	cast (RPi x a b) = Pi x (cast a) (cast b)
 	cast (RLet x a t u) = Let x (cast a) (cast t) (cast u)
-	cast (RElim rs cases) = Elim (map cast rs) $ map (bimap (map cast) cast) cases
+	cast (RElim rs cases) = Elim (map cast rs) $ map (bimap (map (\(h ::: vs) => PCtor h vs)) cast) cases
 
 export
 Cast TopLevelRaw Definition where
