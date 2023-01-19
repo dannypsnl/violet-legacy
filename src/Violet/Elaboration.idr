@@ -119,78 +119,78 @@ mutual
 
 	export
 	infer : Check e => Env -> Ctx -> STm -> App e (Tm, VTy)
-	infer env ctx tm = go tm
-		where
-			go : STm -> App e (Tm, VTy)
-			go (SrcPos t) = addPos t.bounds (go t.val)
-			go (SVar x) = case lookupCtx ctx x of
-				Nothing => report (NoVar x)
-				Just a => pure (Var x, a)
-			go SU = pure (U, VU)
-			go (SApply t u) = do
-				(t, VPi _ a b) <- infer env ctx t
-					| (_, t') => report $ BadApp !(runEval quote env t')
-				u <- check env ctx u a
-				u' <- runEval eval env u
-				Right b' <- pure $ b u'
-					| Left e => report $ cast e
-				pure (Apply t u, b')
-			go (SLam {}) = report InferLam
-			go (SPi x a b) = do
-				a <- check env ctx a VU
-				b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
-				pure (Pi x a b, VU)
-			go (SLet x a t u) = do
-				a <- check env ctx a VU
-				a' <- runEval eval env a
-				t <- check env ctx t a'
-				t' <- runEval eval env t
-				(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
-				pure (Let x a t u, ty)
-			go (SElim targets cases) = do
-				tTys <- for targets (infer env ctx)
-				(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases
-				let tm = Elim (map fst tTys) cases'
-				pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
-				where
-					elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
-					-- when a pattern seems like a ctor, but it is not in constructor set, it's a variable pattern
-					-- for example, `m` is var pattern when pattern matching on `Nat`
-					elabPattern head x [] Nothing = pure (PVar head, [(head, VData x)])
-					elabPattern head _ vars (Just tys) = pure (PCtor head vars, vars `zip` tys)
-					elabPattern head x _ Nothing = report $ BadConstructor head x
+	infer env ctx tm = case tm of
+		SrcPos t => addPos t.bounds (infer env ctx t.val)
+		SVar x => case lookupCtx ctx x of
+			Nothing => report (NoVar x)
+			Just a => pure (Var x, a)
+		SU => pure (U, VU)
+		SApply t u => do
+			(t, VPi _ a b) <- infer env ctx t
+				| (_, t') => report $ BadApp !(runEval quote env t')
+			u <- check env ctx u a
+			u' <- runEval eval env u
+			Right b' <- pure $ b u'
+				| Left e => report $ cast e
+			pure (Apply t u, b')
+		SLam {} => report InferLam
+		SPi x a b => do
+			a <- check env ctx a VU
+			b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
+			pure (Pi x a b, VU)
+		SLet x a t u => do
+			a <- check env ctx a VU
+			a' <- runEval eval env a
+			t <- check env ctx t a'
+			t' <- runEval eval env t
+			(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
+			pure (Let x a t u, ty)
+		SElim targets cases => do
+			tTys <- for targets (infer env ctx)
+			(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases
+			let tm = Elim (map fst tTys) cases'
+			pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
+			where
+				elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
+				-- when a pattern seems like a ctor, but it is not in constructor set, it's a variable pattern
+				-- for example, `m` is var pattern when pattern matching on `Nat`
+				elabPattern head x [] Nothing = pure (PVar head, [(head, VData x)])
+				elabPattern head _ vars (Just tys) = pure (PCtor head vars, vars `zip` tys)
+				elabPattern head x _ Nothing = report $ BadConstructor head x
 
-					checkCase : Env -> Ctx -> List VTy -> SElimCase -> App e (ElimCase, VTy)
-					checkCase env ctx (VData x :: ts) ((head ::: vars) :: pats, rhs) = do
-						-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
-						-- find a constructor set from definition context
-						cs <- findCtorSet x
-						(newPat, patCtx) <- elabPattern head x vars (lookup head cs)
-						let patEnv : LocalEnv = case newPat of
-						      PVar _ => [(head, VVar head)]
-						      PCtor _ _ => (vars `zip` (map VVar vars))
-						(ECase pats rhs, ty) <- checkCase ({ local := patEnv ++ env.local } env) (extendCtxWithBinds ctx $ patCtx) ts (pats, rhs)
-						pure (ECase (newPat :: pats) rhs, ty)
-					checkCase env ctx ([]) ([], rhs) = do
-						(rhs, ty) <- infer env ctx rhs
-						pure (ECase [] rhs, ty)
-					checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
+				checkCase : Env -> Ctx -> List VTy -> SElimCase -> App e (ElimCase, VTy)
+				checkCase env ctx (VData x :: ts) ((head ::: vars) :: pats, rhs) = do
+					-- TODO: to enable indexed data type, we will need to extend `findCtorSet` in the future
+					-- find a constructor set from definition context
+					cs <- findCtorSet x
+					(newPat, patCtx) <- elabPattern head x vars (lookup head cs)
+					let patEnv : LocalEnv = case newPat of
+					      PVar _ => [(head, VVar head)]
+					      PCtor _ _ => (vars `zip` (map VVar vars))
+					let env' = { local := patEnv ++ env.local } env
+					let ctx' = extendCtxWithBinds ctx $ patCtx
+					(ECase pats rhs, ty) <- checkCase env' ctx' ts (pats, rhs)
+					pure (ECase (newPat :: pats) rhs, ty)
+				checkCase env ctx ([]) ([], rhs) = do
+					(rhs, ty) <- infer env ctx rhs
+					pure (ECase [] rhs, ty)
+				checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
 
-					elabCase : (List VTy) -> (List ElimCase, List VTy) -> SElimCase -> App e (List ElimCase, List VTy)
-					elabCase ttys (cases, tys) elim_case = do
-						let (_, rhs) = elim_case
-						(c, ty) <- checkCase env ctx ttys elim_case
-						pure (c :: cases, ty :: tys)
+				elabCase : (List VTy) -> (List ElimCase, List VTy) -> SElimCase -> App e (List ElimCase, List VTy)
+				elabCase ttys (cases, tys) elim_case = do
+					let (_, rhs) = elim_case
+					(c, ty) <- checkCase env ctx ttys elim_case
+					pure (c :: cases, ty :: tys)
 
-					convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
-					convTys err env (t :: t' :: ts) = do
-						Right covertable <- pure $ conv env t t'
-							| Left err => report $ cast err
-						if covertable
-							then pure t
-							else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
-					convTys err env [t] = pure t
-					convTys err env [] = report err
+				convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
+				convTys err env (t :: t' :: ts) = do
+					Right covertable <- pure $ conv env t t'
+						| Left err => report $ cast err
+					if covertable
+						then pure t
+						else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
+				convTys err env [t] = pure t
+				convTys err env [] = report err
 
 	check : Check e => Env -> Ctx -> STm -> VTy -> App e Tm
 	check env ctx t a = go t a
