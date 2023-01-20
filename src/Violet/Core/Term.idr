@@ -7,6 +7,10 @@ import Text.PrettyPrint.Prettyprinter.Symbols
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
 import public Violet.Core.Common
 
+export
+MetaVar : Type
+MetaVar = Nat
+
 public export
 data Pat
 	-- var pattern
@@ -25,6 +29,7 @@ mutual
 		| Pi Name Ty Ty        -- (x : a) → b
 		| Let Name Ty Tm Tm    -- let x : a = t; u
 		| Elim (List Tm) (List ElimCase)
+		| Meta MetaVar
 
 	public export
 	Ty : Type
@@ -63,3 +68,4 @@ Pretty Tm where
 		where
 			prettyCase : ElimCase -> Doc ann
 			prettyCase (ECase ps t) = pipe <++> (encloseSep emptyDoc emptyDoc comma $ map pretty ps) <++> "=>" <++> pretty t
+	pretty (Meta n) = hcat ["?", pretty n]

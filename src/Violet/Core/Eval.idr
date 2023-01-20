@@ -11,6 +11,9 @@ app env t' u with (t')
 	_ | (VCtor x spine) = pure $ VCtor x (spine ++ [u])
 	_ | t = pure $ VApp t u
 
+vMeta : MetaVar -> Either EvalError Val
+vMeta n = ?lookupMeta
+
 mutual
 	export
 	eval : Env -> Tm -> Either EvalError Val
@@ -21,6 +24,7 @@ mutual
 		Lam x t => pure $ VLam x (\global, u => eval (extendEnv (MkEnv global env.local) x u) t)
 		Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
 		Let x a t u => eval (extendEnv env x !(eval env t)) u
+		Meta n => vMeta n
 		Elim ts cases => go !(for ts (eval env)) cases
 		where
 			go : List Val -> List ElimCase -> Either EvalError Val
