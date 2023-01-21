@@ -34,6 +34,7 @@ interface Has [Exception CheckError, State CheckState CheckState] e => Elab e wh
 	updateCtx : Name -> VTy -> App e ()
 
 	freshMeta : App e Tm
+	solve : MetaVar -> Val -> App e Bool
 
 	-- add inductive data type
 	addIndType : Name -> CtorSet -> App e ()
@@ -59,6 +60,11 @@ Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 		let (mvar, mctx) = newMeta state.mctx
 		putState $ { mctx := mctx } state
 		pure $ Meta mvar
+	solve mvar val = do
+		state <- getState
+		let mctx = solveMeta state.mctx mvar val
+		putState $ { mctx := mctx } state
+		pure True
 
 	addIndType dataName cs = do
 		state <- getState
@@ -229,8 +235,46 @@ mutual
 				pure (Let x a t u)
 			go _ expected = do
 				(t', inferred) <- infer env ctx t
-				Right convertable <- pure $ conv env inferred expected
-					| Left err => report $ cast err
+				convertable <- unify env inferred expected
 				if convertable
 					then pure t'
 					else report $ TypeMismatch !(runQuote env expected) !(runQuote env inferred)
+
+	unify : Elab e => Env -> VTy -> VTy -> App e Bool
+	unify env t u = go t u
+	where
+		go : Val -> Val -> App e Bool
+		go VU VU = pure True
+		go (VPi x a b) (VPi _ a' b') = do
+			let x' = fresh env x
+			Right l <- pure $ b (VVar x')
+				| Left e => report $ cast e
+			Right r <- pure $ b' (VVar x')
+				| Left e => report $ cast e
+			pure $ !(unify env a a') && !(unify (extendEnv env x' (VVar x')) l r)
+		go (VLam x t) (VLam _ t') = do
+			let x = fresh env x
+			Right l <- pure $ t env.global (VVar x)
+				| Left e => report $ cast e
+			Right r <- pure $ t' env.global (VVar x)
+				| Left e => report $ cast e
+			unify (extendEnv env x (VVar x)) l r
+		-- checking eta conversion for Lam
+		go (VLam x t) u = do
+			let x = fresh env x
+			Right l <- pure $ t env.global (VVar x)
+				| Left e => report $ cast e
+			unify (extendEnv env x (VVar x)) l (VApp u (VVar x))
+		go u (VLam x t) = do
+			let x = fresh env x
+			Right l <- pure $ t env.global (VVar x)
+				| Left e => report $ cast e
+			unify (extendEnv env x (VVar x)) (VApp u (VVar x)) l
+		go (VVar x) (VVar x') = pure $ x == x'
+		go (VData x) (VData x') = pure $ x == x'
+		go (VApp t u) (VApp t' u') = pure $ !(unify env t t') && !(unify env u u')
+		-- real unification
+		go (VMeta m) (VMeta m') = pure $ m == m'
+		go (VMeta m) u = solve m u
+		go t (VMeta m) = solve m t
+		go _ _ = pure False

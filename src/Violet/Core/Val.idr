@@ -59,6 +59,10 @@ newMeta ctx = do
 	(curCount, newCtx)
 
 export
+solveMeta : MetaCtx -> MetaVar -> Val -> MetaCtx
+solveMeta ctx var val = { map := insert var (Solved val) ctx.map } ctx
+
+export
 lookupMeta : MetaCtx -> MetaVar -> Either EvalError MetaEntry
 lookupMeta ctx var = case lookup var ctx.map of
 	Just entry => pure entry
