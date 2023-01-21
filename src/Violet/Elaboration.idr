@@ -6,7 +6,6 @@ import Control.App.Console
 import Data.List
 import Data.String
 import Text.Bounded
-import Violet.Core.Conversion
 import Violet.Core.Syntax
 import public Violet.Core.Term
 import public Violet.Core.Eval
@@ -209,8 +208,7 @@ mutual
 
 				convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
 				convTys err env (t :: t' :: ts) = do
-					Right covertable <- pure $ conv env t t'
-						| Left err => report $ cast err
+					covertable <- unify env t t'
 					if covertable
 						then pure t
 						else report $ TypeMismatch !(runQuote env t) !(runQuote env t')
