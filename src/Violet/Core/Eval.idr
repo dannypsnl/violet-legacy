@@ -18,20 +18,20 @@ vMeta ctx m = case !(lookupMeta ctx m) of
 
 mutual
 	export
-	eval : Env -> Tm -> Either EvalError Val
-	eval env tm = case tm of
+	eval : MetaCtx -> Env -> Tm -> Either EvalError Val
+	eval mctx env tm = case tm of
 		Var x => lookupEnv x env
-		Apply t u => app env.global !(eval env t) !(eval env u)
+		Apply t u => app env.global !(eval mctx env t) !(eval mctx env u)
 		U => pure VU
-		Lam x t => pure $ VLam x (\global, u => eval (extendEnv (MkEnv global env.local env.mctx) x u) t)
-		Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
-		Let x a t u => eval (extendEnv env x !(eval env t)) u
-		Meta n => vMeta env.mctx n
-		Elim ts cases => go !(for ts (eval env)) cases
+		Lam x t => pure $ VLam x (\global, u => eval mctx (extendEnv (MkEnv global env.local) x u) t)
+		Pi x a b => pure $ VPi x !(eval mctx env a) (\u => eval mctx (extendEnv env x u) b)
+		Let x a t u => eval mctx (extendEnv env x !(eval mctx env t)) u
+		Meta n => vMeta mctx n
+		Elim ts cases => go !(for ts (eval mctx env)) cases
 		where
 			go : List Val -> List ElimCase -> Either EvalError Val
 			go vals (ECase pats rhs :: nextPat) = case matches pats vals of
-				Just lenv => eval ({ local := lenv ++ env.local } env) rhs
+				Just lenv => eval mctx ({ local := lenv ++ env.local } env) rhs
 				Nothing => go vals nextPat
 			go vals [] = Left OutOfCase
 
@@ -73,5 +73,5 @@ quote env v = case v of
 	VMeta m => pure $ Meta m
 
 export
-nf : Env -> Tm -> Either EvalError Tm
-nf env tm = quote env !(eval env tm)
+nf : MetaCtx -> Env -> Tm -> Either EvalError Tm
+nf mctx env tm = quote env !(eval mctx env tm)

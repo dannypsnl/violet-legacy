@@ -26,12 +26,19 @@ checkMod filename source defs = do
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
-	let env = MkEnv state.topEnv [] state.mctx
+	let env = MkEnv state.topEnv []
 	for_ (reverse state.topCtx.map) $ \(name, ty) => do
-		v <- new state (runEval quote env ty) `handleErr` putErr prettyCheckError
+		v <- new state (runQuote env ty) `handleErr` putErr prettyCheckError
 		primIO $ putDoc $ (annotate bold $ pretty name)
 			<++> ":"
 			<++> (annBold $ annColor Blue $ pretty v)
+
+runNf : Elab es => Env -> Tm -> App es Tm
+runNf env a = do
+	state <- getState
+	Right b <- pure $ nf state.mctx env a
+		| Left e => report $ cast e
+	pure b
 
 replLoop : Has [PrimIO, State CheckState CheckState] e => App e ()
 replLoop = do
@@ -40,10 +47,10 @@ replLoop = do
 		| Left err => putErr prettyParsingError err
 	let tm = cast raw
 	state <- get CheckState
-	let env = MkEnv state.topEnv [] state.mctx
+	let env = MkEnv state.topEnv []
 	(tm, t) <- infer env state.topCtx tm `handleErr` putErr prettyCheckError
-	ty <- runEval quote env t `handleErr` putErr prettyCheckError
-	v <- runEval nf env tm `handleErr` putErr prettyCheckError
+	ty <- runQuote env t `handleErr` putErr prettyCheckError
+	v <- runNf env tm `handleErr` putErr prettyCheckError
 	primIO $ putDoc $ hsep [annBold (pretty v), ":", (annBold $ annColor Blue $ pretty ty)]
 	replLoop
 

@@ -69,7 +69,6 @@ record Env where
 	constructor MkEnv
 	global : GlobalEnv
 	local : LocalEnv
-	mctx : MetaCtx
 
 export
 extendEnv : Env -> Name -> Val -> Env

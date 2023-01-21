@@ -79,9 +79,17 @@ Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 			Just _ => throw ce)
 
 export
-runEval : Elab es => (e -> a -> Either EvalError b) -> e -> a -> App es b
-runEval f env a = do
-	Right b <- pure $ f env a
+runEval : Elab es => Env -> Tm -> App es Val
+runEval env a = do
+	state <- getState
+	Right b <- pure $ eval state.mctx env a
+		| Left e => report $ cast e
+	pure b
+
+export
+runQuote : Elab es => Env -> Val -> App es Tm
+runQuote env a = do
+	Right b <- pure $ quote env a
 		| Left e => report $ cast e
 	pure b
 
@@ -99,10 +107,10 @@ mutual
 			handleDataCase : Tm -> DataCase -> App e (Name, List VTy)
 			handleDataCase returned_ty (C x tys) = do
 				state <- getState
-				let env = MkEnv state.topEnv [] state.mctx
+				let env = MkEnv state.topEnv []
 				tys <- for tys (elab env state.topCtx)
-				tys' <- for tys (runEval eval env)
-				t' <- runEval eval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
+				tys' <- for tys (runEval env)
+				t' <- runEval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
 				updateCtx x t'
 				updateEnv x (VCtor x [])
 				pure (x, tys')
@@ -115,12 +123,12 @@ mutual
 				addIndType dataName !(for cases $ handleDataCase (Var dataName))
 			go (Def x a t) = do
 				state <- getState
-				let env = MkEnv state.topEnv [] state.mctx
+				let env = MkEnv state.topEnv []
 				a <- check env state.topCtx a VU
-				a' <- runEval eval env a
+				a' <- runEval env a
 
-				t <- check (MkEnv state.topEnv [(x, (VVar x))] state.mctx) (extendCtx state.topCtx x a') t a'
-				t' <- runEval eval env t
+				t <- check (MkEnv state.topEnv [(x, (VVar x))]) (extendCtx state.topCtx x a') t a'
+				t' <- runEval env t
 				updateEnv x t'
 				updateCtx x a'
 
@@ -134,26 +142,26 @@ mutual
 		SU => pure (U, VU)
 		SApply t u => do
 			(t, VPi _ a b) <- infer env ctx t
-				| (_, t') => report $ BadApp !(runEval quote env t')
+				| (_, t') => report $ BadApp !(runQuote env t')
 			u <- check env ctx u a
-			u' <- runEval eval env u
+			u' <- runEval env u
 			Right b' <- pure $ b u'
 				| Left e => report $ cast e
 			pure (Apply t u, b')
 		SLam {} => report InferLam
 		SPi x a b => do
 			a <- check env ctx a VU
-			b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
+			b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval env a)) b VU
 			pure (Pi x a b, VU)
 		SLet x a t u => do
 			a <- check env ctx a VU
-			a' <- runEval eval env a
+			a' <- runEval env a
 			t <- check env ctx t a'
-			t' <- runEval eval env t
+			t' <- runEval env t
 			(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
 			pure (Let x a t u, ty)
 		Hole x => do
-			a <- runEval eval env !(freshMeta)
+			a <- runEval env !(freshMeta)
 			t <- freshMeta
 			pure (t, a)
 		SElim targets cases => do
@@ -185,7 +193,7 @@ mutual
 				checkCase env ctx ([]) ([], rhs) = do
 					(rhs, ty) <- infer env ctx rhs
 					pure (ECase [] rhs, ty)
-				checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
+				checkCase env ctx ts _ = report $ BadElimType !(for ts $ runQuote env)
 
 				elabCase : (List VTy) -> (List ElimCase, List VTy) -> SElimCase -> App e (List ElimCase, List VTy)
 				elabCase ttys (cases, tys) elim_case = do
@@ -199,7 +207,7 @@ mutual
 						| Left err => report $ cast err
 					if covertable
 						then pure t
-						else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
+						else report $ TypeMismatch !(runQuote env t) !(runQuote env t')
 				convTys err env [t] = pure t
 				convTys err env [] = report err
 
@@ -215,9 +223,9 @@ mutual
 					Left err => report $ cast err
 			go (SLet x a t u) _ = do
 				a <- check env ctx a VU
-				a' <- runEval eval env a
+				a' <- runEval env a
 				t <- check env ctx t a'
-				u <- check (extendEnv env x !(runEval eval env t)) (extendCtx ctx x a') u a'
+				u <- check (extendEnv env x !(runEval env t)) (extendCtx ctx x a') u a'
 				pure (Let x a t u)
 			go _ expected = do
 				(t', inferred) <- infer env ctx t
@@ -225,4 +233,4 @@ mutual
 					| Left err => report $ cast err
 				if convertable
 					then pure t'
-					else report $ TypeMismatch !(runEval quote env expected) !(runEval quote env inferred)
+					else report $ TypeMismatch !(runQuote env expected) !(runQuote env inferred)
