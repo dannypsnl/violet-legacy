@@ -146,13 +146,29 @@ mutual
 			Just a => pure (Var x, a)
 		SU => pure (U, VU)
 		SApply t u => do
-			(t, VPi mode _ a b) <- infer env ctx t
-				| (_, t') => report $ BadApp !(runQuote env t')
-			u <- check env ctx u a
-			u' <- runEval env u
-			Right b' <- pure $ b u'
-				| Left e => report $ cast e
-			pure (Apply t u, b')
+			(t, VPi mode x a b) <- infer env ctx t
+				| (_, bad_ty) => report $ BadApp !(runQuote env bad_ty)
+			case mode of
+				Explicit => do
+					-- check u : a
+					u <- check env ctx u a
+					u' <- runEval env u
+					Right b' <- pure $ b u'
+						| Left e => report $ cast e
+					pure (Apply t u, b')
+				Implicit => do
+					-- insert a hole
+					-- and check it has type `a`
+					m <- check env ctx (Hole (fresh env x)) a
+					m' <- runEval env m
+					Right (VPi mode x a b') <- pure $ b m'
+						| Right bad_ty => report $ BadApp !(runQuote env bad_ty)
+						| Left e => report $ cast e
+					u <- check env ctx u a
+					u' <- runEval env u
+					Right b'' <- pure $ b' u'
+						| Left e => report $ cast e
+					pure (Apply (Apply t m) u, b'')
 		SLam {} => report InferLam
 		SPi mode x a b => do
 			a <- check env ctx a VU
