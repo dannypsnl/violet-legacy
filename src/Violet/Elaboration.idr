@@ -173,7 +173,14 @@ mutual
 			tTys <- for targets (infer env ctx)
 			(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases
 			let tm = Elim (map fst tTys) cases'
-			pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
+			(ty :: tys) <- pure rhs_tys
+				| [] => report $ ElimInfer tm
+			ty <- foldlM (\a, b => do
+				ok <- unify env a b
+				if ok
+					then pure b
+					else report $ TypeMismatch !(runQuote env a) !(runQuote env b)) ty tys
+			pure (tm, ty)
 			where
 				elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
 				-- when a pattern seems like a ctor, but it is not in constructor set, it's a variable pattern
@@ -205,15 +212,6 @@ mutual
 					let (_, rhs) = elim_case
 					(c, ty) <- checkCase env ctx ttys elim_case
 					pure (c :: cases, ty :: tys)
-
-				convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
-				convTys err env (t :: t' :: ts) = do
-					covertable <- unify env t t'
-					if covertable
-						then pure t
-						else report $ TypeMismatch !(runQuote env t) !(runQuote env t')
-				convTys err env [t] = pure t
-				convTys err env [] = report err
 
 	check : Elab e => Env -> Ctx -> STm -> VTy -> App e Tm
 	check env ctx t a = go t a
