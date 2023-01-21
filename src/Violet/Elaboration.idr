@@ -94,7 +94,8 @@ runEval env a = do
 export
 runQuote : Elab es => Env -> Val -> App es Tm
 runQuote env a = do
-	Right b <- pure $ quote env a
+	state <- getState
+	Right b <- pure $ quote state.mctx env a
 		| Left e => report $ cast e
 	pure b
 

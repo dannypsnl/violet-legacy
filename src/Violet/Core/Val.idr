@@ -15,7 +15,7 @@ mutual
 	data Val
 		= VVar Name
 		| VApp Val Val
-		| VLam Name (LocalEnv -> Val -> Either EvalError Val)
+		| VLam Name (GlobalEnv -> Val -> Either EvalError Val)
 		| VPi Mode Name VTy (Val -> Either EvalError Val)
 		| VU
 		-- data type
@@ -30,16 +30,16 @@ mutual
 	VTy = Val
 
 	public export
-	LocalEnv : Type
-	LocalEnv = List (Name, Val)
+	GlobalEnv : Type
+	GlobalEnv = List (Name, Val)
 
 	public export
 	Spine : Type
 	Spine = List Val
 
 public export
-GlobalEnv : Type
-GlobalEnv = List (Name, Val)
+LocalEnv : Type
+LocalEnv = List (Name, Val)
 
 export
 record MetaCtx where

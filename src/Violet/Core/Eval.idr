@@ -26,7 +26,7 @@ mutual
 		Lam x t => pure $ VLam x (\global, u => eval mctx (extendEnv (MkEnv global env.local) x u) t)
 		Pi mode x a b => pure $ VPi mode x !(eval mctx env a) (\u => eval mctx (extendEnv env x u) b)
 		Let x a t u => eval mctx (extendEnv env x !(eval mctx env t)) u
-		Meta n => vMeta mctx n
+		Meta m => vMeta mctx m
 		Elim ts cases => go !(for ts (eval mctx env)) cases
 		where
 			go : List Val -> List ElimCase -> Either EvalError Val
@@ -56,22 +56,22 @@ mutual
 	matches _ _  = Nothing
 
 export
-quote : Env -> Val -> Either EvalError Tm
-quote env v = case v of
+quote : MetaCtx -> Env -> Val -> Either EvalError Tm
+quote mctx env v = case v of
 	VVar x => pure $ Var x
-	VApp t u => pure $ Apply !(quote env t) !(quote env u)
+	VApp t u => pure $ Apply !(quote mctx env t) !(quote mctx env u)
 	VLam x t => do
 		let x = fresh env x
 		let vx = (VVar x)
-		pure $ Lam x !(quote (extendEnv env x vx) !(t env.global vx))
+		pure $ Lam x !(quote mctx (extendEnv env x vx) !(t env.global vx))
 	VPi mode x a b => do
 		let x = fresh env x
-		pure $ Pi mode x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
+		pure $ Pi mode x !(quote mctx env a) !(quote mctx (extendEnv env x (VVar x)) !(b (VVar x)))
 	VU => pure U
 	VData x => pure $ Var x
-	VCtor x spine => pure $ foldl (\acc, s => acc `Apply` s) (Var x) !(for spine (quote env))
-	VMeta m => pure $ Meta m
+	VCtor x spine => pure $ foldl (\acc, s => acc `Apply` s) (Var x) !(for spine (quote mctx env))
+	VMeta m => quote mctx env !(vMeta mctx m)
 
 export
 nf : MetaCtx -> Env -> Tm -> Either EvalError Tm
-nf mctx env tm = quote env !(eval mctx env tm)
+nf mctx env tm = quote mctx env !(eval mctx env tm)
