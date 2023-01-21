@@ -16,7 +16,7 @@ mutual
 		= VVar Name
 		| VApp Val Val
 		| VLam Name (LocalEnv -> Val -> Either EvalError Val)
-		| VPi Name VTy (Val -> Either EvalError Val)
+		| VPi Mode Name VTy (Val -> Either EvalError Val)
 		| VU
 		-- data type
 		| VData Name

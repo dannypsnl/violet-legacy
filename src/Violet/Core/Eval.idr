@@ -24,7 +24,7 @@ mutual
 		Apply t u => app env.global !(eval mctx env t) !(eval mctx env u)
 		U => pure VU
 		Lam x t => pure $ VLam x (\global, u => eval mctx (extendEnv (MkEnv global env.local) x u) t)
-		Pi x a b => pure $ VPi x !(eval mctx env a) (\u => eval mctx (extendEnv env x u) b)
+		Pi mode x a b => pure $ VPi mode x !(eval mctx env a) (\u => eval mctx (extendEnv env x u) b)
 		Let x a t u => eval mctx (extendEnv env x !(eval mctx env t)) u
 		Meta n => vMeta mctx n
 		Elim ts cases => go !(for ts (eval mctx env)) cases
@@ -64,9 +64,9 @@ quote env v = case v of
 		let x = fresh env x
 		let vx = (VVar x)
 		pure $ Lam x !(quote (extendEnv env x vx) !(t env.global vx))
-	VPi x a b => do
+	VPi mode x a b => do
 		let x = fresh env x
-		pure $ Pi x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
+		pure $ Pi mode x !(quote env a) !(quote (extendEnv env x (VVar x)) !(b (VVar x)))
 	VU => pure U
 	VData x => pure $ Var x
 	VCtor x spine => pure $ foldl (\acc, s => acc `Apply` s) (Var x) !(for spine (quote env))

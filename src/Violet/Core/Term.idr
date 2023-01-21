@@ -22,7 +22,7 @@ mutual
 		| Lam Name Tm          -- λ x => t
 		| Apply Tm Tm          -- t u
 		| U                    -- U
-		| Pi Name Ty Ty        -- (x : a) → b
+		| Pi Mode Name Ty Ty   -- (x : a) → b
 		| Let Name Ty Tm Tm    -- let x : a = t; u
 		| Elim (List Tm) (List ElimCase)
 		| Meta MetaVar
@@ -47,10 +47,12 @@ Pretty Tm where
 		Apply {} => parens $ pretty u
 		_        => pretty u
 	pretty U = "U"
-	pretty (Pi x a b) =
+	pretty (Pi mode x a b) =
 		(if x == "_"
 			then pretty a
-			else hsep [ hcat ["(", pretty x], ":", hcat [pretty a, ")"] ])
+			else case mode of
+				Implicit => "{" <+> pretty x <++> ":" <++> pretty a <+> "}"
+				Explicit => "(" <+> pretty x <++> ":" <++> pretty a <+> ")")
 		<++> "→"
 		<++> pretty b
 	pretty (Let x a t u) =

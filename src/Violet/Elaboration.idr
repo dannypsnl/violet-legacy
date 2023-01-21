@@ -115,7 +115,7 @@ mutual
 				let env = MkEnv state.topEnv []
 				tys <- for tys (elab env state.topCtx)
 				tys' <- for tys (runEval env)
-				t' <- runEval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
+				t' <- runEval env (foldr (\t, s => (Pi Explicit "_" t s)) returned_ty tys)
 				updateCtx x t'
 				updateEnv x (VCtor x [])
 				pure (x, tys')
@@ -146,7 +146,7 @@ mutual
 			Just a => pure (Var x, a)
 		SU => pure (U, VU)
 		SApply t u => do
-			(t, VPi _ a b) <- infer env ctx t
+			(t, VPi mode _ a b) <- infer env ctx t
 				| (_, t') => report $ BadApp !(runQuote env t')
 			u <- check env ctx u a
 			u' <- runEval env u
@@ -154,10 +154,10 @@ mutual
 				| Left e => report $ cast e
 			pure (Apply t u, b')
 		SLam {} => report InferLam
-		SPi x a b => do
+		SPi mode x a b => do
 			a <- check env ctx a VU
 			b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval env a)) b VU
-			pure (Pi x a b, VU)
+			pure (Pi mode x a b, VU)
 		SLet x a t u => do
 			a <- check env ctx a VU
 			a' <- runEval env a
@@ -218,7 +218,7 @@ mutual
 		where
 			go : STm -> VTy -> App e Tm
 			go (SrcPos t) a = addPos t.bounds (go t.val a)
-			go (SLam x t) (VPi x' a b) = do
+			go (SLam x t) (VPi _ x' a b) = do
 				let x' = fresh env x'
 				case b (VVar x') of
 					Right u => Lam x <$> check (extendEnv env x (VVar x)) (extendCtx ctx x a) t u
@@ -240,8 +240,13 @@ mutual
 	unify env t u = go t u
 	where
 		go : Val -> Val -> App e Bool
+		-- real unification
+		go (VMeta m) (VMeta m') = pure $ m == m'
+		go (VMeta m) u = solve m u
+		go t (VMeta m) = solve m t
+		-- conversion
 		go VU VU = pure True
-		go (VPi x a b) (VPi _ a' b') = do
+		go (VPi _ x a b) (VPi _ _ a' b') = do
 			let x' = fresh env x
 			Right l <- pure $ b (VVar x')
 				| Left e => report $ cast e
@@ -269,8 +274,4 @@ mutual
 		go (VVar x) (VVar x') = pure $ x == x'
 		go (VData x) (VData x') = pure $ x == x'
 		go (VApp t u) (VApp t' u') = pure $ !(unify env t t') && !(unify env u u')
-		-- real unification
-		go (VMeta m) (VMeta m') = pure $ m == m'
-		go (VMeta m) u = solve m u
-		go t (VMeta m) = solve m t
 		go _ _ = pure False

@@ -7,3 +7,6 @@ Name = String
 public export
 MetaVar : Type
 MetaVar = Nat
+
+public export
+data Mode = Implicit | Explicit
