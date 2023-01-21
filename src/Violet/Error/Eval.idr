@@ -10,9 +10,11 @@ data EvalError
 	= NoVar String
 	| BadSpine Tm
 	| OutOfCase
+	| NoMeta MetaVar
 
 export
 prettyEvalError : EvalError -> Doc AnsiStyle
 prettyEvalError (NoVar name) = annBold $ annColor Red $ hsep ["variable:", pretty name, "not found"]
 prettyEvalError (BadSpine tm) = annBold $ annColor Red $ hsep ["bad spine on:", pretty tm]
 prettyEvalError OutOfCase = annBold $ annColor Red $ "pattern matching eval out of case"
+prettyEvalError (NoMeta m) = annBold $ annColor Red $ "no meta variable: ?" <+> pretty m

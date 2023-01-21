@@ -1,11 +1,16 @@
 module Violet.Core.Val
 
 import Data.Either
+import Data.SortedMap
 import Data.List
 import Violet.Core.Term
+import Violet.Core.Common
 import Violet.Error.Eval
 
 mutual
+	public export
+	data MetaEntry = Solved Val | Unsolved
+
 	public export
 	data Val
 		= VVar Name
@@ -17,6 +22,8 @@ mutual
 		| VData Name
 		-- constructor
 		| VCtor Name Spine
+		-- meta variable
+		| VMeta MetaVar
 
 	public export
 	VTy : Type
@@ -34,11 +41,35 @@ public export
 GlobalEnv : Type
 GlobalEnv = List (Name, Val)
 
+export
+record MetaCtx where
+	constructor MkMetaCtx
+	map : SortedMap MetaVar MetaEntry
+	counter : MetaVar
+
+export
+emptyMetaCtx : MetaCtx
+emptyMetaCtx = MkMetaCtx empty 0
+
+export
+newMeta : MetaCtx -> (MetaVar, MetaCtx)
+newMeta ctx = do
+	let curCount = ctx.counter
+	let newCtx = {counter $= S, map := insert curCount Unsolved ctx.map } ctx
+	(curCount, newCtx)
+
+export
+lookupMeta : MetaCtx -> MetaVar -> Either EvalError MetaEntry
+lookupMeta ctx var = case lookup var ctx.map of
+	Just entry => pure entry
+	Nothing => Left $ NoMeta var
+
 public export
 record Env where
 	constructor MkEnv
 	global : GlobalEnv
 	local : LocalEnv
+	mctx : MetaCtx
 
 export
 extendEnv : Env -> Name -> Val -> Env

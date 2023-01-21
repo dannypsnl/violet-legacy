@@ -4,9 +4,10 @@ import Data.SortedMap
 import Violet.Core.Val
 import Violet.Core.Common
 
-export
+public export
 data MetaEntry = Solved Val | Unsolved
 
+export
 record MetaCtx where
 	constructor MkMetaCtx
 	map : SortedMap MetaVar MetaEntry
@@ -16,8 +17,9 @@ export
 emptyMetaCtx : MetaCtx
 emptyMetaCtx = MkMetaCtx empty 0
 
-freshMeta : MetaCtx -> (MetaVar, MetaCtx)
-freshMeta ctx = do
+export
+newMeta : MetaCtx -> (MetaVar, MetaCtx)
+newMeta ctx = do
 	let curCount = ctx.counter
 	let newCtx = {counter $= S, map := insert curCount Unsolved ctx.map } ctx
 	(curCount, newCtx)

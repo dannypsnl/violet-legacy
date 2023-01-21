@@ -19,10 +19,11 @@ record CheckState where
 	topCtx : Ctx
 	topEnv : GlobalEnv
 	dataDefs : DataCtx
+	mctx : MetaCtx
 
 export
 checkState : Ctx -> CheckState
-checkState ctx = MkCheckState ctx [] []
+checkState ctx = MkCheckState ctx [] [] emptyMetaCtx
 
 export
 interface Has [Exception CheckError, State CheckState CheckState] e => Elab e where
@@ -31,6 +32,8 @@ interface Has [Exception CheckError, State CheckState CheckState] e => Elab e wh
 
 	updateEnv : Name -> Val -> App e ()
 	updateCtx : Name -> VTy -> App e ()
+
+	freshMeta : App e Tm
 
 	-- add inductive data type
 	addIndType : Name -> CtorSet -> App e ()
@@ -50,6 +53,12 @@ Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 	updateCtx x vty = do
 		state <- getState
 		putState $ { topCtx := extendCtx state.topCtx x vty } state
+
+	freshMeta = do
+		state <- getState
+		let (mvar, mctx) = newMeta state.mctx
+		putState $ { mctx := mctx } state
+		pure $ Meta mvar
 
 	addIndType dataName cs = do
 		state <- getState
@@ -90,7 +99,7 @@ mutual
 			handleDataCase : Tm -> DataCase -> App e (Name, List VTy)
 			handleDataCase returned_ty (C x tys) = do
 				state <- getState
-				let env = MkEnv state.topEnv []
+				let env = MkEnv state.topEnv [] state.mctx
 				tys <- for tys (elab env state.topCtx)
 				tys' <- for tys (runEval eval env)
 				t' <- runEval eval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
@@ -106,11 +115,11 @@ mutual
 				addIndType dataName !(for cases $ handleDataCase (Var dataName))
 			go (Def x a t) = do
 				state <- getState
-				let env = MkEnv state.topEnv []
+				let env = MkEnv state.topEnv [] state.mctx
 				a <- check env state.topCtx a VU
 				a' <- runEval eval env a
 
-				t <- check (MkEnv state.topEnv [(x, (VVar x))]) (extendCtx state.topCtx x a') t a'
+				t <- check (MkEnv state.topEnv [(x, (VVar x))] state.mctx) (extendCtx state.topCtx x a') t a'
 				t' <- runEval eval env t
 				updateEnv x t'
 				updateCtx x a'
@@ -143,7 +152,10 @@ mutual
 			t' <- runEval eval env t
 			(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
 			pure (Let x a t u, ty)
-		Hole x => ?freshMeta
+		Hole x => do
+			a <- runEval eval env !(freshMeta)
+			t <- freshMeta
+			pure (t, a)
 		SElim targets cases => do
 			tTys <- for targets (infer env ctx)
 			(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases

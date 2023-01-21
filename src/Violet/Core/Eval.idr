@@ -11,8 +11,10 @@ app env t' u with (t')
 	_ | (VCtor x spine) = pure $ VCtor x (spine ++ [u])
 	_ | t = pure $ VApp t u
 
-vMeta : MetaVar -> Either EvalError Val
-vMeta n = ?lookupMeta
+vMeta : MetaCtx -> MetaVar -> Either EvalError Val
+vMeta ctx m = case !(lookupMeta ctx m) of
+	Solved v => pure v
+	Unsolved => pure $ VMeta m
 
 mutual
 	export
@@ -21,10 +23,10 @@ mutual
 		Var x => lookupEnv x env
 		Apply t u => app env.global !(eval env t) !(eval env u)
 		U => pure VU
-		Lam x t => pure $ VLam x (\global, u => eval (extendEnv (MkEnv global env.local) x u) t)
+		Lam x t => pure $ VLam x (\global, u => eval (extendEnv (MkEnv global env.local env.mctx) x u) t)
 		Pi x a b => pure $ VPi x !(eval env a) (\u => eval (extendEnv env x u) b)
 		Let x a t u => eval (extendEnv env x !(eval env t)) u
-		Meta n => vMeta n
+		Meta n => vMeta env.mctx n
 		Elim ts cases => go !(for ts (eval env)) cases
 		where
 			go : List Val -> List ElimCase -> Either EvalError Val
@@ -68,6 +70,7 @@ quote env v = case v of
 	VU => pure U
 	VData x => pure $ Var x
 	VCtor x spine => pure $ foldl (\acc, s => acc `Apply` s) (Var x) !(for spine (quote env))
+	VMeta m => pure $ Meta m
 
 export
 nf : Env -> Tm -> Either EvalError Tm
