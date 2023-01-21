@@ -7,10 +7,6 @@ import Text.PrettyPrint.Prettyprinter.Symbols
 import Text.PrettyPrint.Prettyprinter.Render.Terminal
 import public Violet.Core.Common
 
-export
-MetaVar : Type
-MetaVar = Nat
-
 public export
 data Pat
 	-- var pattern

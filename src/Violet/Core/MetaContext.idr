@@ -1,6 +1,8 @@
 module Violet.Core.MetaContext
+import Control.App
 import Data.SortedMap
 import Violet.Core.Val
+import Violet.Core.Common
 
 export
 data MetaEntry = Solved Val | Unsolved
@@ -14,9 +16,8 @@ export
 emptyMetaCtx : MetaCtx
 emptyMetaCtx = MkMetaCtx empty 0
 
-freshMeta : State [MetaCtx MetaCtx] e => App e MetaVar
-freshMeta = do
-	ctx <- get MetaCtx
+freshMeta : MetaCtx -> (MetaVar, MetaCtx)
+freshMeta ctx = do
 	let curCount = ctx.counter
-	put $ {counter $= suc, map := insert curCount ctx.map } ctx
-	pure curCount
+	let newCtx = {counter $= S, map := insert curCount Unsolved ctx.map } ctx
+	(curCount, newCtx)

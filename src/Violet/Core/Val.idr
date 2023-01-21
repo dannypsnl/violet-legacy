@@ -41,10 +41,6 @@ record Env where
 	local : LocalEnv
 
 export
-emptyEnv : Env
-emptyEnv = MkEnv [] []
-
-export
 extendEnv : Env -> Name -> Val -> Env
 extendEnv env x v = { local := (x, v) :: env.local } env
 

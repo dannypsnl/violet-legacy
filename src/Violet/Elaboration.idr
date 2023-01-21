@@ -25,7 +25,7 @@ checkState : Ctx -> CheckState
 checkState ctx = MkCheckState ctx [] []
 
 export
-interface Has [Exception CheckError, State CheckState CheckState] e => Check e where
+interface Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 	getState : App e CheckState
 	putState : CheckState -> App e ()
 
@@ -40,7 +40,7 @@ interface Has [Exception CheckError, State CheckState CheckState] e => Check e w
 	report : CheckErrorKind -> App e a
 	addPos : Bounds -> App e a -> App e a
 export
-Has [Exception CheckError, State CheckState CheckState] e => Check e where
+Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 	getState = get CheckState
 	putState = put CheckState
 
@@ -70,20 +70,20 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
 			Just _ => throw ce)
 
 export
-runEval : Check es => (e -> a -> Either EvalError b) -> e -> a -> App es b
+runEval : Elab es => (e -> a -> Either EvalError b) -> e -> a -> App es b
 runEval f env a = do
 	Right b <- pure $ f env a
 		| Left e => report $ cast e
 	pure b
 
 mutual
-	elab : Check e => Env -> Ctx -> STm -> App e Tm
+	elab : Elab e => Env -> Ctx -> STm -> App e Tm
 	elab env ctx tm = do
 		(t, _) <- infer env ctx tm
 		pure t
 
 	export
-	checkModule : Check e => List Definition -> App e CheckState
+	checkModule : Elab e => List Definition -> App e CheckState
 	checkModule [] = getState
 	checkModule (d :: ds) = go d *> checkModule ds
 		where
@@ -116,7 +116,7 @@ mutual
 				updateCtx x a'
 
 	export
-	infer : Check e => Env -> Ctx -> STm -> App e (Tm, VTy)
+	infer : Elab e => Env -> Ctx -> STm -> App e (Tm, VTy)
 	infer env ctx tm = case tm of
 		SrcPos t => addPos t.bounds (infer env ctx t.val)
 		SVar x => case lookupCtx ctx x of
@@ -191,7 +191,7 @@ mutual
 				convTys err env [t] = pure t
 				convTys err env [] = report err
 
-	check : Check e => Env -> Ctx -> STm -> VTy -> App e Tm
+	check : Elab e => Env -> Ctx -> STm -> VTy -> App e Tm
 	check env ctx t a = go t a
 		where
 			go : STm -> VTy -> App e Tm
