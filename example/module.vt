@@ -4,8 +4,6 @@ data Nat
 | zero
 | suc Nat
 
-data SomethingElse
-
 def id {A : U} (x : A) : A => x
 
 def main : Nat =>

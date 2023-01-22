@@ -41,7 +41,7 @@ public export
 LocalEnv : Type
 LocalEnv = List (Name, Val)
 
-export
+public export
 record MetaCtx where
 	constructor MkMetaCtx
 	map : SortedMap MetaVar MetaEntry
@@ -57,10 +57,6 @@ newMeta ctx = do
 	let curCount = ctx.counter
 	let newCtx = {counter $= S, map := insert curCount Unsolved ctx.map } ctx
 	(curCount, newCtx)
-
-export
-solveMeta : MetaCtx -> MetaVar -> Val -> MetaCtx
-solveMeta ctx var val = { map := insert var (Solved val) ctx.map } ctx
 
 export
 lookupMeta : MetaCtx -> MetaVar -> Either EvalError MetaEntry
