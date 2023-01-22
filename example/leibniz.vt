@@ -1,10 +1,11 @@
 module Leibniz
 
-def Eq (A : U) (x y : A) : U =>
+def Eq {A : U} (x y : A) : U =>
 	(P : A -> U) -> P x -> P y
 
-def refl (A : U) (x : A) : Eq A x x =>
+def refl {A : U} (x : A) : Eq x x =>
+	-- TODO: should we insert a lambda here, so user can omit implicit lambda case by default?
 	λ _ Px => Px
 
-def sym (A : U) (x y : A) : Eq A x y -> Eq A y x =>
-	λ p => p (λ y => Eq A y x) (refl A x)
+def sym {A : U} (x y : A) : Eq x y -> Eq y x =>
+	λ p => p (λ y => Eq y x) (refl x)
