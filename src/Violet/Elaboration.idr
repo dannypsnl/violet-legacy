@@ -242,7 +242,7 @@ mutual
 				pure (Let x a t u)
 			go _ expected = do
 				(t', inferred) <- infer env ctx t
-				unify env inferred expected
+				unify env expected inferred
 				pure t'
 
 	ty_mismatch : Elab e => Env -> VTy -> VTy -> App e ()
