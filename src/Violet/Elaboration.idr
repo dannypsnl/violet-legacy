@@ -229,11 +229,11 @@ mutual
 		where
 			go : STm -> VTy -> App e Tm
 			go (SrcPos t) a = addPos t.bounds (go t.val a)
-			go (SLam x t) (VPi _ x' a b) = do
-				let x' = fresh env x'
-				case b (VVar x') of
-					Right u => Lam x <$> check (extendEnv env x (VVar x)) (extendCtx ctx x a) t u
-					Left err => report $ cast err
+			go (SLam x t) (VPi _ _ a b) = do
+				let x' = VVar $ fresh env x
+				Right u <- pure $ b x'
+					| Left err => report $ cast err
+				Lam x <$> check (extendEnv env x x') (extendCtx ctx x a) t u
 			go (SLet x a t u) _ = do
 				a <- check env ctx a VU
 				a' <- runEval env a
@@ -259,13 +259,13 @@ mutual
 		-- conversion
 		go VU VU = pure ()
 		go (VPi _ x a b) (VPi _ _ a' b') = do
-			let x' = fresh env x
-			Right l <- pure $ b (VVar x')
+			let x' = VVar $ fresh env x
+			Right l <- pure $ b x'
 				| Left e => report $ cast e
-			Right r <- pure $ b' (VVar x')
+			Right r <- pure $ b' x'
 				| Left e => report $ cast e
 			unify env a a'
-			unify (extendEnv env x' (VVar x')) l r
+			unify (extendEnv env x x') l r
 		go (VLam x t) (VLam _ t') = do
 			let x = fresh env x
 			Right l <- pure $ t env.global (VVar x)
