@@ -38,10 +38,25 @@ mutual
 		-- | zero => u1
 		-- | suc n => u2
 		--
-		-- elim trichotomy a b
-		-- | greater _ => u1
-		-- | less p | equals p => f p
-		| RElim (List Raw) (List (List (List1 Name), Raw))
+		-- elim n, m
+		-- | zero, m => m
+		-- | n, zero => n
+		-- | suc n, suc m => suc $ suc $ plus n m
+		--
+		-- or pattern example:
+		--
+		--   elim trichotomy a b
+		--   | greater _ => u1
+		--   | less p | equals p => f p
+		| RElim (List Raw) (List ElimCase)
+
+	public export
+	ElimCase : Type
+	ElimCase = (List Pat, Raw)
+
+	public export
+	Pat : Type
+	Pat = List1 Name
 
 	public export
 	RTy : Type

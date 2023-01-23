@@ -27,4 +27,17 @@ def NoB (b : Bool) : U => elim b
 | true => Nat
 | false => Bool
 
+data Weekday
+| monday
+| tuesday
+| wednesday
+| thursday
+| friday
+| saturday
+| sunday
+
+def weekend? (day : Weekday) : Bool => elim day
+| saturday | sunday => true
+| _ => false
+
 def main : NoB true => id $ plus (suc $ suc zero) (suc zero)

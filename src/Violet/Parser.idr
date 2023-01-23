@@ -103,21 +103,27 @@ mutual
 		u <- tm
 		pure $ RLet name a t u
 
-	patRule : Rule (List1 Name)
+	patRule : Rule Pat
 	patRule = some (match VTIdentifier)
-	caseRule : Rule (List (List1 Name), Raw)
-	caseRule = do
+	patsRule : Rule (List Pat)
+	patsRule = do
 		match VTVerticalLine
-		ps <- sepBy (match VTComma) patRule
+		sepBy (match VTComma) patRule
+	caseRule : Rule (List ElimCase)
+	caseRule = do
+		pss <- some patsRule
 		match VTLambdaArrow
-		(ps,) <$> tm
+		t <- tm
+		pure $ map (\ps => (ps, t)) $ forget pss
 	-- elim n
 	-- | C x => x
 	-- | z => z
 	tmElim : Rule Raw
 	tmElim = do
 		match VTElim
-		pure $ RElim !(sepBy (match VTComma) tm) !(many caseRule)
+		targets <- sepBy (match VTComma) tm
+		cases <- many caseRule
+		pure $ RElim targets $ foldl (\c, cs => cs ++ c) [] cases
 
 ttmData : Rule TopLevelRaw
 ttmData = do
@@ -144,11 +150,8 @@ ttmDef = do
 	a <- tm
 	match VTLambdaArrow
 	t <- tm
-	pure $ TDef name (transform raw_tele) a t
+	pure $ TDef name (foldl (\x, tele => x ++ tele) [] raw_tele) a t
 	where
-		transform : List (List (Mode, Name, RTy)) -> RTelescope
-		transform nns = foldl (\x, scm => x ++ scm) [] nns
-
 		bindGroup : Mode -> Rule (List (Mode, Name, RTy))
 		bindGroup mode = do
 			ns <- some $ match VTIdentifier
