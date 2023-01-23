@@ -4,9 +4,9 @@ import System
 import Control.App
 import Control.App.Console
 import Data.List
+import Data.SortedMap
 import Data.String
 import Text.Bounded
-import Violet.Core.Conversion
 import Violet.Core.Syntax
 import public Violet.Core.Term
 import public Violet.Core.Eval
@@ -19,18 +19,21 @@ record CheckState where
 	topCtx : Ctx
 	topEnv : GlobalEnv
 	dataDefs : DataCtx
+	mctx : MetaCtx
 
 export
 checkState : Ctx -> CheckState
-checkState ctx = MkCheckState ctx [] []
+checkState ctx = MkCheckState ctx [] [] emptyMetaCtx
 
 export
-interface Has [Exception CheckError, State CheckState CheckState] e => Check e where
+interface Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 	getState : App e CheckState
 	putState : CheckState -> App e ()
 
 	updateEnv : Name -> Val -> App e ()
 	updateCtx : Name -> VTy -> App e ()
+
+	freshMeta : App e Tm
 
 	-- add inductive data type
 	addIndType : Name -> CtorSet -> App e ()
@@ -40,7 +43,7 @@ interface Has [Exception CheckError, State CheckState CheckState] e => Check e w
 	report : CheckErrorKind -> App e a
 	addPos : Bounds -> App e a -> App e a
 export
-Has [Exception CheckError, State CheckState CheckState] e => Check e where
+Has [Exception CheckError, State CheckState CheckState] e => Elab e where
 	getState = get CheckState
 	putState = put CheckState
 
@@ -50,6 +53,12 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
 	updateCtx x vty = do
 		state <- getState
 		putState $ { topCtx := extendCtx state.topCtx x vty } state
+
+	freshMeta = do
+		state <- getState
+		let (mvar, mctx) = newMeta state.mctx
+		putState $ { mctx := mctx } state
+		pure $ Meta mvar
 
 	addIndType dataName cs = do
 		state <- getState
@@ -70,20 +79,29 @@ Has [Exception CheckError, State CheckState CheckState] e => Check e where
 			Just _ => throw ce)
 
 export
-runEval : Check es => (e -> a -> Either EvalError b) -> e -> a -> App es b
-runEval f env a = do
-	Right b <- pure $ f env a
+runEval : Elab es => Env -> Tm -> App es Val
+runEval env a = do
+	state <- getState
+	Right b <- pure $ eval state.mctx env a
+		| Left e => report $ cast e
+	pure b
+
+export
+runQuote : Elab es => Env -> Val -> App es Tm
+runQuote env a = do
+	state <- getState
+	Right b <- pure $ quote state.mctx env a
 		| Left e => report $ cast e
 	pure b
 
 mutual
-	elab : Check e => Env -> Ctx -> STm -> App e Tm
+	elab : Elab e => Env -> Ctx -> STm -> App e Tm
 	elab env ctx tm = do
 		(t, _) <- infer env ctx tm
 		pure t
 
 	export
-	checkModule : Check e => List Definition -> App e CheckState
+	checkModule : Elab e => List Definition -> App e CheckState
 	checkModule [] = getState
 	checkModule (d :: ds) = go d *> checkModule ds
 		where
@@ -92,8 +110,8 @@ mutual
 				state <- getState
 				let env = MkEnv state.topEnv []
 				tys <- for tys (elab env state.topCtx)
-				tys' <- for tys (runEval eval env)
-				t' <- runEval eval env (foldr (\t, s => (Pi "_" t s)) returned_ty tys)
+				tys' <- for tys (runEval env)
+				t' <- runEval env (foldr (\t, s => (Pi Explicit "_" t s)) returned_ty tys)
 				updateCtx x t'
 				updateEnv x (VCtor x [])
 				pure (x, tys')
@@ -108,15 +126,15 @@ mutual
 				state <- getState
 				let env = MkEnv state.topEnv []
 				a <- check env state.topCtx a VU
-				a' <- runEval eval env a
+				a' <- runEval env a
 
 				t <- check (MkEnv state.topEnv [(x, (VVar x))]) (extendCtx state.topCtx x a') t a'
-				t' <- runEval eval env t
+				t' <- runEval env t
 				updateEnv x t'
 				updateCtx x a'
 
 	export
-	infer : Check e => Env -> Ctx -> STm -> App e (Tm, VTy)
+	infer : Elab e => Env -> Ctx -> STm -> App e (Tm, VTy)
 	infer env ctx tm = case tm of
 		SrcPos t => addPos t.bounds (infer env ctx t.val)
 		SVar x => case lookupCtx ctx x of
@@ -124,30 +142,56 @@ mutual
 			Just a => pure (Var x, a)
 		SU => pure (U, VU)
 		SApply t u => do
-			(t, VPi _ a b) <- infer env ctx t
-				| (_, t') => report $ BadApp !(runEval quote env t')
-			u <- check env ctx u a
-			u' <- runEval eval env u
-			Right b' <- pure $ b u'
-				| Left e => report $ cast e
-			pure (Apply t u, b')
+			(t, VPi mode x a b) <- infer env ctx t
+				| (_, bad_ty) => report $ BadApp !(runQuote env bad_ty)
+			case mode of
+				Explicit => do
+					-- check u : a
+					u <- check env ctx u a
+					u' <- runEval env u
+					Right b' <- pure $ b u'
+						| Left e => report $ cast e
+					pure (Apply t u, b')
+				Implicit => do
+					-- insert a hole
+					-- and check it has type `a`
+					m <- check env ctx (Hole (fresh env x)) a
+					m' <- runEval env m
+					Right (VPi mode x a b') <- pure $ b m'
+						| Right bad_ty => report $ BadApp !(runQuote env bad_ty)
+						| Left e => report $ cast e
+					u <- check env ctx u a
+					u' <- runEval env u
+					Right b'' <- pure $ b' u'
+						| Left e => report $ cast e
+					pure (Apply (Apply t m) u, b'')
 		SLam {} => report InferLam
-		SPi x a b => do
+		SPi mode x a b => do
 			a <- check env ctx a VU
-			b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval eval env a)) b VU
-			pure (Pi x a b, VU)
+			b <- check (extendEnv env x (VVar x)) (extendCtx ctx x !(runEval env a)) b VU
+			pure (Pi mode x a b, VU)
 		SLet x a t u => do
 			a <- check env ctx a VU
-			a' <- runEval eval env a
+			a' <- runEval env a
 			t <- check env ctx t a'
-			t' <- runEval eval env t
+			t' <- runEval env t
 			(u, ty) <- infer (extendEnv env x t') (extendCtx ctx x a') u
 			pure (Let x a t u, ty)
+		Hole x => do
+			a <- runEval env !(freshMeta)
+			t <- freshMeta
+			pure (t, a)
 		SElim targets cases => do
 			tTys <- for targets (infer env ctx)
 			(cases', rhs_tys) <- foldlM (elabCase (map snd tTys)) ([], []) cases
 			let tm = Elim (map fst tTys) cases'
-			pure (tm, !(convTys (ElimInfer tm) env rhs_tys))
+			(ty :: tys) <- pure rhs_tys
+				| [] => report $ ElimInfer tm
+			ty <- foldlM (\a, b => do
+				unify env a b
+				-- report $ TypeMismatch !(runQuote env a) !(runQuote env b)
+				pure b) ty tys
+			pure (tm, ty)
 			where
 				elabPattern : Name -> Name -> List Name -> Maybe (List VTy) -> App e (Pat, List (Name, VTy))
 				-- when a pattern seems like a ctor, but it is not in constructor set, it's a variable pattern
@@ -172,7 +216,7 @@ mutual
 				checkCase env ctx ([]) ([], rhs) = do
 					(rhs, ty) <- infer env ctx rhs
 					pure (ECase [] rhs, ty)
-				checkCase env ctx ts _ = report $ BadElimType !(for ts $ runEval quote env)
+				checkCase env ctx ts _ = report $ BadElimType !(for ts $ runQuote env)
 
 				elabCase : (List VTy) -> (List ElimCase, List VTy) -> SElimCase -> App e (List ElimCase, List VTy)
 				elabCase ttys (cases, tys) elim_case = do
@@ -180,36 +224,80 @@ mutual
 					(c, ty) <- checkCase env ctx ttys elim_case
 					pure (c :: cases, ty :: tys)
 
-				convTys : CheckErrorKind -> Env -> List VTy -> App e VTy
-				convTys err env (t :: t' :: ts) = do
-					Right covertable <- pure $ conv env t t'
-						| Left err => report $ cast err
-					if covertable
-						then pure t
-						else report $ TypeMismatch !(runEval quote env t) !(runEval quote env t')
-				convTys err env [t] = pure t
-				convTys err env [] = report err
-
-	check : Check e => Env -> Ctx -> STm -> VTy -> App e Tm
+	check : Elab e => Env -> Ctx -> STm -> VTy -> App e Tm
 	check env ctx t a = go t a
 		where
 			go : STm -> VTy -> App e Tm
 			go (SrcPos t) a = addPos t.bounds (go t.val a)
-			go (SLam x t) (VPi x' a b) = do
-				let x' = fresh env x'
-				case b (VVar x') of
-					Right u => Lam x <$> check (extendEnv env x (VVar x)) (extendCtx ctx x a) t u
-					Left err => report $ cast err
+			go (SLam x t) (VPi _ _ a b) = do
+				let x' = VVar $ fresh env x
+				Right u <- pure $ b x'
+					| Left err => report $ cast err
+				Lam x <$> check (extendEnv env x x') (extendCtx ctx x a) t u
 			go (SLet x a t u) _ = do
 				a <- check env ctx a VU
-				a' <- runEval eval env a
+				a' <- runEval env a
 				t <- check env ctx t a'
-				u <- check (extendEnv env x !(runEval eval env t)) (extendCtx ctx x a') u a'
+				u <- check (extendEnv env x !(runEval env t)) (extendCtx ctx x a') u a'
 				pure (Let x a t u)
 			go _ expected = do
 				(t', inferred) <- infer env ctx t
-				Right convertable <- pure $ conv env inferred expected
-					| Left err => report $ cast err
-				if convertable
-					then pure t'
-					else report $ TypeMismatch !(runEval quote env expected) !(runEval quote env inferred)
+				unify env expected inferred
+				pure t'
+
+	ty_mismatch : Elab e => Env -> VTy -> VTy -> App e ()
+	ty_mismatch env t u = report $ TypeMismatch !(runQuote env t) !(runQuote env u)
+
+	unify : Elab e => Env -> VTy -> VTy -> App e ()
+	unify env t u = go t u
+	where
+		go : Val -> Val -> App e ()
+		-- unification
+		-- go (VMeta m) (VMeta m') = if m == m' then pure () else ty_mismatch env t u
+		go (VMeta m) u = solve env m u
+		go t (VMeta m) = solve env m t
+		-- conversion
+		go VU VU = pure ()
+		go (VPi _ x a b) (VPi _ _ a' b') = do
+			let x' = VVar $ fresh env x
+			Right l <- pure $ b x'
+				| Left e => report $ cast e
+			Right r <- pure $ b' x'
+				| Left e => report $ cast e
+			unify env a a'
+			unify (extendEnv env x x') l r
+		go (VLam x t) (VLam _ t') = do
+			let x = fresh env x
+			Right l <- pure $ t env.global (VVar x)
+				| Left e => report $ cast e
+			Right r <- pure $ t' env.global (VVar x)
+				| Left e => report $ cast e
+			unify (extendEnv env x (VVar x)) l r
+		-- checking eta conversion for Lam
+		go (VLam x t) u = do
+			let x = fresh env x
+			Right l <- pure $ t env.global (VVar x)
+				| Left e => report $ cast e
+			unify (extendEnv env x (VVar x)) l (VApp u (VVar x))
+		go u (VLam x t) = do
+			let x = fresh env x
+			Right l <- pure $ t env.global (VVar x)
+				| Left e => report $ cast e
+			unify (extendEnv env x (VVar x)) (VApp u (VVar x)) l
+		go (VVar x) (VVar x') = if x == x' then pure () else ty_mismatch env t u
+		go (VData x) (VData x') = if x == x' then pure () else ty_mismatch env t u
+		go (VApp t u) (VApp t' u') = do
+			unify env t t'
+			unify env u u'
+		go _ _ = ty_mismatch env t u
+
+	solve : Elab e => Env -> MetaVar -> Val -> App e ()
+	solve env mvar val = do
+		state <- getState
+		case lookup mvar (state.mctx.map) of
+			Just (Solved v) => unify env val v
+			Just Unsolved => do
+				let mctx' : MetaCtx = { map := insert mvar (Solved val) state.mctx.map } state.mctx
+				putState $ { mctx := mctx' } state
+			-- nothing case is basically impossible, unless compiler has bug
+			Nothing => ty_mismatch env (VMeta mvar) val

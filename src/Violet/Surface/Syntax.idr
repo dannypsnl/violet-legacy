@@ -8,7 +8,7 @@ import public Violet.Core.Syntax
 mutual
 	public export
 	RTelescope : Type
-	RTelescope = List (Name, RTy)
+	RTelescope = List (Mode, Name, RTy)
 
 	||| The Raw top-level definition of violet
 	public export
@@ -31,7 +31,8 @@ mutual
 		| RLam Name Raw           -- λ x => t
 		| RApp Raw Raw            -- t u
 		| RU                      -- U
-		| RPi Name RTy RTy        -- (x : a) → b
+		| RPi Mode Name RTy RTy   -- (x : a) → b | {x : a} → b
+		| RHole Name              -- ?x
 		| RLet Name RTy Raw Raw   -- let x : a = t; u
 		-- elim n
 		-- | zero => u1
@@ -59,7 +60,8 @@ Cast Raw STm where
 	cast (RLam x t) = SLam x (cast t)
 	cast (RApp t u) = SApply (cast t) (cast u)
 	cast RU = SU
-	cast (RPi x a b) = SPi x (cast a) (cast b)
+	cast (RPi mode x a b) = SPi mode x (cast a) (cast b)
+	cast (RHole x) = Hole x
 	cast (RLet x a t u) = SLet x (cast a) (cast t) (cast u)
 	cast (RElim rs cases) = SElim (map cast rs) $ map (bimap (map (\x => x)) cast) cases
 
@@ -69,11 +71,11 @@ Cast TopLevelRaw Definition where
 	cast (TDef x tele a t) = Def x (toPi tele $ cast a) (toLam tele $ cast t)
 	where
 		toPi : RTelescope -> STm -> STm
-		toPi ((x, ty) :: tele) t = SPi x (cast ty) (toPi tele t)
+		toPi ((mode, x, ty) :: tele) t = SPi mode x (cast ty) (toPi tele t)
 		toPi [] t = t
 
 		toLam : RTelescope -> STm -> STm
-		toLam ((x, _) :: tele) t = SLam x (toLam tele t)
+		toLam ((mode, x, _) :: tele) t = SLam x (toLam tele t)
 		toLam [] t = t
 	cast (TData x _ cases) = Data x (map toCase cases)
 		where

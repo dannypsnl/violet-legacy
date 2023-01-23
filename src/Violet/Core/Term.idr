@@ -22,9 +22,10 @@ mutual
 		| Lam Name Tm          -- λ x => t
 		| Apply Tm Tm          -- t u
 		| U                    -- U
-		| Pi Name Ty Ty        -- (x : a) → b
+		| Pi Mode Name Ty Ty   -- (x : a) → b
 		| Let Name Ty Tm Tm    -- let x : a = t; u
 		| Elim (List Tm) (List ElimCase)
+		| Meta MetaVar
 
 	public export
 	Ty : Type
@@ -46,14 +47,16 @@ Pretty Tm where
 		Apply {} => parens $ pretty u
 		_        => pretty u
 	pretty U = "U"
-	pretty (Pi x a b) =
+	pretty (Pi mode x a b) =
 		(if x == "_"
 			then pretty a
-			else hsep [ hcat ["(", pretty x], ":", hcat [pretty a, ")"] ])
+			else case mode of
+				Implicit => "{" <+> pretty x <++> ":" <++> pretty a <+> "}"
+				Explicit => "(" <+> pretty x <++> ":" <++> pretty a <+> ")")
 		<++> "→"
 		<++> pretty b
 	pretty (Let x a t u) =
-		hsep [ "let", pretty x, ":", pretty a, "=", hcat [pretty t, ";"] ]
+		hsep [ "let", pretty x, ":", pretty a, "=", pretty t <+> ";" ]
 		<++> line
 		<++> pretty u
 	pretty (Elim tm cases) =
@@ -63,3 +66,4 @@ Pretty Tm where
 		where
 			prettyCase : ElimCase -> Doc ann
 			prettyCase (ECase ps t) = pipe <++> (encloseSep emptyDoc emptyDoc comma $ map pretty ps) <++> "=>" <++> pretty t
+	pretty (Meta n) = "?" <+> pretty n

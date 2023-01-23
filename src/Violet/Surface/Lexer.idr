@@ -22,6 +22,8 @@ data VTokenKind
 	| VTSemicolon         -- ;
 	| VTOpenP             -- (
 	| VTCloseP            -- )
+	| VTOpenB             -- {
+	| VTCloseB            -- }
 	| VTArrow             -- → or ->
 	| VTLambda            -- λ or \
 	| VTLambdaArrow       -- =>
@@ -29,6 +31,7 @@ data VTokenKind
 	| VTIgnore            -- single line comment or whitespace
 	| VTModule            -- module
 	| VTComma             -- ,
+	| VTQuestionMark      -- ?
 
 export
 Eq VTokenKind where
@@ -51,6 +54,9 @@ Eq VTokenKind where
 	(==) VTLambdaArrow VTLambdaArrow = True
 	(==) VTDollar VTDollar = True
 	(==) VTModule VTModule = True
+	(==) VTQuestionMark VTQuestionMark = True
+	(==) VTOpenB VTOpenB = True
+	(==) VTCloseB VTCloseB = True
 	(==) _ _ = False
 
 export
@@ -73,6 +79,9 @@ Show VTokenKind where
 	show VTLambda       = "λ"
 	show VTLambdaArrow  = "=>"
 	show VTDollar       = "$"
+	show VTQuestionMark = "?"
+	show VTOpenB        = "{"
+	show VTCloseB       = "}"
 	show VTIgnore       = "<ignore>"
 	show VTModule       = "module"
 
@@ -109,6 +118,9 @@ TokenKind VTokenKind where
 	tokValue VTIgnore _ = ()
 	tokValue VTModule _ = ()
 	tokValue VTComma _ = ()
+	tokValue VTQuestionMark _ = ()
+	tokValue VTOpenB _ = ()
+	tokValue VTCloseB _ = ()
 
 ||| An identifier starts from alphabet
 ||| following with alphabet, number, and the below set
@@ -122,9 +134,9 @@ isStartChar x = isAlpha x || (x `contains` fromList ['-', '_', '?', '!'])
 identifier : Lexer
 identifier = (pred isStartChar) <+> many (pred isIdChar)
 
--- 只要還沒碰到換行就是單行的註解內容
+-- 換行前是單行註解的內容
 comment : Lexer
-comment = is '-' <+> is '-' <+> many (isNot '\n')
+comment = exact "--" <+> many (isNot '\n')
 
 keywords : List (String, VTokenKind)
 keywords = [
@@ -141,6 +153,9 @@ violetTokenMap : TokenMap VToken
 violetTokenMap = toTokenMap [
 		(spaces, VTIgnore),
 		(comment, VTIgnore),
+		(is '{', VTOpenB),
+		(is '}', VTCloseB),
+		(is '?', VTQuestionMark),
 		(exact "->" <|> is '→', VTArrow),
 		(is 'λ' <|> is '\\', VTLambda),
 		(exact "=>" <|> is '⇒', VTLambdaArrow),

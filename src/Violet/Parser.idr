@@ -24,12 +24,19 @@ tmU = match VTUniverse $> RU
 tmVar : Rule Raw
 tmVar = RVar <$> match VTIdentifier
 
+tmHole : Rule Raw
+tmHole = do
+	match VTQuestionMark
+	RHole <$> match VTIdentifier
+
 parens : Rule a -> Rule a
 parens p = match VTOpenP *> p <* match VTCloseP
+braces : Rule a -> Rule a
+braces p = match VTOpenB *> p <* match VTCloseB
 
 mutual
 	atom : Rule Raw
-	atom = tmU <|> tmVar <|> (parens tm)
+	atom = tmHole <|> tmU <|> tmVar <|> (parens tm)
 
 	spine : Rule Raw
 	spine = foldl1 RApp <$> some atom
@@ -44,12 +51,12 @@ mutual
 		[ Infix (RApp <$ match VTDollar) AssocRight ],
 		-- To be convience, thus, arrow is the lowsest symbol
 		-- For example, user might write `List a -> List b`, here `List a` is an application
-		[ Infix (RPi "_" <$ match VTArrow) AssocRight ]
+		[ Infix (RPi Explicit "_" <$ match VTArrow) AssocRight ]
 	] (spine <|> atom)
 
 	tm : Rule Raw
 	tm = do
-		r <- bounds (tmLet <|> tmElim <|> tmLam <|> tmPi <|> expr)
+		r <- bounds (tmLet <|> tmElim <|> tmLam <|> tmImplicitPi <|> tmPi <|> expr)
 		pure $ RSrcPos r
 
 	-- λ A x => x
@@ -61,7 +68,7 @@ mutual
 		body <- tm
 		pure $ foldr RLam body names
 
-	-- (A : U) -> A -> A
+	-- (a : A) -> b
 	tmPi : Rule Raw
 	tmPi = do
 		match VTOpenP
@@ -70,7 +77,18 @@ mutual
 		a <- tm
 		match VTCloseP
 		match VTArrow
-		RPi name a <$> tm
+		RPi Explicit name a <$> tm
+
+	-- {a : A} -> b
+	tmImplicitPi : Rule Raw
+	tmImplicitPi = do
+		match VTOpenB
+		name <- match VTIdentifier
+		match VTColon
+		a <- tm
+		match VTCloseB
+		match VTArrow
+		RPi Implicit name a <$> tm
 
 	-- let x : a = t; u
 	tmLet : Rule Raw
@@ -121,26 +139,22 @@ ttmDef : Rule TopLevelRaw
 ttmDef = do
 	match VTDef
 	name <- match VTIdentifier
-	raw_tele <- many $ parens binding
+	raw_tele <- many $ try (parens (bindGroup Explicit)) <|> (braces (bindGroup Implicit))
 	match VTColon
 	a <- tm
 	match VTLambdaArrow
 	t <- tm
-	pure $ TDef name
-	  (transform (map (\(ns, ty) => (forget ns, ty)) raw_tele))
-		a t
+	pure $ TDef name (transform raw_tele) a t
 	where
-		transform : List (List Name, RTy) -> List (Name, RTy)
-		transform [] = []
-		transform (([], ty) :: rest) = transform rest
-		transform ((n :: ns, ty) :: rest) = (n, ty) :: transform ((ns, ty) :: rest)
+		transform : List (List (Mode, Name, RTy)) -> RTelescope
+		transform nns = foldl (\x, scm => x ++ scm) [] nns
 
-		binding : Rule (List1 Name, RTy)
-		binding = do
-			names <- some $ match VTIdentifier
+		bindGroup : Mode -> Rule (List (Mode, Name, RTy))
+		bindGroup mode = do
+			ns <- some $ match VTIdentifier
 			match VTColon
 			ty <- tm
-			pure (names, ty)
+			pure $ map (\n => (mode, n, ty)) $ forget ns
 
 ttm : Rule TopLevelRaw
 ttm = TSrcPos <$> bounds (ttmData <|> ttmDef)

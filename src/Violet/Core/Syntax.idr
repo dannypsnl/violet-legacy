@@ -15,7 +15,8 @@ mutual
 		| SLam Name STm            -- λ x => t
 		| SApply STm STm           -- t u
 		| SU                       -- U
-		| SPi Name STy STy         -- (x : a) → b
+		| SPi Mode Name STy STy    -- (x : a) → b | {x : a} → b
+		| Hole Name                -- ?x
 		| SLet Name STy STm STm    -- let x : a = t; u
 		| SElim (List STm) (List SElimCase)
 

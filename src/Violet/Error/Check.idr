@@ -62,7 +62,7 @@ prettyCheckError : CheckError -> Doc AnsiStyle
 prettyCheckError ce = case ce.bounds of
 	Nothing => prettyCheckErrorKind ce.errKind
 	Just bounds =>
-		hcat [pretty ce.filename, ":", pretty (bounds.startLine+1), ":", pretty bounds.startCol, ":"]
+		pretty ce.filename <+> ":" <+> pretty (bounds.startLine+1) <+> ":" <+> pretty bounds.startCol <+> ":"
 		<++> line
 		<++> line
 		<++> getCode ce.source (cast bounds.startLine) bounds.endLine
