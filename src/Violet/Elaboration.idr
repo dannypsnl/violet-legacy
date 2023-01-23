@@ -1,105 +1,11 @@
 module Violet.Elaboration
-
-import System
 import Control.App
-import Control.App.Console
-import Data.List
 import Data.SortedMap
-import Data.String
-import Text.Bounded
 import Violet.Core.Syntax
-import public Violet.Core.Term
-import public Violet.Core.Eval
-import Violet.Core.DataType
-import public Violet.Error.Check
-
-public export
-record CheckState where
-	constructor MkCheckState
-	topCtx : Ctx
-	topEnv : GlobalEnv
-	dataDefs : DataCtx
-	mctx : MetaCtx
-
-export
-checkState : Ctx -> CheckState
-checkState ctx = MkCheckState ctx [] [] emptyMetaCtx
-
-export
-interface Has [Exception CheckError, State CheckState CheckState] e => Elab e where
-	getState : App e CheckState
-	putState : CheckState -> App e ()
-
-	updateEnv : Name -> Val -> App e ()
-	updateCtx : Name -> VTy -> App e ()
-
-	freshMeta : App e Tm
-
-	-- add inductive data type
-	addIndType : Name -> CtorSet -> App e ()
-	-- find constructor set for data type
-	findCtorSet : Name -> App e CtorSet
-
-	report : CheckErrorKind -> App e a
-	addPos : Bounds -> App e a -> App e a
-export
-Has [Exception CheckError, State CheckState CheckState] e => Elab e where
-	getState = get CheckState
-	putState = put CheckState
-
-	updateEnv x v = do
-		state <- getState
-		putState $ { topEnv := (x, v) :: state.topEnv } state
-	updateCtx x vty = do
-		state <- getState
-		putState $ { topCtx := extendCtx state.topCtx x vty } state
-
-	freshMeta = do
-		state <- getState
-		let (mvar, mctx) = newMeta state.mctx
-		putState $ { mctx := mctx } state
-		pure $ Meta mvar
-
-	addIndType dataName cs = do
-		state <- getState
-		putState $ { dataDefs := (dataName, cs) :: state.dataDefs } state
-	findCtorSet dataName = do
-		state <- getState
-		Just cs <- pure $ lookup dataName state.dataDefs
-			| Nothing => report $ NotADataType dataName
-		pure cs
-
-	report err = do
-		state <- get CheckState
-		let ctx = state.topCtx
-		throw $ MkCheckError ctx.filename ctx.source Nothing err
-	addPos bounds app = catch app
-		(\ce => case ce.bounds of
-			Nothing => let err : CheckError = {bounds := Just bounds} ce in throw err
-			Just _ => throw ce)
-
-export
-runEval : Elab es => Env -> Tm -> App es Val
-runEval env a = do
-	state <- getState
-	Right b <- pure $ eval state.mctx env a
-		| Left e => report $ cast e
-	pure b
-
-export
-runQuote : Elab es => Env -> Val -> App es Tm
-runQuote env a = do
-	state <- getState
-	Right b <- pure $ quote state.mctx env a
-		| Left e => report $ cast e
-	pure b
+import public Violet.Core.Elab
+import Violet.Unification
 
 mutual
-	elab : Elab e => Env -> Ctx -> STm -> App e Tm
-	elab env ctx tm = do
-		(t, _) <- infer env ctx tm
-		pure t
-
 	export
 	checkModule : Elab e => List Definition -> App e CheckState
 	checkModule [] = getState
@@ -109,7 +15,7 @@ mutual
 			handleDataCase returned_ty (C x tys) = do
 				state <- getState
 				let env = MkEnv state.topEnv []
-				tys <- for tys (elab env state.topCtx)
+				tys <- for tys (\stm => do (v, _) <- infer env state.topCtx stm; pure v)
 				tys' <- for tys (runEval env)
 				t' <- runEval env (foldr (\t, s => (Pi Explicit "_" t s)) returned_ty tys)
 				updateCtx x t'
@@ -244,60 +150,3 @@ mutual
 				(t', inferred) <- infer env ctx t
 				unify env expected inferred
 				pure t'
-
-	ty_mismatch : Elab e => Env -> VTy -> VTy -> App e ()
-	ty_mismatch env t u = report $ TypeMismatch !(runQuote env t) !(runQuote env u)
-
-	unify : Elab e => Env -> VTy -> VTy -> App e ()
-	unify env t u = go t u
-	where
-		go : Val -> Val -> App e ()
-		-- unification
-		-- go (VMeta m) (VMeta m') = if m == m' then pure () else ty_mismatch env t u
-		go (VMeta m) u = solve env m u
-		go t (VMeta m) = solve env m t
-		-- conversion
-		go VU VU = pure ()
-		go (VPi _ x a b) (VPi _ _ a' b') = do
-			let x' = VVar $ fresh env x
-			Right l <- pure $ b x'
-				| Left e => report $ cast e
-			Right r <- pure $ b' x'
-				| Left e => report $ cast e
-			unify env a a'
-			unify (extendEnv env x x') l r
-		go (VLam x t) (VLam _ t') = do
-			let x = fresh env x
-			Right l <- pure $ t env.global (VVar x)
-				| Left e => report $ cast e
-			Right r <- pure $ t' env.global (VVar x)
-				| Left e => report $ cast e
-			unify (extendEnv env x (VVar x)) l r
-		-- checking eta conversion for Lam
-		go (VLam x t) u = do
-			let x = fresh env x
-			Right l <- pure $ t env.global (VVar x)
-				| Left e => report $ cast e
-			unify (extendEnv env x (VVar x)) l (VApp u (VVar x))
-		go u (VLam x t) = do
-			let x = fresh env x
-			Right l <- pure $ t env.global (VVar x)
-				| Left e => report $ cast e
-			unify (extendEnv env x (VVar x)) (VApp u (VVar x)) l
-		go (VVar x) (VVar x') = if x == x' then pure () else ty_mismatch env t u
-		go (VData x) (VData x') = if x == x' then pure () else ty_mismatch env t u
-		go (VApp t u) (VApp t' u') = do
-			unify env t t'
-			unify env u u'
-		go _ _ = ty_mismatch env t u
-
-	solve : Elab e => Env -> MetaVar -> Val -> App e ()
-	solve env mvar val = do
-		state <- getState
-		case lookup mvar (state.mctx.map) of
-			Just (Solved v) => unify env val v
-			Just Unsolved => do
-				let mctx' : MetaCtx = { map := insert mvar (Solved val) state.mctx.map } state.mctx
-				putState $ { mctx := mctx' } state
-			-- nothing case is basically impossible, unless compiler has bug
-			Nothing => ty_mismatch env (VMeta mvar) val
