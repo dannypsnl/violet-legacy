@@ -56,7 +56,7 @@ Pretty Tm where
 		<++> "→"
 		<++> pretty b
 	pretty (Let x a t u) =
-		hsep [ "let", pretty x, ":", pretty a, "=", hcat [pretty t, ";"] ]
+		hsep [ "let", pretty x, ":", pretty a, "=", pretty t <+> ";" ]
 		<++> line
 		<++> pretty u
 	pretty (Elim tm cases) =
@@ -66,4 +66,4 @@ Pretty Tm where
 		where
 			prettyCase : ElimCase -> Doc ann
 			prettyCase (ECase ps t) = pipe <++> (encloseSep emptyDoc emptyDoc comma $ map pretty ps) <++> "=>" <++> pretty t
-	pretty (Meta n) = hcat ["?", pretty n]
+	pretty (Meta n) = "?" <+> pretty n
