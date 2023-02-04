@@ -166,13 +166,20 @@ export
 ruleTm : Rule Raw
 ruleTm = tm
 
+ruleModuleImport : Rule ModuleImportStmt
+ruleModuleImport = do
+  match VTImport
+  name <- match VTIdentifier
+  pure $ MkModuleImportStat name
+
 export
 ruleModule : Rule ModuleRaw
 ruleModule = do
-	match VTModule
-	name <- match VTIdentifier
-	bindings <- many ttm
-	pure $ MkModuleRaw (MkModuleInfoRaw name) bindings
+  match VTModule
+  name <- match VTIdentifier
+  imports <- many ruleModuleImport
+  bindings <- many ttm
+  pure $ MkModuleRaw (MkModuleInfoRaw name imports) bindings
 
 export
 parseViolet : Rule a -> String -> Either PError a
