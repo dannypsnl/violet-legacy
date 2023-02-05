@@ -14,15 +14,22 @@ import Violet.Parser
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
 
-parseMod : HasErr PError e => String -> App e (List Definition)
+parseMod : HasErr PError e => String -> App e ModuleRaw
 parseMod source = do
-	Right (MkModuleRaw _ tops) <- pure $ parseViolet ruleModule source
-		| Left err => throw err
-	pure $ map cast tops
-checkMod : Has [PrimIO] e => String -> String -> List Definition -> App e CheckState
-checkMod filename source defs = do
+  Right raw <- pure $ parseViolet ruleModule source
+    | Left err => throw err
+  pure raw
+
+checkMod : Has [PrimIO] e => String -> String -> ModuleRaw -> App e CheckState
+checkMod filename source raw = do
 	let ctx = (ctxFromFile filename source)
-	new (checkState ctx) $ checkModule defs `handleErr` putErr prettyCheckError
+	new (checkState ctx) $ checkModule (map cast raw.tops) `handleErr` putErr prettyCheckError
+
+loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
+loadModuleFile filename = do
+	source <- readFile filename `handleErr` putErr prettyIOError
+	raw <- parseMod source `handleErr` putErr prettyParsingError
+	checkMod filename source raw
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
@@ -56,15 +63,9 @@ replLoop = do
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
-entry ["check", filename] = do
-	source <- readFile filename `handleErr` putErr prettyIOError
-	defs <- parseMod source `handleErr` putErr prettyParsingError
-	checkMod filename source defs >>= putCtx
+entry ["check", filename] = loadModuleFile filename >>= putCtx
 -- `violet ./sample.vt` will load `sample` into REPL
-entry [filename] = do
-	source <- readFile filename `handleErr` putErr prettyIOError
-	defs <- parseMod source `handleErr` putErr prettyParsingError
-	checkMod filename source defs >>= \state => new state $ do replLoop
+entry [filename] = loadModuleFile filename >>= \state => new state $ do replLoop
 entry xs = primIO $ putDoc $ hsep [
 		pretty "unknown command",
 		dquotes $ hsep $ map pretty xs

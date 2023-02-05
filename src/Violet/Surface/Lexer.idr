@@ -30,6 +30,7 @@ data VTokenKind
 	| VTDollar            -- $
 	| VTIgnore            -- single line comment or whitespace
 	| VTModule            -- module
+	| VTImport            -- import
 	| VTComma             -- ,
 	| VTQuestionMark      -- ?
 
@@ -54,6 +55,7 @@ Eq VTokenKind where
 	(==) VTLambdaArrow VTLambdaArrow = True
 	(==) VTDollar VTDollar = True
 	(==) VTModule VTModule = True
+	(==) VTImport VTImport = True
 	(==) VTQuestionMark VTQuestionMark = True
 	(==) VTOpenB VTOpenB = True
 	(==) VTCloseB VTCloseB = True
@@ -84,6 +86,7 @@ Show VTokenKind where
 	show VTCloseB       = "}"
 	show VTIgnore       = "<ignore>"
 	show VTModule       = "module"
+	show VTImport       = "import"
 
 public export
 VToken : Type
@@ -117,6 +120,7 @@ TokenKind VTokenKind where
 	tokValue VTDollar _ = ()
 	tokValue VTIgnore _ = ()
 	tokValue VTModule _ = ()
+	tokValue VTImport _ = ()
 	tokValue VTComma _ = ()
 	tokValue VTQuestionMark _ = ()
 	tokValue VTOpenB _ = ()
@@ -146,7 +150,8 @@ keywords = [
 	("elim", VTElim),
 	("postulate", VTPostulate),
 	("U", VTUniverse),
-	("module", VTModule)
+	("module", VTModule),
+	("import", VTImport)
 ]
 
 violetTokenMap : TokenMap VToken

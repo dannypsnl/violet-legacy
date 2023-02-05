@@ -63,10 +63,19 @@ mutual
 	RTy = Raw
 
 public export
-data ModuleInfoRaw = MkModuleInfoRaw Name
+data ModuleImportStmt = MkModuleImportStat Name -- imported module name
 
 public export
-data ModuleRaw = MkModuleRaw ModuleInfoRaw (List TopLevelRaw)
+record ModuleInfoRaw where
+  constructor MkModuleInfoRaw
+  name : string
+  imports : List ModuleImportStmt
+
+public export
+record ModuleRaw where
+  constructor MkModuleRaw
+  info : ModuleInfoRaw
+  tops : List TopLevelRaw
 
 export
 Cast Raw STm where
