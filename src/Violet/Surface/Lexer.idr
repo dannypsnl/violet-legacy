@@ -30,7 +30,7 @@ data VTokenKind
 	| VTDollar            -- $
 	| VTIgnore            -- single line comment or whitespace
 	| VTModule            -- module
-  | VTImport            -- import
+	| VTImport            -- import
 	| VTComma             -- ,
 	| VTQuestionMark      -- ?
 
@@ -151,7 +151,7 @@ keywords = [
 	("postulate", VTPostulate),
 	("U", VTUniverse),
 	("module", VTModule),
-  ("import", VTImport)
+	("import", VTImport)
 ]
 
 violetTokenMap : TokenMap VToken
