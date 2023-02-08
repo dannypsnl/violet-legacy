@@ -115,15 +115,22 @@ mutual
 		match VTLambdaArrow
 		t <- tm
 		pure $ map (\ps => (ps, t)) $ forget pss
+	-- The whole will look like
+	--
 	-- elim n
 	-- | C x => x
 	-- | z => z
 	tmElim : Rule Raw
 	tmElim = do
+		-- `elim n`
 		match VTElim
 		targets <- sepBy (match VTComma) tm
-		cases <- many caseRule
-		pure $ RElim targets $ foldl (\c, cs => cs ++ c) [] cases
+		-- ```
+		-- | C x => x
+		-- | z => z
+		-- ```
+		let cs : List (List ElimCase) = !(many caseRule)
+		pure $ RElim targets (foldl (\c, cs => cs ++ c) [] cs)
 
 ttmData : Rule TopLevelRaw
 ttmData = do
@@ -146,12 +153,28 @@ ttmDef = do
 	match VTDef
 	name <- match VTIdentifier
 	raw_tele <- many $ try (parens (bindGroup Explicit)) <|> (braces (bindGroup Implicit))
+	let regular_tele : RTelescope = foldl mergeTele [] raw_tele
 	match VTColon
+	-- returned type
 	a <- tm
-	match VTLambdaArrow
-	t <- tm
-	pure $ TDef name (foldl (\x, tele => x ++ tele) [] raw_tele) a t
+	t <- singleBody <|> (do pure $ RElim (extractTargets regular_tele) (foldl (\c, cs => cs ++ c) [] !(many caseRule)))
+	pure $ TDef name regular_tele a t
 	where
+		ignoreImplicit : (Mode, Name, RTy) -> List Raw -> List Raw
+		ignoreImplicit (Implicit, _, _) acc = acc
+		ignoreImplicit (Explicit, name, _) acc = RVar name :: acc
+		-- skip implicit by default
+		extractTargets : RTelescope -> List Raw
+		extractTargets tele = foldr ignoreImplicit [] tele
+
+		mergeTele : RTelescope -> RTelescope -> RTelescope
+		mergeTele x tele = x ++ tele
+
+		singleBody : Rule Raw
+		singleBody = do
+			match VTLambdaArrow
+			tm
+
 		bindGroup : Mode -> Rule (List (Mode, Name, RTy))
 		bindGroup mode = do
 			ns <- some $ match VTIdentifier
