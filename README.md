@@ -51,7 +51,7 @@ brew install idris2
 Build commands
 
 ```shell
-idris2 --build violet.ipkg
+idris2 --build
 ```
 
 #### Editor

@@ -24,7 +24,7 @@
 
 					buildInputs = [ idris2 ];
 					buildPhase = ''
-						idris2 --build ./violet.ipkg
+						idris2 --build
 					'';
 					installPhase = ''
 						export HOME=$(pwd)
