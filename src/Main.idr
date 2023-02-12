@@ -2,6 +2,10 @@ module Main
 
 import System
 import System.File.Virtual
+import System.Path
+import Data.String
+import Data.SortedSet
+import Data.SortedMap
 import Control.App
 import Control.App.Handler
 import Control.App.Console
@@ -10,6 +14,7 @@ import Text.PrettyPrint.Prettyprinter.Symbols
 
 import Violet.Elaboration
 import Violet.Parser
+import Violet.Surface.Syntax
 
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
@@ -25,10 +30,49 @@ checkMod filename source raw = do
 	let ctx = (ctxFromFile filename source)
 	new (checkState ctx) $ checkModule (map cast raw.tops) `handleErr` putErr prettyCheckError
 
-loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
-loadModuleFile filename = do
+moduleNameToFilepath : String -> Name -> String
+moduleNameToFilepath root moduleName = 
+	(joinPath $ forget $ cons root $ split (== '.') moduleName) <.> ".vt"
+
+getImports : ModuleRaw -> SortedSet Name
+getImports raw = 
+	fromList $ map (\(MkModuleImportStmt name) => name) raw.info.imports
+
+parseModuleFile 
+	: (PrimIO e, FileIO (IOError :: e)) 
+	=> String 
+	-> App e (ModuleRaw, String)
+parseModuleFile filename = do
+	primIO $ putStrLn $ "parse module " ++ filename
 	source <- readFile filename `handleErr` putErr prettyIOError
 	raw <- parseMod source `handleErr` putErr prettyParsingError
+	pure (raw, source)
+
+parseDepModules 
+	: (PrimIO e, FileIO (IOError :: e)) 
+	=> String
+	-> SortedMap Name (ModuleRaw, SortedSet Name, String) 
+	-> List Name 
+	-> App e (SortedMap Name (ModuleRaw, SortedSet Name, String))
+parseDepModules root acc [] = pure acc
+parseDepModules root acc (moduleName :: rest) =
+	case lookup moduleName acc of
+		Just _ => parseDepModules root acc rest
+		Nothing => do
+			(raw, source) <- 
+				parseModuleFile $ moduleNameToFilepath root moduleName
+			let imports = getImports raw
+			let acc' = insert moduleName (raw, imports, source) acc
+			parseDepModules root acc' (rest ++ Data.SortedSet.toList imports)
+
+loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
+loadModuleFile filename = do
+	modules <- parseDepModules "./example" empty $ singleton filename
+	-- (raw, source) <- parseModuleFile filename
+	(raw, source) <-
+		case lookup filename modules of
+				Nothing => parseModuleFile filename -- fallback
+				Just (raw, imports, source) => pure (raw, source)
 	checkMod filename source raw
 
 putCtx : PrimIO e => CheckState -> App e ()

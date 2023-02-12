@@ -63,7 +63,7 @@ mutual
 	RTy = Raw
 
 public export
-data ModuleImportStmt = MkModuleImportStat Name -- imported module name
+data ModuleImportStmt = MkModuleImportStmt Name -- imported module name
 
 public export
 record ModuleInfoRaw where
