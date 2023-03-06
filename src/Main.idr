@@ -6,6 +6,7 @@ import System.Path
 import Data.String
 import Data.SortedSet
 import Data.SortedMap
+import Libraries.Data.Graph
 import Control.App
 import Control.App.Handler
 import Control.App.Console
@@ -65,15 +66,27 @@ parseDepModules root acc (moduleName :: rest) =
 			let acc' = insert moduleName (raw, imports, source) acc
 			parseDepModules root acc' (rest ++ Data.SortedSet.toList imports)
 
+
 loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
 loadModuleFile filename = do
 	-- TOOD: make root folder configerable
-	modules <- parseDepModules "./example" empty $ singleton filename
-	(raw, source) <-
-		case lookup filename modules of
-				Nothing => parseModuleFile filename -- fallback
-				Just (raw, imports, source) => pure (raw, source)
-	checkMod filename source raw
+	let rootPath = "./example"
+	modules <- parseDepModules rootPath empty $ singleton filename
+	let topoSortedLists = tarjan $ (\(_, imports, _) => imports) <$> modules
+	let dummyCheckState = checkState $ ctxFromFile "dummy_filename" "dummy_source"
+	let
+		go : CheckState -> List1 Name -> App e CheckState
+		go _ component = do
+			-- currently only allow one module per component
+			let moduleName = head component
+			let currFilename = moduleNameToFilepath rootPath moduleName
+			(raw, source) <-
+				case SortedMap.lookup moduleName modules of
+					Nothing => parseModuleFile currFilename -- fallback
+					Just (raw, _, source) => pure (raw, source)
+			primIO $ putStrLn $ "checking module " ++ moduleName
+			checkMod currFilename source raw
+	foldlM go dummyCheckState $ List.reverse topoSortedLists
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
