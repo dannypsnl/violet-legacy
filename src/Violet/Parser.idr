@@ -193,7 +193,7 @@ ruleModuleImport : Rule ModuleImportStmt
 ruleModuleImport = do
   match VTImport
   name <- match VTIdentifier
-  pure $ MkModuleImportStat name
+  pure $ MkModuleImportStmt name
 
 export
 ruleModule : Rule ModuleRaw
