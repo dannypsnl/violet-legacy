@@ -67,8 +67,8 @@ parseDepModules root acc (moduleName :: rest) =
 
 loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
 loadModuleFile filename = do
+	-- TOOD: make root folder configerable
 	modules <- parseDepModules "./example" empty $ singleton filename
-	-- (raw, source) <- parseModuleFile filename
 	(raw, source) <-
 		case lookup filename modules of
 				Nothing => parseModuleFile filename -- fallback
