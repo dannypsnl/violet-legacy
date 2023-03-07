@@ -66,14 +66,12 @@ parseDepModules root acc (moduleName :: rest) =
 			let acc' = insert moduleName (raw, imports, source) acc
 			parseDepModules root acc' (rest ++ Data.SortedSet.toList imports)
 
-
 loadModuleFile : (PrimIO e, FileIO (IOError :: e)) => String -> App e CheckState
 loadModuleFile filename = do
 	-- TOOD: make root folder configerable
 	let rootPath = "./example"
 	modules <- parseDepModules rootPath empty $ singleton filename
 	let topoSortedLists = tarjan $ (\(_, imports, _) => imports) <$> modules
-	let dummyCheckState = checkState $ ctxFromFile "dummy_filename" "dummy_source"
 	let
 		go : CheckState -> List1 Name -> App e CheckState
 		go _ component = do
@@ -86,7 +84,7 @@ loadModuleFile filename = do
 					Just (raw, _, source) => pure (raw, source)
 			primIO $ putStrLn $ "checking module " ++ moduleName
 			checkMod currFilename source raw
-	foldlM go dummyCheckState $ List.reverse topoSortedLists
+	foldlM go (checkState emptyCtx) $ List.reverse topoSortedLists
 
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
