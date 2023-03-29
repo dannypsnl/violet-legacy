@@ -11,7 +11,7 @@ reviewers:
   - rayshih
   - CYBAI
 
-# A list of keywords to be skipped the process that add reviewers if pull requests include it 
+# A list of keywords to be skipped the process that add reviewers if pull requests include it
 skipKeywords:
   - wip
 
