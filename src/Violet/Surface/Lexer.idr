@@ -63,7 +63,7 @@ Eq VTokenKind where
 
 export
 Show VTokenKind where
-	show VTIdentifier   = "<identifer>"
+	show VTIdentifier   = "<identifier>"
 	show VTDef          = "def"
 	show VTData         = "data"
 	show VTLet          = "let"
