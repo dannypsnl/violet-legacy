@@ -7,8 +7,8 @@ bugtracker = "http://www.github.com/dannypsnl/violet/issues"
 depends = contrib
 
 modules = Violet.Elaboration
-				, Violet.Core.Val
-				, Violet.Core.Term
+        , Violet.Core.Val
+        , Violet.Core.Term
 
 sourcedir = "src"
 -- application

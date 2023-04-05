@@ -1,4 +1,4 @@
--- This file is copied from 
+-- This file is copied from
 -- https://github.com/idris-lang/Idris2/blob/main/src/Libraries/Data/Graph.idr
 
 {-

@@ -7,10 +7,10 @@ import Violet.Error.Common
 
 public export
 data EvalError
-	= NoVar String
-	| BadSpine Tm
-	| OutOfCase
-	| NoMeta MetaVar
+  = NoVar String
+  | BadSpine Tm
+  | OutOfCase
+  | NoMeta MetaVar
 
 export
 prettyEvalError : EvalError -> Doc AnsiStyle

@@ -17,15 +17,15 @@ annColor = annotate . color
 export
 getCode : (source : String) -> (line : Nat) -> (codeShift : Int) -> Doc AnsiStyle
 getCode source line shift =
-	let ls = lines source
-	in case drop line ls of
-		[] => pretty "bad line"
-		(x :: xs) =>
-			let curLine = x
-			in (annBold $ annColor Blue $
-					pretty (line+1)
-					<++> pretty "|")
-					<++> pretty curLine
+  let ls = lines source
+  in case drop line ls of
+    [] => pretty "bad line"
+    (x :: xs) =>
+      let curLine = x
+      in (annBold $ annColor Blue $
+          pretty (line+1)
+          <++> pretty "|")
+          <++> pretty curLine
 
 export
 putErr : PrimIO e => (err -> Doc AnsiStyle) -> err -> App e a
