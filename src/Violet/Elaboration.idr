@@ -116,7 +116,7 @@ mutual
                 PVar _ => [(head, VVar head)]
                 PCtor _ _ => (vars `zip` (map VVar vars))
           let env' = { local := patEnv ++ env.local } env
-          let ctx' = extendCtxWithBinds ctx $ patCtx
+              ctx' = extendCtxWithBinds ctx $ patCtx
           (ECase pats rhs, ty) <- checkCase env' ctx' ts (pats, rhs)
           pure (ECase (newPat :: pats) rhs, ty)
         checkCase env ctx ([]) ([], rhs) = do
