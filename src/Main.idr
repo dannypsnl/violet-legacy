@@ -118,6 +118,7 @@ replLoop = do
 
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
+entry ["check"] =  primIO $ putDoc $ pretty "missing file, usage `violet check <file>`"
 entry ["check", filename] = loadModuleFile filename >>= putCtx
 -- `violet ./sample.vt` will load `sample` into REPL
 entry [filename] = loadModuleFile filename >>= \state => new state $ do replLoop
