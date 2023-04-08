@@ -18,6 +18,12 @@ checkState : Ctx -> CheckState
 checkState ctx = MkCheckState ctx [] [] emptyMetaCtx
 
 export
+initCheckStateWithCarriedState : CheckState -> Ctx -> CheckState
+initCheckStateWithCarriedState carriedCheckState ctx =
+  { topCtx := { map := carriedCheckState.topCtx.map } ctx
+  } carriedCheckState
+
+export
 interface Has [Exception CheckError, State CheckState CheckState] e => Elab e where
   getState : App e CheckState
   putState : CheckState -> App e ()
