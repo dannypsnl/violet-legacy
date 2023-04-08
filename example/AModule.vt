@@ -3,11 +3,9 @@ module AModule
 import Lib
 import Base
 
-data Nat
-| zero
-| suc Nat
-
 def id {A : U} (x : A) : A => x
+
+def addOne (x: Nat) : Nat => suc x
 
 def main : Nat =>
 	let one : Nat = suc zero;

@@ -26,10 +26,17 @@ parseMod source = do
     | Left err => throw err
   pure raw
 
-checkMod : Has [PrimIO] e => String -> String -> ModuleRaw -> App e CheckState
-checkMod filename source raw = do
+checkMod
+  : Has [PrimIO] e
+  => CheckState
+  -> String
+  -> String
+  -> ModuleRaw
+  -> App e CheckState
+checkMod carriedCheckState filename source raw = do
   let ctx = (ctxFromFile filename source)
-  new (checkState ctx) $ checkModule (map cast raw.tops) `handleErr` putErr prettyCheckError
+  new (initCheckStateWithCarriedState carriedCheckState ctx) 
+    $ checkModule (map cast raw.tops) `handleErr` putErr prettyCheckError
 
 moduleNameToFilepath : String -> Name -> String
 moduleNameToFilepath root moduleName =
@@ -74,7 +81,7 @@ loadModuleFile filename = do
   let topoSortedLists = tarjan $ (\(_, imports, _) => imports) <$> modules
   let
     go : CheckState -> List1 Name -> App e CheckState
-    go _ component = do
+    go accCheckState component = do
       -- currently only allow one module per component
       let moduleName = head component
       let currFilename = moduleNameToFilepath rootPath moduleName
@@ -83,7 +90,7 @@ loadModuleFile filename = do
           Nothing => parseModuleFile currFilename -- fallback
           Just (raw, _, source) => pure (raw, source)
       primIO $ putStrLn $ "checking module " ++ moduleName
-      checkMod currFilename source raw
+      checkMod accCheckState currFilename source raw
   foldlM go (checkState emptyCtx) $ List.reverse topoSortedLists
 
 putCtx : PrimIO e => CheckState -> App e ()
