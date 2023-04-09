@@ -34,7 +34,6 @@ replLoop = do
         | Left e => report $ cast e
       pure b
 
-partial
 entry : (PrimIO e, FileIO (IOError :: e)) => List String -> App e ()
 -- `violet check ./sample.vt`
 entry ("check" :: options) = checkCommand defaultCheckOpts options
@@ -48,6 +47,5 @@ entry xs = primIO $ putDoc $ hsep [
     dquotes $ hsep $ map pretty xs
   ]
 
-partial
 main : IO ()
 main = run $ entry $ drop 1 !getArgs

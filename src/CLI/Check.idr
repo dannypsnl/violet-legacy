@@ -17,10 +17,11 @@ export
 record CheckOpts where
   constructor MkCheckOpts
   buildDir : String
+  sourceFile : Maybe String
 
 export
 defaultCheckOpts : CheckOpts
-defaultCheckOpts = MkCheckOpts "build"
+defaultCheckOpts = MkCheckOpts "build" Nothing
 
 prettyIOError : IOError -> Doc AnsiStyle
 prettyIOError err = hsep $ map pretty ["error:", show err]
@@ -81,8 +82,10 @@ putCtx state = do
       <++> ":"
       <++> (annBold $ annColor Blue $ pretty v)
 
-partial export
+export
 checkCommand : (PrimIO e, FileIO (IOError :: e)) => (config : CheckOpts) -> (options : List String) -> App e ()
-checkCommand cfg [] = primIO $ putDoc $ pretty "missing file, usage `violet check <file>`"
+checkCommand cfg [] = case cfg.sourceFile of
+  Just filename => checkModuleFile cfg filename >>= putCtx
+  Nothing => primIO $ putDoc $ pretty "missing file, usage `violet check <file>`"
 checkCommand cfg ("--build-dir" :: buildDir :: options) = checkCommand ({buildDir := buildDir} cfg) options
-checkCommand cfg [filename] = checkModuleFile cfg filename >>= putCtx
+checkCommand cfg (filename :: options) = checkCommand ({ sourceFile := Just filename } cfg) options
