@@ -41,6 +41,7 @@ public export
 LocalEnv : Type
 LocalEnv = List (Name, Val)
 
+-- The context of meta variables
 public export
 record MetaCtx where
   constructor MkMetaCtx
@@ -93,7 +94,7 @@ public export
 record Ctx where
   constructor MkCtx
   filename, source : String
-  map : List (Name, VTy)
+  binds : List (Name, VTy)
 
 export
 ctxFromFile : String -> String -> Ctx
@@ -105,11 +106,11 @@ emptyCtx = MkCtx "<no file>" "<empty>" []
 
 export
 extendCtx : Ctx -> Name -> VTy -> Ctx
-extendCtx ctx x v = { map := (x, v) :: ctx.map } ctx
+extendCtx ctx x v = { binds := (x, v) :: ctx.binds } ctx
 export
 extendCtxWithBinds : Ctx -> List (Name, VTy) -> Ctx
-extendCtxWithBinds ctx binds = { map := binds ++ ctx.map } ctx
+extendCtxWithBinds ctx bs = { binds := bs ++ ctx.binds } ctx
 
 export
 lookupCtx : Ctx -> Name -> Maybe VTy
-lookupCtx ctx x = lookup x ctx.map
+lookupCtx ctx x = lookup x ctx.binds

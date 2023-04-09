@@ -75,7 +75,7 @@ checkModuleFile cfg filename = do
 putCtx : PrimIO e => CheckState -> App e ()
 putCtx state = do
   let env = MkEnv state.topEnv []
-  for_ (reverse state.topCtx.map) $ \(name, ty) => do
+  for_ (reverse state.topCtx.binds) $ \(name, ty) => do
     v <- new state (runQuote env ty) `handleErr` putErr prettyCheckError
     primIO $ putDoc $ (annotate bold $ pretty name)
       <++> ":"
