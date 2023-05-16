@@ -49,7 +49,9 @@ def term : Parsec Tm := kwTyp <|> var
 abbrev typ := term
 
 def telescope : Parsec Telescope := do
-  let grps ← many $ bindGroup .explicit <|> bindGroup .implicit
+  let grps ← many $
+    bindGroup .explicit <* ws
+    <|> bindGroup .implicit <* ws
   return grps.toList.join |> List.toArray
   where
     bindGroup (mode : Mode) :=
@@ -64,7 +66,7 @@ def telescope : Parsec Telescope := do
 def parseDef : Parsec Definition := do
   keyword "def"
   let name ← identifier
-  let tele ← telescope; ws
+  let tele ← telescope
   keyword ":"
   let ret_ty ← typ
   let body ← singleBody
