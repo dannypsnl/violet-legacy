@@ -7,6 +7,6 @@ def handleFile (src : System.FilePath) : ExceptT String IO Unit := do
   IO.println <| repr result
 
 def main : IO Unit := do
-  match (← handleFile "test.vt") with
+  match (← handleFile "example/test.vt") with
   | .ok _ => pure ()
   | .error e => IO.eprintln e

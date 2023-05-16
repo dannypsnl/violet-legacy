@@ -22,6 +22,7 @@ inductive Definition
 deriving Repr
 
 structure Program where
+  name : String
   definitions : Array Definition
 deriving Repr
 

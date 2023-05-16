@@ -47,7 +47,7 @@ def identifier := do
     | '-' | '_' | '?' | '!' => true
     | c => c.isAlphanum
     keyword? : String → Bool
-    | "def" | "data" | "Type" => true
+    | "module" | "def" | "data" | "Type" => true
     | _ => false
 
 def term : Parsec Tm := kwTyp <|> var
@@ -99,8 +99,10 @@ def parseData : Parsec Definition := do
       return ⟨ name, tys ⟩
 
 def parseFile : Parsec Program := do
+  keyword "module"
+  let name ← identifier
   let defs ← many $ parseDef <|> parseData
   eof
-  return { definitions := defs }
+  return { name := name, definitions := defs }
 
 end Violet.Parser
