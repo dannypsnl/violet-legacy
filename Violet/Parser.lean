@@ -1,4 +1,5 @@
 import Lean.Data.Parsec
+import Lean.Data.Position
 import Violet.Ast.Surface
 
 namespace Lean.Parsec
@@ -18,6 +19,13 @@ def between (before : Parsec Unit) (p : Parsec a) (after : Parsec Unit) := do
 
 def parens (p : Parsec a) : Parsec a := between (skipChar '(') p (skipChar ')')
 def braces (p : Parsec a) : Parsec a := between (skipChar '{') p (skipChar '}')
+
+def run' (p : Parsec α) (filepath : System.FilePath) (s : String) : Except String α :=
+  match p s.mkIterator with
+  | .success _ res => Except.ok res
+  | .error it err  =>
+    let f := it.s.toFileMap.toPosition it.pos
+    Except.error s!"{filepath}:{f}: {err}"
 
 end Lean.Parsec
 

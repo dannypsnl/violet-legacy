@@ -3,7 +3,7 @@ open Violet.Parser (parseFile)
 
 def handleFile (src : System.FilePath) : ExceptT String IO Unit := do
   let content ← IO.FS.readFile src
-  let result ← parseFile.run content
+  let result ← parseFile.run' src content
   IO.println <| repr result
 
 def main : IO Unit := do
