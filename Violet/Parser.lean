@@ -51,6 +51,19 @@ def identifier := do
     | _ => false
 
 mutual
+  partial def atom : Parsec Tm := do
+    parseLet <|> parseMatch
+    <|> kwTyp <|> var
+    <|> (parens term <* ws)
+    where
+      var : Parsec Tm := identifier
+      kwTyp := do keyword "Type"; return Tm.type
+
+  partial def spine : Parsec Tm := do
+    let a ← atom
+    let as ← many atom
+    return as.foldl Tm.app a
+
   partial def parseMatch : Parsec Tm := do
     keyword "match"
     let target ← term
@@ -79,10 +92,23 @@ mutual
     let body ← term
     return .«let» name ty val body
 
-  partial def term : Parsec Tm := parseLet <|> parseMatch <|> kwTyp <|> var
+  partial def binary (opList : List $ Parsec (Tm → Tm → Tm)) (tm : Parsec Tm)
+    : Parsec Tm := do
+    let l ← tm
+    let es ← many opRhs
+    return es.toList.foldl (fun lhs e => (e.1 lhs e.2)) l
     where
-      var : Parsec Tm := identifier
-      kwTyp := do keyword "Type"; return Tm.type
+      opRhs : Parsec $ (Tm → Tm → Tm) × Tm := do
+        let mut op := .none
+        for findOp in opList do
+          op ← tryP findOp
+          if op.isSome then break
+        return (op.get!, ← tm)
+  partial def term : Parsec Tm :=
+    atom
+    |> binary [keyword "->" *> return .pi .explicit "_",
+               keyword "→" *> return .pi .explicit "_"]
+    |> binary [keyword "$" *> return .app]
 end
 
 abbrev typ := term
