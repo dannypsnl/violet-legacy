@@ -14,6 +14,19 @@ def tryP (p : Parsec a) : Parsec (Option a) := λ it =>
   | .success rem a => .success rem a
   | .error _ _ => .success it .none
 
+def binary (opList : List $ Parsec (α → α → α)) (tm : Parsec α)
+  : Parsec α := do
+  let l ← tm
+  let rs ← many opRhs
+  return rs.foldl (fun lhs (bin, rhs) => (bin lhs rhs)) l
+  where
+    opRhs : Parsec $ (α → α → α) × α := do
+      for findOp in opList do
+        match ← tryP findOp with
+        | .some f => return ⟨ f, ← tm ⟩
+        | .none => continue
+      fail "cannot match operator"
+
 def between (before : Parsec Unit) (p : Parsec a) (after : Parsec Unit) := do
   before; let r ← p; after; return r
 
@@ -61,7 +74,7 @@ mutual
 
   partial def spine : Parsec Tm := do
     let a ← atom
-    let as ← many atom
+    let as ← many1 atom
     return as.foldl Tm.app a
 
   partial def parseMatch : Parsec Tm := do
@@ -92,23 +105,13 @@ mutual
     let body ← term
     return .«let» name ty val body
 
-  partial def binary (opList : List $ Parsec (Tm → Tm → Tm)) (tm : Parsec Tm)
-    : Parsec Tm := do
-    let l ← tm
-    let es ← many opRhs
-    return es.foldl (fun lhs e => (e.1 lhs e.2)) l
-    where
-      opRhs : Parsec $ (Tm → Tm → Tm) × Tm := do
-        let mut op := .none
-        for findOp in opList do
-          op ← tryP findOp
-          if op.isSome then break
-        return (op.get!, ← tm)
   partial def term : Parsec Tm :=
-    atom
+    atom <|> spine
     |> binary [keyword "->" *> return .pi .explicit "_",
                keyword "→" *> return .pi .explicit "_"]
-    |> binary [keyword "$" *> return .app]
+    |> binary [keyword "$" *> return .app,
+               keyword "<|" *> return .app,
+               keyword "|>" *> return flip .app]
 end
 
 abbrev typ := term
