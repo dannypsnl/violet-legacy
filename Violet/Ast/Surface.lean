@@ -5,9 +5,17 @@ inductive Mode
   | explicit
 deriving Repr
 
+structure Pattern where
+  -- name of constructor
+  ctor : String
+  vars : Array String
+deriving Repr
+
 inductive Tm
   | type
   | var (name : String)
+  | «let» (name : String) (ty : Tm) (val : Tm) (body : Tm)
+  | «match» (target : Tm) (cases : Array (Pattern × Tm))
 deriving Repr, Inhabited
 instance : Coe String Tm where
   coe s := Tm.var s

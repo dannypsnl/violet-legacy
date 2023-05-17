@@ -50,10 +50,41 @@ def identifier := do
     | "module" | "def" | "data" | "Type" => true
     | _ => false
 
-def term : Parsec Tm := kwTyp <|> var
-  where
-    var : Parsec Tm := identifier
-    kwTyp := do keyword "Type"; return Tm.type
+mutual
+  partial def parseMatch : Parsec Tm := do
+    keyword "match"
+    let target ← term
+    let cs ← many clause
+    return .«match» target cs
+    where
+      pattern : Parsec Pattern := do
+        let ctor ← identifier
+        let vars ← many identifier
+        return ⟨ ctor, vars ⟩
+      clause : Parsec $ Pattern × Tm := do
+        keyword "|"
+        let pat ← pattern
+        keyword "=>"
+        return ⟨ pat, ← term ⟩
+
+  -- `let <name> : <ty> = <val>; <body>`
+  partial def parseLet : Parsec Tm := do
+    keyword "let"
+    let name ← identifier
+    keyword ":"
+    let ty ← term
+    keyword "="
+    let val ← term
+    keyword ";"
+    let body ← term
+    return .«let» name ty val body
+
+  partial def term : Parsec Tm := parseLet <|> parseMatch <|> kwTyp <|> var
+    where
+      var : Parsec Tm := identifier
+      kwTyp := do keyword "Type"; return Tm.type
+end
+
 abbrev typ := term
 
 def telescope : Parsec Telescope := do
@@ -77,6 +108,7 @@ def parseDef : Parsec Definition := do
   let tele ← telescope
   keyword ":"
   let ret_ty ← typ
+  -- TODO: or pattern matching clauses
   let body ← singleBody
   return .«def» name tele ret_ty body
   where
