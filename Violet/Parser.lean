@@ -96,7 +96,7 @@ mutual
     : Parsec Tm := do
     let l ← tm
     let es ← many opRhs
-    return es.toList.foldl (fun lhs e => (e.1 lhs e.2)) l
+    return es.foldl (fun lhs e => (e.1 lhs e.2)) l
     where
       opRhs : Parsec $ (Tm → Tm → Tm) × Tm := do
         let mut op := .none
