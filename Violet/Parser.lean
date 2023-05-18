@@ -64,24 +64,6 @@ def identifier := do
     | _ => false
 
 mutual
-  partial def atom : Parsec Tm := do
-    parseLet <|> parseMatch
-    <|> kwTyp <|> var
-    <|> (parens term <* ws)
-    where
-      var : Parsec Tm := identifier
-      kwTyp := do keyword "Type"; return Tm.type
-
-  partial def spine : Parsec Tm := do
-    let mut l ← atom
-    let mut r : Option Tm := .none
-    repeat do
-      r ← tryP atom
-      match r with
-      | .none => break
-      | .some r' => l := .app l r'
-    return l
-
   partial def parseMatch : Parsec Tm := do
     keyword "match"; let target ← term
     let cs ← many clause
@@ -104,8 +86,24 @@ mutual
     keyword ";"; let body ← term
     return .«let» name ty val body
 
+  partial def atom : Parsec Tm := do
+    parseLet <|> parseMatch
+    <|> kwTyp <|> var
+    <|> (parens term <* ws)
+    where
+      var : Parsec Tm := identifier
+      kwTyp := do keyword "Type"; return Tm.type
+
+  partial def spine : Parsec Tm := do
+    let mut l ← atom
+    repeat do
+      match ← tryP atom with
+      | .none => break
+      | .some r => l := .app l r
+    return l
+
   partial def term : Parsec Tm :=
-    spine <|> atom
+    spine
     |> binary [keyword "$" *> return .app,
                keyword "<|" *> return .app,
                keyword "|>" *> return flip .app]  
