@@ -86,8 +86,21 @@ mutual
     keyword ";"; let body ← term
     return .«let» name ty val body
 
+  partial def parsePi (mode : Mode) (w : Parsec (String × Typ) → Parsec (String × Typ))
+    : Parsec Tm := do
+    let (name, ty) ← w bind
+    ws
+    keyword "->"; let body ← term
+    return .pi mode name ty body
+    where
+      bind : Parsec $ String × Typ := do
+        let name : String ← identifier
+        keyword ":"; let ty : Typ ← term
+        return (name, ty)
+
   partial def atom : Parsec Tm := do
-    parseLet <|> parseMatch
+    parsePi .explicit parens <|> parsePi .implicit braces
+    <|> parseLet <|> parseMatch
     <|> kwTyp <|> var
     <|> (parens term <* ws)
     where

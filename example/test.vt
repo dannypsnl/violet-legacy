@@ -8,7 +8,9 @@ data Nat
 | zero
 | suc Nat
 
-def id {A : U} (x : A) : A => x
+def trytry : {A : Type} -> (x : A) -> A => x
+
+def id {A : Type} (x : A) : A => x
 
 def zero? (n : Nat) : Bool =>
 match n
