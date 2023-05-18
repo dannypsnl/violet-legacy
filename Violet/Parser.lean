@@ -73,13 +73,17 @@ mutual
       kwTyp := do keyword "Type"; return Tm.type
 
   partial def spine : Parsec Tm := do
-    let a ← atom
-    let as ← many1 atom
-    return as.foldl Tm.app a
+    let mut l ← atom
+    let mut r : Option Tm := .none
+    repeat do
+      r ← tryP atom
+      match r with
+      | .none => break
+      | .some r' => l := .app l r'
+    return l
 
   partial def parseMatch : Parsec Tm := do
-    keyword "match"
-    let target ← term
+    keyword "match"; let target ← term
     let cs ← many clause
     return .«match» target cs
     where
@@ -88,30 +92,25 @@ mutual
         let vars ← many identifier
         return ⟨ ctor, vars ⟩
       clause : Parsec $ Pattern × Tm := do
-        keyword "|"
-        let pat ← pattern
-        keyword "=>"
-        return ⟨ pat, ← term ⟩
+        keyword "|"; let pat ← pattern
+        keyword "=>"; let tm ← term
+        return ⟨ pat, tm ⟩
 
   -- `let <name> : <ty> = <val>; <body>`
   partial def parseLet : Parsec Tm := do
-    keyword "let"
-    let name ← identifier
-    keyword ":"
-    let ty ← term
-    keyword "="
-    let val ← term
-    keyword ";"
-    let body ← term
+    keyword "let"; let name ← identifier
+    keyword ":"; let ty ← term
+    keyword "="; let val ← term
+    keyword ";"; let body ← term
     return .«let» name ty val body
 
   partial def term : Parsec Tm :=
-    atom <|> spine
-    |> binary [keyword "->" *> return .pi .explicit "_",
-               keyword "→" *> return .pi .explicit "_"]
+    spine <|> atom
     |> binary [keyword "$" *> return .app,
                keyword "<|" *> return .app,
-               keyword "|>" *> return flip .app]
+               keyword "|>" *> return flip .app]  
+    |> binary [keyword "->" *> return .pi .explicit "_",
+               keyword "→" *> return .pi .explicit "_"]
 end
 
 abbrev typ := term
@@ -163,7 +162,7 @@ def parseFile : Parsec Program := do
   keyword "module"
   let name ← identifier
   let defs ← many $ parseDef <|> parseData
-  eof
+  -- eof
   return { name := name, definitions := defs }
 
 end Violet.Parser
