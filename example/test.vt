@@ -10,20 +10,23 @@ data Nat
 
 def id {A : U} (x : A) : A => x
 
-def zero? (n : Nat) : Bool
+def zero? (n : Nat) : Bool =>
+match n
 | zero => true
 | suc _ => false
 
-def plus (n m : Nat) : Nat
-| n, zero => n
-| zero, m => m
-| suc n, suc m => suc $ suc $ plus n m
+def plus (n m : Nat) : Nat =>
+match n
+| zero => m
+| suc n => suc $ plus n m
 
-def not (b : Bool) : Bool
+def not (b : Bool) : Bool =>
+match b
 | true => false
 | false => true
 
-def NoB (b : Bool) : U => elim b
+def NoB (b : Bool) : Type =>
+match b
 | true => Nat
 | false => Bool
 
@@ -36,8 +39,10 @@ data Weekday
 | saturday
 | sunday
 
-def weekend? (day : Weekday) : Bool
-| saturday | sunday => true
+def weekend? (day : Weekday) : Bool =>
+match day
+| saturday => true
+| sunday => true
 | _ => false
 
 def main : NoB true => id $ plus (suc $ suc zero) (suc zero)
