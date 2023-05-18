@@ -106,11 +106,15 @@ mutual
         return (name, ty)
 
   partial def atom : Parsec Tm := do
-    parsePi .explicit parens <|> parsePi .implicit braces
-    <|> parseLam
-    <|> parseLet <|> parseMatch
+    parseLam <|> parseLet <|> parseMatch
     <|> kwTyp <|> var
-    <|> (parens term <* ws)
+    <|> parsePi .implicit braces
+    <|> (do
+      let r ← tryP $ parens term <* ws
+      match r with
+      -- if it's not a parenthesized term, try parsing a pi type
+      | .none => parsePi .explicit parens
+      | .some s => return s)
     where
       var : Parsec Tm := identifier
       kwTyp := do keyword "Type"; return Tm.type
@@ -164,17 +168,16 @@ def parseDef : Parsec Definition := do
 def parseData : Parsec Definition := do
   keyword "data"
   let name ← identifier
-  let ctors ← many constructor
-  return .data name ctors
+  return .data name (← many constructor)
   where
     constructor : Parsec Constructor := do
       keyword "|"
       let name ← identifier
       let mut tys : Array Typ := #[]
-      let mut ty ← tryP typ
-      while ty.isSome do
-        tys := tys.push ty.get!
-        ty ← tryP typ
+      repeat do
+        match ← tryP typ with
+        | .none => break
+        | .some ty => tys := tys.push ty
       return ⟨ name, tys ⟩
 
 def parseFile : Parsec Program := do
