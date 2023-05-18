@@ -18,6 +18,7 @@ inductive Tm
   | «match» (target : Tm) (cases : Array (Pattern × Tm))
   | app (fn : Tm) (arg : Tm)
   | pi (mode : Mode) (name : String) (ty : Tm) (body : Tm)
+  | lam (name : String) (body : Tm)
 deriving Repr, Inhabited
 instance : Coe String Tm where
   coe s := Tm.var s
