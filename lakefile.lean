@@ -15,3 +15,6 @@ lean_lib «Violet» {
 lean_exe «violet» {
   root := `Main
 }
+
+require «lspec» from git "https://github.com/lurk-lab/LSpec" @ "main"
+lean_exe Tests.Parsing

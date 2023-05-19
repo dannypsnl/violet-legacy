@@ -1,0 +1,26 @@
+on:
+  push:
+  pull_request:
+
+name: Run Tests
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: install elan
+        run: |
+          set -o pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v1.4.5/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+          echo | source $HOME/.profile && $HOME/.elan/bin/elan --version
+      - uses: actions/checkout@v3
+      - name: Build & Check
+        run: |
+          lake update
+          lake build
+      - name: Test
+        run: |
+          lake exe lspec

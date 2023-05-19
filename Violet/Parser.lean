@@ -57,8 +57,8 @@ mutual
   partial def parsePi (mode : Mode) (w : Parsec (String × Typ) → Parsec (String × Typ))
     : Parsec Tm := do
     let (name, ty) ← w bind
-    ws
-    keyword "->"; let body ← term
+    keyword "->" <|> keyword "→"
+    let body ← term
     return .pi mode name ty body
     where
       bind : Parsec $ String × Typ := do
