@@ -25,11 +25,11 @@ instance : Coe String Tm where
 abbrev Typ := Tm
 
 abbrev Telescope := Array $ String × Mode × Typ
-abbrev Constructor := String × Array Typ
+abbrev Ctor := String × Array Typ
 
 inductive Definition
   | «def» (name : String) (tele : Telescope) (ret_ty : Typ) (body : Tm)
-  | data (name : String) (constructors : Array Constructor)
+  | data (name : String) (constructors : Array Ctor)
 deriving Repr
 
 structure Program where

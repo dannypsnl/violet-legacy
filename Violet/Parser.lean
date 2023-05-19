@@ -71,7 +71,7 @@ mutual
     <|> kwTyp <|> var
     <|> parsePi .implicit braces
     <|> (do
-      let r ← tryP $ parens term <* ws
+      let r ← tryP $ parens term
       match r with
       -- if it's not a parenthesized term, try parsing a pi type
       | .none => parsePi .explicit parens
@@ -129,7 +129,7 @@ def parseData : Parsec Definition := do
   let name ← identifier
   return .data name (← many constructor)
   where
-    constructor : Parsec Constructor := do
+    constructor : Parsec Ctor := do
       keyword "|"
       let name ← identifier
       let mut tys : Array Typ := #[]
