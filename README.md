@@ -1,5 +1,7 @@
 # violet
 
+[![Run Tests](https://github.com/dannypsnl/violet/actions/workflows/ci.yaml/badge.svg)](https://github.com/dannypsnl/violet/actions/workflows/ci.yaml)
+
 > **Warning** The project still in early stage.
 
 A programming language focuses on
