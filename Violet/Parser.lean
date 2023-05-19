@@ -1,46 +1,7 @@
 import Lean.Data.Parsec
+import ParsecExtra
 import Lean.Data.Position
 import Violet.Ast.Surface
-
-namespace Lean.Parsec
-open Parsec.ParseResult
-
-def getSourcePos : Parsec String.Pos := fun it : String.Iterator =>
-  success it it.pos
-
--- The roll back is done by using old `it`
-def tryP (p : Parsec a) : Parsec (Option a) := λ it =>
-  match p it with
-  | .success rem a => .success rem a
-  | .error _ _ => .success it .none
-
-def binary (opList : List $ Parsec (α → α → α)) (tm : Parsec α)
-  : Parsec α := do
-  let l ← tm
-  let rs ← many opRhs
-  return rs.foldl (fun lhs (bin, rhs) => (bin lhs rhs)) l
-  where
-    opRhs : Parsec $ (α → α → α) × α := do
-      for findOp in opList do
-        match ← tryP findOp with
-        | .some f => return ⟨ f, ← tm ⟩
-        | .none => continue
-      fail "cannot match operator"
-
-def between (before : Parsec Unit) (p : Parsec a) (after : Parsec Unit) := do
-  before; let r ← p; after; return r
-
-def parens (p : Parsec a) : Parsec a := between (skipChar '(') p (skipChar ')')
-def braces (p : Parsec a) : Parsec a := between (skipChar '{') p (skipChar '}')
-
-def run' (p : Parsec α) (filepath : System.FilePath) (s : String) : Except String α :=
-  match p s.mkIterator with
-  | .success _ res => Except.ok res
-  | .error it err  =>
-    let f := it.s.toFileMap.toPosition it.pos
-    Except.error s!"{filepath}:{f}: {err}"
-
-end Lean.Parsec
 
 namespace Violet.Parser
 open Lean
@@ -129,11 +90,11 @@ mutual
 
   partial def term : Parsec Tm :=
     spine
-    |> binary [keyword "$" *> return .app,
-               keyword "<|" *> return .app,
-               keyword "|>" *> return flip .app]  
-    |> binary [keyword "->" *> return .pi .explicit "_",
-               keyword "→" *> return .pi .explicit "_"]
+    |> «mixfix» [keyword "$" *> return .app,
+                 keyword "<|" *> return .app,
+                 keyword "|>" *> return flip .app]
+    |> «mixfix» [keyword "->" *> return .pi .explicit "_",
+                 keyword "→" *> return .pi .explicit "_"]
 end
 
 abbrev typ := term
