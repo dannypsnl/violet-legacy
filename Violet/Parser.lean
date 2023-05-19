@@ -100,9 +100,7 @@ end
 abbrev typ := term
 
 def telescope : Parsec Telescope := do
-  let grps ← many $
-    bindGroup .explicit <* ws
-    <|> bindGroup .implicit <* ws
+  let grps ← many $ bindGroup .explicit <|> bindGroup .implicit
   return grps.toList.join |> List.toArray
   where
     bindGroup (mode : Mode) :=
