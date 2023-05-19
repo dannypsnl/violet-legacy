@@ -7,3 +7,5 @@ build/
 # nix
 .direnv/
 result
+/build
+/lake-packages/*

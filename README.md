@@ -42,27 +42,10 @@ elim n
 
 ### Develop
 
-You will need to install idris, via any package manager would be fine, here is an example for macOS.
+You will need to install lean, via any package manager would be fine. Especially recommend vscode plugin (https://marketplace.visualstudio.com/items?itemName=jroesch.lean#review-details), install it and wait, it should install elan, lean, and lake for you.
+
+Build the project
 
 ```shell
-brew install idris2
-```
-
-Build commands
-
-```shell
-idris2 --build
-```
-
-#### Editor
-
-There has a `.editorconfig` for this repository, please follow it. We pick tab indention, to ensure people can access the code. Considering visually impaired people and many disabled, all you need is just config the width of tab to fit your personal favourite.
-
-#### Nix
-
-If you know and willing to use nix, we have nix flakes supporting.
-
-```shell
-nix flake check
-nix build .
+lake build
 ```
