@@ -3,9 +3,12 @@ import Violet.Core.Value
 namespace Violet.Core
 open Violet.Ast.Core
 
-def Env.lookup (env : Env) (x : Nat) : Val :=
+def Env.lookup [Monad m] [MonadExcept String m]
+  (env : Env) (x : String) : m Val :=
   match env with
-  | .mk vs => vs.get! x
+  | .mk vs => match vs.lookup x with
+    | .some v => return v
+    | .none => throw s!"no variable `{x}`"
 
 def vMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (v : MetaVar) : m Val := do
@@ -17,18 +20,18 @@ mutual
 
 partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (env : Env) : Tm → m Val
-  | .var x => return env.lookup x
+  | .var x => env.lookup x
   | .app t u => do (← env.eval t).apply (← env.eval u)
-  | .lam x t => return .lam x (.mk env t)
-  | .pi x a b => return .pi x (← env.eval a) (.mk env b)
-  -- | .let _ _ t u => (env.extend eval env t).eval u
+  | .lam x t => return .lam x (Closure.mk x env t)
+  | .pi x a b => return .pi x (← env.eval a) (Closure.mk x env b)
+  -- | .let x _ t u => (env.extend eval env t).eval u
   | .type => return .type
   | .meta m => vMeta m
 
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   : Closure -> Val -> m Val
-| (.mk env t), u => (env.extend u).eval t
+| (.mk x env t), u => (env.extend x u).eval t
 
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) (u : Val) : m Val :=
@@ -60,32 +63,31 @@ def lvl2Ix : Lvl → Lvl → Nat
 mutual
 
 partial def quoteSpine [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (l : Lvl) (t : Tm) (sp : Spine) : m Tm := do
+  (t : Tm) (sp : Spine) : m Tm := do
   match sp with
   | .mk arr =>
     let mut init := t
     for u in arr do
-      let u' ← quote l u
+      let u' ← quote u
       init := .app init u'
     return init
 
 partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (l : Nat) (t : Val) : m Tm := do
+  (t : Val) : m Tm := do
   match ← force t with
-  | .flex m sp => quoteSpine l (Tm.meta m) sp
-  | .rigid x sp => quoteSpine l (Tm.var (lvl2Ix l x)) sp
+  | .flex m sp => quoteSpine (Tm.meta m) sp
+  | .rigid x sp => quoteSpine (Tm.var x) sp
   | .lam x t =>
-    return .lam x (← quote (l + 1) (← t.apply (.rigid l (.mk #[]))))
+    return .lam x (← quote (← t.apply (.rigid x (.mk #[]))))
   | .pi x a b =>
     return .pi x
-      (← quote l a)
-      (← quote (l + 1) (← b.apply (.rigid l (.mk #[]))))
+      (← quote a)
+      (← quote (← b.apply (.rigid x (.mk #[]))))
   | .type => return  .type
 
 end
 
 def nf [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (env : Env) (t : Tm) : m Tm := do
-  quote env.size (← env.eval t)
+  (env : Env) (t : Tm) : m Tm := do quote (← env.eval t)
 
 end Violet.Core

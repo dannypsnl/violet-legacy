@@ -6,7 +6,7 @@ open Violet.Ast.Core
 mutual
 
 inductive Env
-  | mk : Array Val → Env
+  | mk (mapping : List (String × Val))
 deriving Repr, Inhabited, BEq
 
 inductive Spine
@@ -14,12 +14,12 @@ inductive Spine
 deriving Repr, Inhabited, BEq
 
 inductive Closure
-  | mk : Env → Tm → Closure
+  | mk (name : String) : Env → Tm → Closure
 deriving Repr, Inhabited, BEq
 
 inductive Val
   | flex : MetaVar → Spine → Val
-  | rigid : Lvl → Spine → Val
+  | rigid : String → Spine → Val
   | lam : String → Closure → Val
   | pi : String → Val → Closure → Val
   | type : Val
@@ -42,15 +42,11 @@ def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .some e => pure e
   | _ => throw "violet internal bug in meta context"
 
-instance : Coe (Array Val) Env := ⟨.mk⟩
-instance : Coe (Array Val) Spine := ⟨.mk⟩
+def Env.extend (e : Env) (name : String) (v : Val) : Env :=
+  match e with
+  | .mk vs => .mk <| (name, v) :: vs
 
-def Env.extend (e : Env) (v : Val) : Env :=
-  match e with
-  | .mk vs => vs.push v
-def Env.size (e : Env) : Nat :=
-  match e with
-  | .mk vs => vs.size
+instance : Coe (Array Val) Spine := ⟨.mk⟩
 
 def Spine.extend (sp : Spine) (v : Val) : Spine :=
   match sp with
