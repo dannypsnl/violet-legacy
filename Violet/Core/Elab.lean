@@ -26,6 +26,8 @@ def infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   --
   -- The first one cannot be inferred, but the second one can.
   | .lam x t => throw "cannot infer lambda without type annotation"
+  | .app t u => sorry
+  | .type => return (.type, .type)
   | _ => sorry
 
 end Violet.Core

@@ -17,9 +17,18 @@ inductive Closure
   | mk (name : String) : Env → Tm → Closure
 deriving Repr, Inhabited, BEq
 
+/-- Val
+
+`flex` and `rigid` are both stands for neutral terms,
+
+1. but `flex` has a meta head
+2. and `rigid` has a bound variable head
+
+Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is flex where `{a : Nat → Nat}`
+-/
 inductive Val
-  | flex : MetaVar → Spine → Val
-  | rigid : String → Spine → Val
+  | flex (head : MetaVar) (body : Spine)
+  | rigid (head : String) (body : Spine)
   | lam : String → Closure → Val
   | pi : String → Val → Closure → Val
   | type : Val
