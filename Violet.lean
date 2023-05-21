@@ -19,7 +19,6 @@ def innerCheck (p : Program)
       let a ← ctx.check a Val.type (m := ElabM)
       let a ← ctx.env.eval a (m := ElabM)
 
-      -- TODO: toLam telescope body
       let t := tele.foldr (λ (x, _, _) body => .lam x body) body
       let t ← ctx.check t a (m := ElabM)
       let t ← ctx.env.eval t (m := ElabM)
