@@ -57,7 +57,17 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) (ty : VTy) : m Core.Tm := do
-  match tm, ty with
+  match tm, ← force ty with
+  | .lam x t, .pi _ _ a b =>
+    let t ← (ctx.bind x a).check t (← b.apply x)
+    return .lam x t
+  | .let x a t u, a' =>
+    let a ← ctx.check a .type 
+    let va ← ctx.env.eval a
+    let t ← ctx.check t va
+    let vt ← ctx.env.eval t
+    let u ← (ctx.define x vt a').check u a'
+    return .let x a t u
   | t, expected => do
     let (t, inferred) ← ctx.infer t
     unify expected inferred
