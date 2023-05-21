@@ -42,12 +42,12 @@ partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .rigid x sp => return .rigid x (sp.extend u)
   | _           => throw "violet internal bug at value apply"
 
+end
+
 partial def Val.applySpine
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) : Spine -> m Val
   | .mk sp => sp.foldlM Val.apply t
-
-end
 
 partial def force [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) : m Val := do
