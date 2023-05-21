@@ -12,12 +12,11 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     unify (← b.apply x) (← b'.apply x')
   | .type, .type => return ()
   -- for neutral
-  | .rigid h sp, .rigid h' sp' | .flex h sp, .flex h' sp' =>
+  | .rigid h (.mk sp), .rigid h' (.mk sp')
+  | .flex h (.mk sp), .flex h' (.mk sp') =>
     if h != h' then report l r
-    match sp, sp' with
-    | .mk vs, .mk vs' =>
-      for (v, v') in vs.zip vs' do
-        unify v v'
+    for (v, v') in sp.zip sp' do
+      unify v v'
   -- meta head neutral can unify with something else
   | .flex h sp, t' | t', .flex h sp => sorry
   | _, _ => report l r

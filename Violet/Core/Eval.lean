@@ -3,9 +3,7 @@ import Violet.Core.Value
 namespace Violet.Core
 open Violet.Ast.Core
 
-def Env.lookup [Monad m] [MonadExcept String m]
-  (env : Env) (x : String) : m Val :=
-  match env with
+def Env.lookup [Monad m] [MonadExcept String m] (x : String) : Env → m Val
   | .mk vs => match vs.lookup x with
     | .some v => return v
     | .none => throw s!"no variable `{x}`"
@@ -32,7 +30,7 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   : Closure -> Val -> m Val
-| (.mk x env t), u => (env.extend x u).eval t
+  | .mk x env t, u => (env.extend x u).eval t
 
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) (u : Val) : m Val :=
@@ -61,9 +59,8 @@ partial def force [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 mutual
 
 partial def quoteSpine [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (t : Tm) (sp : Spine) : m Tm := do
-  match sp with
-  | .mk arr =>
+  (t : Tm) : Spine → m Tm
+  | .mk arr => do
     let mut init := t
     for u in arr do
       let u' ← quote u

@@ -55,14 +55,12 @@ def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .some e => pure e
   | _ => throw "violet internal bug in meta context"
 
-def Env.extend (e : Env) (name : String) (v : Val) : Env :=
-  match e with
+def Env.extend (name : String) (v : Val) : Env → Env
   | .mk vs => .mk <| (name, v) :: vs
 
 instance : Coe (Array Val) Spine := ⟨.mk⟩
 
-def Spine.extend (sp : Spine) (v : Val) : Spine :=
-  match sp with
+def Spine.extend (v : Val) : Spine → Spine
   | .mk vs => vs.push v
 
 end Violet.Core
