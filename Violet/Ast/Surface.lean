@@ -24,7 +24,7 @@ instance : Coe String Tm where
   coe s := Tm.var s
 abbrev Typ := Tm
 
-abbrev Telescope := Array $ String × Mode × Typ
+abbrev Telescope := Array <| String × Mode × Typ
 abbrev Ctor := String × Array Typ
 
 inductive Definition
