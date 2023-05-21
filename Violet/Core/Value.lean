@@ -30,12 +30,15 @@ Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is 
 inductive Val
   | flex (head : MetaVar) (body : Spine)
   | rigid (head : String) (body : Spine)
-  | lam : String → Closure → Val
+  | lam (param : String) (clos : Closure)
   | pi : String → Surface.Mode → Val → Closure → Val
   | type : Val
 deriving Repr, Inhabited, BEq
 
 end
+
+instance : Coe String Val where
+  coe s := Val.rigid s (.mk #[])
 
 @[reducible]
 abbrev VTy := Val

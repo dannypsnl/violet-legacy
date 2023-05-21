@@ -31,6 +31,26 @@ def ElabContext.define (ctx : ElabContext) (name : String) (val : Val) (ty : VTy
     typCtx := (name, ty) :: ctx.typCtx
   }
 
+partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (l r : Val) : m Unit := do
+  let report l r := throw s!"cannot unify `{repr l}` with `{repr r}`"
+  match l, r with
+  |  .pi x i a b, .pi x' i' a' b' =>
+    if i != i' then report l r
+    unify a a'
+    unify (← b.apply x) (← b'.apply x')
+  | .type, .type => return ()
+  -- for neutral
+  | .rigid h sp, .rigid h' sp' | .flex h sp, .flex h' sp' =>
+    if h != h' then report l r
+    match sp, sp' with
+    | .mk vs, .mk vs' =>
+      for (v, v') in vs.zip vs' do
+        unify v v'
+  -- meta head neutral can unify with something else
+  | .flex h sp, t' | t', .flex h sp => sorry
+  | _, _ => report l r
+
 mutual
 
 partial
@@ -46,13 +66,13 @@ def infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- 2. lam (x : T) => t
   --
   -- The first one cannot be inferred, but the second one can.
-  | .lam x t => throw "cannot infer lambda without type annotation"
+  | .lam .. => throw "cannot infer lambda without type annotation"
   -- infer `t u`
   -- TODO: create syntax to handle implicit application
   | .app t u =>
     let (t, ty) ← infer ctx t
     match ← force ty with
-    | .pi x _ a b =>
+    | .pi _x _ a b =>
       let u ← check ctx u a
       return (.app t u, ← b.apply <| ← ctx.env.eval u)
     | _ => throw "cannot apply non-function"
@@ -72,7 +92,7 @@ def infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- FIXME: This is obivously wrong, just for filling the case
   | .match target cases =>
     let mut rTy := Option.none
-    for (pat, body) in cases do
+    for (_pat, body) in cases do
       let (_, bTy) ← infer ctx body
       rTy := bTy
     let (target, _) ← infer ctx target
@@ -83,7 +103,11 @@ def infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial
 def check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) (ty : VTy) : m Core.Tm := do
-  sorry
+  match tm, ty with
+  | t, expected => do
+    let (t, inferred) ← infer ctx t
+    unify expected inferred
+    return t
 
 end
 
