@@ -1,3 +1,5 @@
+import Violet.Ast.Surface
+
 namespace Violet.Ast.Core
 
 @[reducible]
@@ -10,8 +12,9 @@ inductive Tm
   | meta (mvar : MetaVar)
   | var (name : String)
   | app (fn : Tm) (arg : Tm)
-  | pi (name : String) (ty : Tm) (body : Tm)
+  | pi (name : String) (mode : Surface.Mode) (ty : Tm) (body : Tm)
   | lam (name : String) (body : Tm)
+  | «let» (name : String) (ty : Tm) (val : Tm) (body : Tm)
 deriving Repr, Inhabited, BEq
 abbrev Typ := Tm
 

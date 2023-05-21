@@ -19,12 +19,13 @@ def vMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 mutual
 
 partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (env : Env) : Tm → m Val
+  (env : Env) (tm : Tm) : m Val := do
+  match tm with
   | .var x => env.lookup x
-  | .app t u => do (← env.eval t).apply (← env.eval u)
+  | .app t u => (← env.eval t).apply (← env.eval u)
   | .lam x t => return .lam x (Closure.mk x env t)
-  | .pi x a b => return .pi x (← env.eval a) (Closure.mk x env b)
-  -- | .let x _ t u => (env.extend eval env t).eval u
+  | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk x env b)
+  | .let x _ t u => (env.extend x (← env.eval t)).eval u
   | .type => return .type
   | .meta m => vMeta m
 
@@ -79,8 +80,8 @@ partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .rigid x sp => quoteSpine (Tm.var x) sp
   | .lam x t =>
     return .lam x (← quote (← t.apply (.rigid x (.mk #[]))))
-  | .pi x a b =>
-    return .pi x
+  | .pi x m a b =>
+    return .pi x m
       (← quote a)
       (← quote (← b.apply (.rigid x (.mk #[]))))
   | .type => return  .type

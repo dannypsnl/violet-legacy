@@ -2,6 +2,7 @@ import Violet.Ast.Core
 
 namespace Violet.Core
 open Violet.Ast.Core
+open Violet.Ast
 
 mutual
 
@@ -30,7 +31,7 @@ inductive Val
   | flex (head : MetaVar) (body : Spine)
   | rigid (head : String) (body : Spine)
   | lam : String → Closure → Val
-  | pi : String → Val → Closure → Val
+  | pi : String → Surface.Mode → Val → Closure → Val
   | type : Val
 deriving Repr, Inhabited, BEq
 
