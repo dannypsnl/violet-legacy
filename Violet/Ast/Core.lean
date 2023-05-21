@@ -4,8 +4,6 @@ namespace Violet.Ast.Core
 
 @[reducible]
 abbrev MetaVar := Nat
-@[reducible]
-abbrev Lvl := Nat
 
 inductive Tm
   | type

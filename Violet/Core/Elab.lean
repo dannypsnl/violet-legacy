@@ -9,9 +9,14 @@ abbrev TypCtx := List (String × VTy)
 
 structure ElabContext where
   env : Env
-  lvl : Lvl
   typCtx : TypCtx
   mctx : MetaCtx
+
+def ElabContext.empty : ElabContext := {
+    env := .mk []
+    typCtx := []
+    mctx := #[]
+  }
 
 def ElabContext.bind (ctx : ElabContext) (name : String) (ty : VTy)
   : ElabContext :=

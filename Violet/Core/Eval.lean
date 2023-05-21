@@ -58,9 +58,6 @@ partial def force [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     | _ => return t
   | t => return t
 
-def lvl2Ix : Lvl → Lvl → Nat
-  | l, x => (l - x - 1)
-
 mutual
 
 partial def quoteSpine [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
