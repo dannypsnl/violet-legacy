@@ -37,7 +37,10 @@ structure Program where
   definitions : Array Definition
 deriving Repr
 
-def Tm.toString : Tm → String
+instance : ToString Pattern where
+  toString | {ctor, vars} => s!"{ctor} {vars}"
+
+partial def Tm.toString : Tm → String
   | .lam p body => s!"λ {p} => {body.toString}"
   | .pi .implicit p ty body =>
     "{" ++ p ++ " : " ++ ty.toString ++ "} → " ++ body.toString
@@ -47,7 +50,13 @@ def Tm.toString : Tm → String
   | .var x => x
   | .let p ty val body =>
     s!"let {p} : {ty.toString} := {val.toString} in {body.toString}"
-  | .match p cs => sorry
+  | .match p cs =>
+    s!"match {p.toString}"
+      ++
+       (cs |> Array.map
+        (λ (p, b) => s!"| {p} => {b.toString}")
+        |> Array.toList
+        |> List.toString)
   | .type => "Type"
 instance : ToString Tm where
   toString := Tm.toString
@@ -59,15 +68,15 @@ instance : ToString Telescope where
       let bind := s!"{name} : {ty}"
       match mode with
       | .implicit =>
-        r := r ++ "{" ++ bind ++ "}"
+        r := r ++ " {" ++ bind ++ "}"
       | .explicit =>
-        r := r ++ "(" ++ bind ++ ")"
+        r := r ++ " (" ++ bind ++ ")"
     return r
 
 instance : ToString Definition where
   toString
   | .def x tele ret body =>
-    s!"def {x} {tele}: {ret} => {body}"
+    s!"def {x}{tele} : {ret} => {body}"
   | .data n cs => s!"data {n} {cs}"
 
 end Violet.Ast.Surface

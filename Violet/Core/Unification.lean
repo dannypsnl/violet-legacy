@@ -2,6 +2,15 @@ import Violet.Core.Eval
 
 namespace Violet.Core
 
+def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (mvar : MetaVar) (sp : Spine) (rhs : Val) : m Unit := do
+  -- let pren ← invert gamma sp
+  -- let rhs ← rename mvar pren rhs
+  -- let solution := [].eval <| lams (reverse <| map snd sp) rhs
+  -- modify <| fun s =>
+  --   { s with metaCtx := s.metaCtx.insert mvar (.sovled solution) }
+  return ()
+
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (l r : Val) : m Unit := do
   let report l r := do
@@ -21,7 +30,7 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     for (v, v') in sp.zip sp' do
       unify v v'
   -- meta head neutral can unify with something else
-  | .flex h sp, t' | t', .flex h sp => sorry
+  | .flex h sp, t' | t', .flex h sp => solve h sp t'
   | _, _ => report l r
 
 end Violet.Core
