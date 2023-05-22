@@ -1,4 +1,7 @@
+import Lean.Data.Position
+
 namespace Violet.Ast.Surface
+open Lean
 
 inductive Mode
   | implicit
@@ -11,7 +14,8 @@ structure Pattern where
   vars : Array String
 deriving Repr, BEq
 
-inductive Tm
+inductive Tm : Type
+  | src (s e : Position) (tm : Tm)
   | type
   | var (name : String)
   | «let» (name : String) (ty : Tm) (val : Tm) (body : Tm)
@@ -19,7 +23,7 @@ inductive Tm
   | app (fn : Tm) (arg : Tm)
   | pi (mode : Mode) (name : String) (ty : Tm) (body : Tm)
   | lam (name : String) (body : Tm)
-deriving Repr, Inhabited, BEq
+  deriving Inhabited
 instance : Coe String Tm where
   coe s := Tm.var s
 abbrev Typ := Tm
@@ -28,19 +32,18 @@ abbrev Telescope := Array <| String × Mode × Typ
 abbrev Ctor := String × Array Typ
 
 inductive Definition
-  | «def» (name : String) (tele : Telescope) (ret_ty : Typ) (body : Tm)
-  | data (name : String) (constructors : Array Ctor)
-deriving Repr, BEq
+  | «def» (s e : Position) (name : String) (tele : Telescope) (ret_ty : Typ) (body : Tm)
+  | data (s e : Position) (name : String) (constructors : Array Ctor)
 
 structure Program where
   name : String
   definitions : Array Definition
-deriving Repr
 
 instance : ToString Pattern where
   toString | {ctor, vars} => s!"{ctor} {vars}"
 
 partial def Tm.toString : Tm → String
+  | .src _ _ tm => tm.toString
   | .lam p body => s!"λ {p} => {body.toString}"
   | .pi .implicit p ty body =>
     "{" ++ p ++ " : " ++ ty.toString ++ "} → " ++ body.toString
@@ -54,7 +57,7 @@ partial def Tm.toString : Tm → String
     s!"match {p.toString}"
       ++
        (cs |> Array.map
-        (λ (p, b) => s!"| {p} => {b.toString}")
+        (λ (p, b) => s!"\n| {p} => {b.toString}")
         |> Array.toList
         |> List.toString)
   | .type => "Type"
@@ -75,8 +78,12 @@ instance : ToString Telescope where
 
 instance : ToString Definition where
   toString
-  | .def x tele ret body =>
+  | .def _ _ x tele ret body =>
     s!"def {x}{tele} : {ret} => {body}"
-  | .data n cs => s!"data {n} {cs}"
+  | .data _ _ n cs => Id.run do
+    let mut l := ""
+    for (name, typs) in cs do
+      l := l ++ s!"\n| {name} {typs}"
+    s!"data {n} {l}"
 
 end Violet.Ast.Surface

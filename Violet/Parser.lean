@@ -95,6 +95,7 @@ mutual
                  keyword "|>" *> return flip .app]
     |> «mixfix» [keyword "->" *> return .pi .explicit "_",
                  keyword "→" *> return .pi .explicit "_"]
+    |> λ p => withPosition p .src
 end
 
 abbrev typ := term
@@ -113,6 +114,7 @@ def telescope : Parsec Telescope := do
         let ty ← typ
         return Array.toList <| names.map fun name => (name, mode, ty)
 def parseDef : Parsec Definition := do
+  let startPos ← getPosition
   keyword "def"
   let name ← identifier
   let tele ← telescope
@@ -120,14 +122,18 @@ def parseDef : Parsec Definition := do
   let ret_ty ← typ
   -- TODO: or pattern matching clauses
   let body ← singleBody
-  return .«def» name tele ret_ty body
+  let endPos ← getPosition
+  return .«def» startPos endPos name tele ret_ty body
   where
     singleBody : Parsec Tm := do keyword "=>"; term
 
 def parseData : Parsec Definition := do
+  let startPos ← getPosition
   keyword "data"
   let name ← identifier
-  return .data name (← many constructor)
+  let cs ← many constructor
+  let endPos ← getPosition
+  return .data startPos endPos name cs
   where
     constructor : Parsec Ctor := do
       keyword "|"
@@ -142,7 +148,7 @@ def parseData : Parsec Definition := do
 def parseFile : Parsec Program := do
   keyword "module"
   let name ← identifier
-  let defs ← many $ parseDef <|> parseData
+  let defs ← many <| parseDef <|> parseData
   -- eof
   return { name := name, definitions := defs }
 

@@ -3,7 +3,13 @@ import Violet.Core.Unification
 import Violet.Ast.Surface
 
 namespace Violet.Core
+open Lean
 open Violet.Ast
+
+def addPos [Monad m] [MonadExcept String m]
+  (s e : Position) (f : m α) : m α := do
+  tryCatch f
+    fun ε => throw s!"{s.line}:{s.column}: {ε}"
 
 mutual
 
@@ -11,6 +17,7 @@ partial
 def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) : m (Core.Tm × VTy) := do
   match tm with
+  | .src startPos endPos tm => addPos startPos endPos (infer ctx tm)
   | .var x =>
     match ctx.typCtx.lookup x with
     | .some a => return (.var x, a)
@@ -58,6 +65,7 @@ partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) (ty : VTy) : m Core.Tm := do
   match tm, ← force ty with
+  | .src startPos endPos tm, ty => addPos startPos endPos (check ctx tm ty)
   -- TODO: insert implicit lambda for implicit pi
   | .lam x t, .pi _ _ a b =>
     let t ← (ctx.bind x a).check t (← b.apply x)

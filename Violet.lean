@@ -21,24 +21,24 @@ def defineM
 def innerCheck (p : Program)
   : StateT ElabContext (StateT MetaCtx (ExceptT String IO)) Unit := do
   for d in p.definitions do
-    IO.println s!"checking {d}"
+    IO.println s!"checking\n{d}"
     match d with
-    | .def name tele ret_ty body =>
+    | .def startPos endPos name tele ret_ty body =>
       let ty : Surface.Typ := tele.foldr (λ (x, mode, a) b => .pi mode x a b) ret_ty
       let val := tele.foldr (λ (x, _, _) body => .lam x body) body
-      defineM name ty val
-    | .data dataName constructors =>
+      defineM name (.src startPos endPos ty) (.src startPos endPos val)
+    | .data startPos endPos dataName constructors =>
       -- the type name is the value of that type directly
-      defineM dataName .type dataName
+      -- and this is an axiom, which means we cannot check it but just insert it
+      set <| (← get).define dataName (dataName) .type
       for (name, tys) in constructors do
         let ty := tys.foldr (λ ty b => .pi .explicit "_" ty b) (.var dataName)
-        let mut fresh := "_"
-        let mut val := .var name
-        -- no need to depend on type, so we can ignore the order problem here
-        for _ in tys do
-          val := .lam fresh (.app val fresh)
-          fresh := fresh ++ "'"
-        defineM name ty val
+        -- A constructor is just a rigid binding in the environment
+        let val := .rigid name (.mk #[])
+        let ctx ← get
+        let ty ← ctx.check (.src startPos endPos ty) Val.type (m := ElabM)
+        let ty ← ctx.env.eval ty (m := ElabM)
+        set <| ctx.define name val ty
 
 end Violet.Core
 namespace Violet.Ast.Surface
