@@ -4,7 +4,10 @@ namespace Violet.Core
 
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (l r : Val) : m Unit := do
-  let report l r := throw s!"cannot unify `{repr l}` with `{repr r}`"
+  let report l r := do
+    let l ← quote l
+    let r ← quote r
+    throw s!"cannot unify `{l}` with `{r}`"
   match l, r with
   |  .pi x i a b, .pi x' i' a' b' =>
     if i != i' then report l r

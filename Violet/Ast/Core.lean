@@ -16,4 +16,19 @@ inductive Tm
 deriving Repr, Inhabited, BEq
 abbrev Typ := Tm
 
+def Tm.toString : Tm → String
+  | .lam p body => s!"λ {p} => {body.toString}"
+  | .pi p .implicit ty body =>
+    "{" ++ p ++ " : " ++ ty.toString ++ "} → " ++ body.toString
+  | .pi p .explicit ty body =>
+    "(" ++ p ++ " : " ++ ty.toString ++ ") → " ++ body.toString
+  | .app t u => s!"{t.toString} {u.toString}"
+  | .var x => x
+  | .meta m => s!"?{m}"
+  | .let p ty val body => s!"let {p} : {ty.toString} := {val.toString} in {body.toString}"
+  | .type => "Type"
+instance : ToString Tm where
+  toString := Tm.toString
+  
+
 end Violet.Ast.Core

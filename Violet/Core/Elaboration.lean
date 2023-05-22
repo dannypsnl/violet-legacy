@@ -58,6 +58,7 @@ partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) (ty : VTy) : m Core.Tm := do
   match tm, ← force ty with
+  -- TODO: insert implicit lambda for implicit pi
   | .lam x t, .pi _ _ a b =>
     let t ← (ctx.bind x a).check t (← b.apply x)
     return .lam x t

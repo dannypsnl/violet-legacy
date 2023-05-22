@@ -10,7 +10,7 @@ abbrev ElabM := StateT MetaCtx (ExceptT String IO)
 def innerCheck (p : Program)
   : StateT ElabContext (StateT MetaCtx (ExceptT String IO)) Unit := do
   for d in p.definitions do
-    IO.println s!"checking {repr d}"
+    IO.println s!"checking {d}"
     match d with
     | .def name tele ret_ty body =>
       let ctx ← get
