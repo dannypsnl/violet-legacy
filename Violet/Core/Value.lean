@@ -46,6 +46,7 @@ abbrev VTy := Val
 inductive MetaEntry
   | solved (v : Val)
   | unsolved
+@[reducible]
 def MetaCtx := Array MetaEntry
 
 def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]

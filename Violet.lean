@@ -33,12 +33,15 @@ def innerCheck (p : Program)
       set <| (← get).define dataName (dataName) .type
       for (name, tys) in constructors do
         let ty := tys.foldr (λ ty b => .pi .explicit "_" ty b) (.var dataName)
-        -- A constructor is just a rigid binding in the environment
-        let val := .rigid name (.mk #[])
         let ctx ← get
         let ty ← ctx.check (.src startPos endPos ty) Val.type (m := ElabM)
         let ty ← ctx.env.eval ty (m := ElabM)
-        set <| ctx.define name val ty
+        -- A constructor is just a rigid binding in the environment
+        --
+        -- e.g. `true` will have value `.rigid true`
+        --
+        -- so we use `coe` here for constructor name too
+        set <| ctx.define name name ty
 
 end Violet.Core
 namespace Violet.Ast.Surface

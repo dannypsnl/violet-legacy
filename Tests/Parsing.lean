@@ -4,6 +4,8 @@ import Violet.Parser
 open LSpec
 open Violet.Parser Violet.Ast.Surface
 
+-- `src` is recording start and end `Position` information, but bad for testing
+-- so here convert them to string will remove position's difference
 instance : BEq Tm where
   beq x y := x.toString == y.toString
 

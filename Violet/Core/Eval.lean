@@ -72,12 +72,8 @@ partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match ← force t with
   | .flex m sp => quoteSpine (Tm.meta m) sp
   | .rigid x sp => quoteSpine (Tm.var x) sp
-  | .lam x t =>
-    return .lam x (← quote (← t.apply (.rigid x (.mk #[]))))
-  | .pi x m a b =>
-    return .pi x m
-      (← quote a)
-      (← quote (← b.apply (.rigid x (.mk #[]))))
+  | .lam x t => return .lam x (← quote (← t.apply x))
+  | .pi x m a b => return .pi x m (← quote a) (← quote (← b.apply x))
   | .type => return  .type
 
 end
