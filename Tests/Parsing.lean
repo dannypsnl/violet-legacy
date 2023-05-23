@@ -17,8 +17,8 @@ def main := lspecIO $
     test "explicit"
       (term.run "(a : Type) → Type" == .ok (.pi .explicit "a" .type .type))
     $ test "implicit"
-      (term.run "{a : Type} → Nat" |> Except.isOk)
+      (term.run "{a : Type} → Nat" == .ok (.pi .implicit "a" .type (.var "Nat")))
     $ test "non dependent"
-      (term.run "a → b" |> Except.isOk)
+      (term.run "a → b" == .ok (.pi .explicit "_" (.var "a") (.var "b")))
     $ test "test non-unicode"
       (term.run "(a : Type) -> Type" |> Except.isOk)
