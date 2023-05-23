@@ -8,17 +8,31 @@ open Lean
 open Lean.Parsec
 open Violet.Ast.Surface
 
-def keyword (s : String) := do
+def whitespace : Parsec Unit := do
+  repeat do
+    ws
+    match ← tryP comment with
+    | .none => return ()
+    | .some _ => continue
+  where
+    comment : Parsec Unit := do
+      skipString "--"
+      while (← peek?).isSome do
+        match ← peek! with
+        | '\n' => skip; break
+        | _ => skip
+
+def keyword (s : String) : Parsec Unit := do
   (skipString s).orElse (fun _ => fail s!"expected: keyword `{s}`")
-  ws
-def identifier := do
+  whitespace
+def identifier : Parsec String := do
   let r ← many1Chars <| satisfy valid?
   if keyword? r then
     fail s!"expected: identifier, got keyword `{r}`"
-  ws; return r
+  whitespace; return r
   where
     valid? : Char → Bool
-    | '-' | '_' | '?' | '!' => true
+    | '_' | '?' | '!' => true
     | c => c.isAlphanum
     keyword? : String → Bool
     | "module" | "def" | "data" | "Type" => true
@@ -149,7 +163,7 @@ def parseFile : Parsec Program := do
   keyword "module"
   let name ← identifier
   let defs ← many <| parseDef <|> parseData
-  -- eof
+  eof
   return { name := name, definitions := defs }
 
 end Violet.Parser
