@@ -77,5 +77,7 @@ instance : Coe (Array Val) Spine := ⟨.mk⟩
 
 def Spine.extend (v : Val) : Spine → Spine
   | .mk vs => vs.push v
+def Spine.size : Spine → Nat
+  | .mk vs => vs.size
 
 end Violet.Core

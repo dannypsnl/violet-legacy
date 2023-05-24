@@ -65,6 +65,9 @@ def lams (l : Lvl) (t : Tm) : Tm := Id.run do
 
 def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (gamma : Lvl) (mvar : MetaVar) (sp : Spine) (rhs : Val) : m Unit := do
+  if sp.size == 0 then
+    modify <| fun mctx => { mctx with mapping := mctx.mapping.insert mvar (.solved rhs) }
+    return
   let pren ← invert gamma sp
   let rhs ← rename mvar pren rhs
   let solution ← (Env.mk []).eval <| lams pren.dom rhs

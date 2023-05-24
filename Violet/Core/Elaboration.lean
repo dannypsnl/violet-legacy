@@ -55,9 +55,9 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         return (.app t' u, ← b.apply <| ← ctx.env.eval u)
       -- In this case, appMode is explicit, we insert a hole for this application
       else if piMode == .implicit then
-        ctx.infer <| .app appMode (.app .implicit t .hole) u
+        ctx.infer (.app appMode (.app .implicit t .hole) u)
       else
-        throw "bad mode"
+        throw s!"bad mode {t} {u}"
     | ty =>
       let t ← quote ctx.lvl ty
       throw s!"non appliable type `{ctx.showTm t}`"
@@ -113,14 +113,13 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return .let x a t u
   | .hole, _ => freshMeta
   | t, expected => do
-    let (t, inferred) ← ctx.infer t
-    let report msg := do
+    let (t', inferred) ← ctx.infer t
+    try unify ctx.lvl expected inferred
+    catch msg =>
       let e ← quote ctx.lvl expected
       let i ← quote ctx.lvl inferred
-      throw s!"cannot unify `{ctx.showTm e}` with `{ctx.showTm i}`\n{msg}"
-    try unify (ctx.lvl) expected inferred
-    catch msg => report msg
-    return t
+      throw s!"checking {t}¬  cannot unify `{ctx.showTm e}` with `{ctx.showTm i}`\n  {msg}"
+    return t'
 
 end
 
