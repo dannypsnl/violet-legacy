@@ -76,17 +76,21 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (l r : Val) : m Unit := do
   match l, r with
-  |  .pi _ i a b, .pi _ i' a' b' =>
-    if i != i' then throw "unify error"
+  | .lam _ _ t, .lam _ _ t' =>
+    unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
+  | .lam _ _ t', t | t, .lam _ _ t' =>
+    unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
+  | .pi _ mode a b, .pi _ mode' a' b' =>
+    if mode != mode' then throw "unify error"
     unify lvl a a'
-    unify lvl (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
+    unify (.lvl <| lvl.toNat + 1) (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
   | .type, .type => return ()
   -- for neutral
   | .rigid h (.mk sp), .rigid h' (.mk sp')
   | .flex h (.mk sp), .flex h' (.mk sp') =>
-    if h != h' then throw "unify error"
-    for (v, v') in sp.zip sp' do
-      unify lvl v v'
+    if h != h' || sp.size != sp'.size then throw "unify error"
+    for (t, t') in sp.zip sp' do
+      unify lvl t t'
   -- meta head neutral can unify with something else
   | .flex h sp, t' | t', .flex h sp => solve lvl h sp t'
   | _, _ => throw "unify error"
