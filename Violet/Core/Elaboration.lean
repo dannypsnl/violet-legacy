@@ -11,12 +11,23 @@ def addPos [Monad m] [MonadExcept String m]
   tryCatch f
     fun ε => throw s!"{s.line}:{s.column}: {ε}"
 
-def go [Monad m] [MonadExcept String m]
+def convertIx [Monad m] [MonadExcept String m]
   (count : Nat) (x : String) : TypCtx → m (Core.Tm × VTy)
   | [] => throw s!"no variable named `{x}`"
   | (x', a) :: xs =>
     if x == x' then return (.var (.ix count), a)
-    else go (count + 1) x xs
+    else convertIx (count + 1) x xs
+
+def freshMeta [Monad m] [MonadState MetaCtx m]
+  : m Core.Tm := do
+  let ctx ← get
+  let mvar := ctx.currentMeta
+  modify fun ctx =>
+    { ctx with
+      currentMeta := mvar + 1
+      mapping := ctx.mapping.insert mvar .unsolved
+    }
+  return .meta mvar
 
 mutual
 
@@ -25,7 +36,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) : m (Core.Tm × VTy) := do
   match tm with
   | .src startPos endPos tm => addPos startPos endPos (infer ctx tm)
-  | .var x => go 0 x ctx.typCtx
+  | .var x => convertIx 0 x ctx.typCtx
   -- TODO: a good idea would be having two lambda forms
   -- 1. lam x => t
   -- 2. lam (x : T) => t
@@ -64,6 +75,11 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     match rTy with
     | .some r => return (target, r)
     | .none => throw ""
+  | .hole => do
+    let meta ← freshMeta
+    let a ← ctx.env.eval meta
+    let t ← freshMeta
+    return (t, a)
 
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -81,9 +97,14 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let vt ← ctx.env.eval t
     let u ← (ctx.define x vt a').check u a'
     return .let x a t u
+  | .hole, _ => freshMeta
   | t, expected => do
+    let report := do
+      let l ← quote ctx.lvl expected
+      throw s!"cannot unify `{l}` with `{t}`"
     let (t, inferred) ← ctx.infer t
-    unify (ctx.lvl) expected inferred
+    try unify (ctx.lvl) expected inferred
+    catch _ => report
     return t
 
 end

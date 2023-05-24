@@ -38,14 +38,14 @@ match day
 | sunday => true
 | _ => false
 
-def NoB (b : Bool) : Type =>
-match b
-| true => Nat
-| false => Bool
+--def NoB (b : Bool) : Type =>
+--match b
+--| true => Nat
+--| false => Bool
 
-def plus (n m : Nat) : Nat =>
-match n
-| zero => m
-| suc n => suc $ plus n m
+--def plus (n m : Nat) : Nat =>
+--match n
+--| zero => m
+--| suc n => suc $ plus n m
 
-def main : NoB true => id $ plus (suc $ suc zero) (suc zero)
+def main : Nat => id !! (suc zero)

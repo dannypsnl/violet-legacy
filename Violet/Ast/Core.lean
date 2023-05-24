@@ -4,6 +4,7 @@ namespace Violet.Ast.Core
 
 @[reducible]
 abbrev MetaVar := Nat
+instance : Coe Nat MetaVar := ⟨id⟩
 
 inductive Ix
   | ix (x : Nat)

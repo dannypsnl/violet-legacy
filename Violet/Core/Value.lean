@@ -54,14 +54,15 @@ inductive MetaEntry
   | solved (v : Val)
   | unsolved
 
-open Lean
-@[reducible]
-def MetaCtx := HashMap Nat MetaEntry
+structure MetaCtx where
+  mapping : Lean.HashMap Nat MetaEntry
+  currentMeta : MetaVar
+  deriving Inhabited
 
 def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (v : MetaVar) : m MetaEntry := do
   let ctx ← get
-  match ctx.find? v with
+  match ctx.mapping.find? v with
   | .some e => pure e
   | _ => throw "violet internal bug in meta context"
 

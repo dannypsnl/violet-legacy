@@ -15,7 +15,7 @@ structure ElabContext where
 def ElabContext.empty : ElabContext := {
     env := .mk []
     typCtx := []
-    mctx := {}
+    mctx := default
     lvl := .lvl 0
   }
 

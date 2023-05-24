@@ -23,6 +23,7 @@ inductive Tm : Type
   | app (fn : Tm) (arg : Tm)
   | pi (mode : Mode) (name : String) (ty : Tm) (body : Tm)
   | lam (name : String) (body : Tm)
+  | hole
   deriving Inhabited
 instance : Coe String Tm where
   coe s := Tm.var s
@@ -61,6 +62,7 @@ partial def Tm.toString : Tm → String
         |> Array.toList
         |> List.toString)
   | .type => "Type"
+  | .hole => "!!"
 instance : ToString Tm where
   toString := Tm.toString
 

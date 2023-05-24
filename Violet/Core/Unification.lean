@@ -67,7 +67,7 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   let pren ← invert gamma sp
   let rhs ← rename mvar pren rhs
   let solution ← (Env.mk []).eval <| lams pren.dom rhs
-  modify <| fun mctx => mctx.insert mvar (.solved solution)
+  modify <| fun mctx => { mctx with mapping := mctx.mapping.insert mvar (.solved solution)}
   return ()
 
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]

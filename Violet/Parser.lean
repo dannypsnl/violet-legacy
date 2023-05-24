@@ -82,7 +82,7 @@ mutual
 
   partial def atom : Parsec Tm := do
     parseLam <|> parseLet <|> parseMatch
-    <|> kwTyp <|> var
+    <|> kwTyp <|> hole <|> var
     <|> parsePi .implicit braces
     <|> (do
       let r ← tryP $ parens term
@@ -91,6 +91,9 @@ mutual
       | .none => parsePi .explicit parens
       | .some s => return s)
     where
+      hole : Parsec Tm := do
+        keyword "!!"
+        return Tm.hole
       var : Parsec Tm := identifier
       kwTyp := do keyword "Type"; return Tm.type
 
