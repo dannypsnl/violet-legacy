@@ -44,13 +44,11 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     go (pren : PartialRenaming) (t : Val) : m Tm := do
       match ← force t with
       | .flex mvar' sp =>
-        if mvar == mvar' then
-          throw "occurs check"
-        else
-          goSp pren (.meta mvar') sp
+        if mvar == mvar' then throw "occurs check"
+        else goSp pren (.meta mvar') sp
       | .rigid (.lvl x) sp =>
         match pren.ren.find? x with
-        | .none => throw "scope error"
+        | .none => throw s!"scope error {pren.ren.toList}"
         | .some x' => goSp pren (.var (lvl2Ix pren.dom x')) sp
       | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply pren.cod.toNat)
       | .pi x mode a b =>
@@ -70,8 +68,9 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   let pren ← invert gamma sp
   let rhs ← rename mvar pren rhs
   let solution ← (Env.mk []).eval <| lams pren.dom rhs
-  modify <| fun mctx => { mctx with mapping := mctx.mapping.insert mvar (.solved solution)}
-  return ()
+  modify <| fun mctx => { mctx with
+    mapping := mctx.mapping.insert mvar (.solved solution)
+  }
 
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (l r : Val) : m Unit := do

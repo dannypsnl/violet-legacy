@@ -20,11 +20,10 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
     match d with
     | .def startPos endPos name tele ret_ty body =>
       let ty : Surface.Typ := tele.foldr (λ (x, mode, a) b => .pi mode x a b) ret_ty
-      let val := tele.foldr (λ (x, m, _) body => .lam m x body) body
-      let ctx ← get
+      let val := tele.foldr (λ (x, mode, _) body => .lam mode x body) body
       let ty ← reduceCheck (.src startPos endPos ty) .type
       let val ← reduceCheck (.src startPos endPos val) ty
-      set <| ctx.define name val ty
+      set <| (← get).define name val ty
     | .data startPos endPos dataName constructors =>
       -- the type name is the value of that type directly
       -- and this is an axiom, which means we cannot check it but just insert it

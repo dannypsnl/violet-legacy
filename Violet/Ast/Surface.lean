@@ -51,8 +51,8 @@ partial def Tm.toString : Tm → String
     "{" ++ p ++ " : " ++ ty.toString ++ "} → " ++ body.toString
   | .pi .explicit p ty body =>
     "(" ++ p ++ " : " ++ ty.toString ++ ") → " ++ body.toString
-  | .app .implicit t u => s!"{t.toString} " ++ "{" ++ u.toString ++ "}"
-  | .app .explicit t u => s!"{t.toString} {u.toString}"
+  | .app .implicit t u => s!"({t.toString} " ++ "{" ++ u.toString ++ "})"
+  | .app .explicit t u => s!"({t.toString} {u.toString})"
   | .var x => x
   | .let p ty val body =>
     s!"let {p} : {ty.toString} := {val.toString} in {body.toString}"

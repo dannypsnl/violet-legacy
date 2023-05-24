@@ -44,9 +44,7 @@ def ElabContext.showTm (ctx : ElabContext) : Tm → String
   | .pi p .explicit ty body =>
     "(" ++ p ++ " : " ++ ctx.showTm ty ++ ") → " ++ ctx.showTm body
   | .app t u => s!"{ctx.showTm t} {ctx.showTm u}"
-  | .var (.ix x) =>
-    let (name, _) := ctx.typCtx.get! x
-    name
+  | .var (.ix x) => let (name, _) := ctx.typCtx.get! x; name
   | .meta m => s!"?{m}"
   | .let p ty val body =>
     s!"let {p} : {ctx.showTm ty} := {ctx.showTm val} in {ctx.showTm body}"

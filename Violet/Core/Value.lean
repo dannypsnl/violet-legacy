@@ -10,6 +10,8 @@ inductive Lvl
   deriving Repr, Inhabited, BEq
 def Lvl.toNat : Lvl → Nat
   | .lvl v => v
+instance : ToString Lvl where
+  toString | (.lvl x) => toString x
 
 mutual
 
