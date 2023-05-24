@@ -45,7 +45,7 @@ namespace Violet.Ast.Surface
 open Violet.Core
 
 def Program.check (p : Program) : IO Unit := do
-  let result ← (((checkDefinitions p).run ElabContext.empty).run #[]).run
+  let result ← (((checkDefinitions p).run ElabContext.empty).run {}).run
   match result with
   | Except.ok _ => IO.println "done"
   | Except.error ε => IO.eprintln s!"fail, error:\n{ε}"

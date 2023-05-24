@@ -1,3 +1,4 @@
+import Lean.Data.HashMap
 import Violet.Ast.Core
 
 namespace Violet.Core
@@ -52,13 +53,15 @@ abbrev VTy := Val
 inductive MetaEntry
   | solved (v : Val)
   | unsolved
+
+open Lean
 @[reducible]
-def MetaCtx := Array MetaEntry
+def MetaCtx := HashMap Nat MetaEntry
 
 def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (v : MetaVar) : m MetaEntry := do
   let ctx ← get
-  match ctx.get? v with
+  match ctx.find? v with
   | .some e => pure e
   | _ => throw "violet internal bug in meta context"
 
