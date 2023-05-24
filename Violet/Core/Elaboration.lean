@@ -37,12 +37,6 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match tm with
   | .src startPos endPos tm => addPos startPos endPos (infer ctx tm)
   | .var x => convertIx 0 x ctx.typCtx
-  -- TODO: a good idea would be having two lambda forms
-  -- 1. lam x => t
-  -- 2. lam (x : T) => t
-  --
-  -- The first one cannot be inferred, but the second one can.
-  | .lam .. => throw "cannot infer lambda without type annotation"
   -- infer application like
   -- 1. `t u` explicit
   -- 2. `t {u}` implicit
@@ -74,21 +68,18 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let vt ← ctx.env.eval t
     let (u, b) ← infer (ctx.define x vt va) u
     return (.let x a t u, b)
-  -- FIXME: This is obivously wrong, just for filling the case
-  | .match target cases =>
-    let mut rTy := Option.none
-    for (_pat, body) in cases do
-      let (_, bTy) ← ctx.infer body
-      rTy := bTy
-    let (target, _) ← ctx.infer target
-    match rTy with
-    | .some r => return (target, r)
-    | .none => throw ""
   | .hole => do
     let meta ← freshMeta
     let a ← ctx.env.eval meta
     let t ← freshMeta
     return (t, a)
+  -- TODO: a good idea would be having two lambda forms
+  -- 1. lam x => t
+  -- 2. lam (x : T) => t
+  --
+  -- The first one cannot be inferred, but the second one can.
+  | .lam .. => throw "cannot infer lambda without type annotation"
+  | .match _ _ => throw "cannot infer pattern matching"
 
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -112,6 +103,21 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let u ← (ctx.define x vt a').check u a'
     return .let x a t u
   | .hole, _ => freshMeta
+  -- match at here should be desugared pattern matching
+  | .match target cases, expected =>
+    -- TODO: using targetTy to find all data type's constructors
+    let (target, targetTy) ← ctx.infer target
+    -- TODO: intro pattern context
+    for (pat, body) in cases do
+      -- 1. pat has ctor name
+      -- 2. pat has variables
+      -- A context we should create here is a mapping from these variables to types
+      -- then check body with this context has the expected type
+      --
+      -- TODO: bind pattern into check
+      let body ← ctx.check body expected
+
+    return sorry
   | t, expected => do
     let (t', inferred) ← ctx.infer t
     try unify ctx.lvl expected inferred

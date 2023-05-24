@@ -26,7 +26,13 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
     | .data startPos endPos dataName constructors =>
       -- the type name is the value of that type directly
       -- and this is an axiom, which means we cannot check it but just insert it
-      set <| (← get).bind dataName .type
+      --
+      -- TODO: for indexed data type, it will not be like current simple `Nat : Type`
+      --       so we will need to change this line
+      let ctx ← get
+      set <| ctx.bind dataName .type
+      -- TODO: record constructors into ElabContext, maps dataTypeIndex to constructors
+      --let dataTypeIndex : Val := ctx.lvl.toNat
       for (name, tys) in constructors do
         let ty := tys.foldr (λ ty b => .pi .explicit "_" ty b) (.var dataName)
         let ty ← reduceCheck (.src startPos endPos ty) .type
