@@ -27,7 +27,7 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  : Closure -> Val -> m Val
+  : Closure → Val → m Val
   | .mk _ env t, u => (env.extend u).eval t
 
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -42,7 +42,7 @@ end
 
 partial def Val.applySpine
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (t : Val) : Spine -> m Val
+  (t : Val) : Spine → m Val
   | .mk sp => sp.foldlM Val.apply t
 
 partial def force [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
