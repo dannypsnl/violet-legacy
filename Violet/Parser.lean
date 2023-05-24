@@ -8,17 +8,31 @@ open Lean
 open Lean.Parsec
 open Violet.Ast.Surface
 
-def keyword (s : String) := do
+def whitespace : Parsec Unit := do
+  repeat do
+    ws
+    match ← tryP comment with
+    | .none => return ()
+    | .some _ => continue
+  where
+    comment : Parsec Unit := do
+      skipString "--"
+      while (← peek?).isSome do
+        match ← peek! with
+        | '\n' => skip; break
+        | _ => skip
+
+def keyword (s : String) : Parsec Unit := do
   (skipString s).orElse (fun _ => fail s!"expected: keyword `{s}`")
-  ws
-def identifier := do
+  whitespace
+def identifier : Parsec String := do
   let r ← many1Chars <| satisfy valid?
   if keyword? r then
     fail s!"expected: identifier, got keyword `{r}`"
-  ws; return r
+  whitespace; return r
   where
     valid? : Char → Bool
-    | '-' | '_' | '?' | '!' => true
+    | '_' | '?' | '!' => true
     | c => c.isAlphanum
     keyword? : String → Bool
     | "module" | "def" | "data" | "Type" => true
@@ -52,7 +66,7 @@ mutual
     let names ← many1 identifier
     keyword "=>"
     let body ← term
-    return  names.foldr .lam body
+    return  names.foldr (.lam .explicit) body
 
   partial def parsePi (mode : Mode) (w : Parsec (String × Typ) → Parsec (String × Typ))
     : Parsec Tm := do
@@ -68,7 +82,7 @@ mutual
 
   partial def atom : Parsec Tm := do
     parseLam <|> parseLet <|> parseMatch
-    <|> kwTyp <|> var
+    <|> kwTyp <|> hole <|> var
     <|> parsePi .implicit braces
     <|> (do
       let r ← tryP $ parens term
@@ -77,6 +91,9 @@ mutual
       | .none => parsePi .explicit parens
       | .some s => return s)
     where
+      hole : Parsec Tm := do
+        keyword "!!"
+        return Tm.hole
       var : Parsec Tm := identifier
       kwTyp := do keyword "Type"; return Tm.type
 
@@ -85,16 +102,17 @@ mutual
     repeat do
       match ← tryP atom with
       | .none => break
-      | .some r => l := .app l r
+      | .some r => l := .app .explicit l r
     return l
 
   partial def term : Parsec Tm :=
     spine
-    |> «mixfix» [keyword "$" *> return .app,
-                 keyword "<|" *> return .app,
-                 keyword "|>" *> return flip .app]
+    |> «mixfix» [keyword "$" *> return .app .explicit,
+                 keyword "<|" *> return .app .explicit,
+                 keyword "|>" *> return flip (.app .explicit)]
     |> «mixfix» [keyword "->" *> return .pi .explicit "_",
                  keyword "→" *> return .pi .explicit "_"]
+    |> λ p => withPosition p .src
 end
 
 abbrev typ := term
@@ -113,6 +131,7 @@ def telescope : Parsec Telescope := do
         let ty ← typ
         return Array.toList <| names.map fun name => (name, mode, ty)
 def parseDef : Parsec Definition := do
+  let startPos ← getPosition
   keyword "def"
   let name ← identifier
   let tele ← telescope
@@ -120,14 +139,18 @@ def parseDef : Parsec Definition := do
   let ret_ty ← typ
   -- TODO: or pattern matching clauses
   let body ← singleBody
-  return .«def» name tele ret_ty body
+  let endPos ← getPosition
+  return .«def» startPos endPos name tele ret_ty body
   where
     singleBody : Parsec Tm := do keyword "=>"; term
 
 def parseData : Parsec Definition := do
+  let startPos ← getPosition
   keyword "data"
   let name ← identifier
-  return .data name (← many constructor)
+  let cs ← many constructor
+  let endPos ← getPosition
+  return .data startPos endPos name cs
   where
     constructor : Parsec Ctor := do
       keyword "|"
@@ -142,8 +165,8 @@ def parseData : Parsec Definition := do
 def parseFile : Parsec Program := do
   keyword "module"
   let name ← identifier
-  let defs ← many $ parseDef <|> parseData
-  -- eof
+  let defs ← many <| parseDef <|> parseData
+  eof
   return { name := name, definitions := defs }
 
 end Violet.Parser

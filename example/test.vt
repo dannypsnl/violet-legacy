@@ -18,20 +18,10 @@ match n
 | zero => true
 | suc _ => false
 
-def plus (n m : Nat) : Nat =>
-match n
-| zero => m
-| suc n => suc $ plus n m
-
 def not (b : Bool) : Bool =>
 match b
 | true => false
 | false => true
-
-def NoB (b : Bool) : Type =>
-match b
-| true => Nat
-| false => Bool
 
 data Weekday
 | monday
@@ -48,4 +38,14 @@ match day
 | sunday => true
 | _ => false
 
-def main : NoB true => id $ plus (suc $ suc zero) (suc zero)
+--def NoB (b : Bool) : Type =>
+--match b
+--| true => Nat
+--| false => Bool
+
+--def plus (n m : Nat) : Nat =>
+--match n
+--| zero => m
+--| suc n => suc $ plus n m
+
+def main : Nat => id (suc zero)

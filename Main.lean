@@ -1,10 +1,11 @@
 import «Violet»
 open Violet.Parser (parseFile)
+open Violet.Ast.Surface
 
 def handleFile (src : System.FilePath) : ExceptT String IO Unit := do
   let content ← IO.FS.readFile src
-  let result ← parseFile.runFilename src content
-  IO.println <| repr result
+  let prog ← parseFile.runFilename src content
+  prog.check
 
 def main : IO Unit := do
   match (← handleFile "example/test.vt") with
