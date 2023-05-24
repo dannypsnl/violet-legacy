@@ -4,19 +4,25 @@ namespace Violet.Core
 open Violet.Ast.Core
 open Violet.Ast
 
+inductive Lvl
+  | lvl (v : Nat)
+  deriving Repr, Inhabited, BEq
+def Lvl.toNat : Lvl → Nat
+  | .lvl v => v
+
 mutual
 
 inductive Env
-  | mk (mapping : List (String × Val))
-deriving Repr, Inhabited, BEq
+  | mk (mapping : List Val)
+  deriving Repr, Inhabited, BEq
 
 inductive Spine
   | mk : Array Val → Spine
-deriving Repr, Inhabited, BEq
+  deriving Repr, Inhabited, BEq
 
 inductive Closure
   | mk (name : String) : Env → Tm → Closure
-deriving Repr, Inhabited, BEq
+  deriving Repr, Inhabited, BEq
 
 /-- Val
 
@@ -29,16 +35,16 @@ Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is 
 -/
 inductive Val
   | flex (head : MetaVar) (body : Spine)
-  | rigid (head : String) (body : Spine)
-  | lam (param : String) (clos : Closure)
-  | pi : String → Surface.Mode → Val → Closure → Val
-  | type : Val
-deriving Repr, Inhabited, BEq
+  | rigid (head : Lvl) (body : Spine)
+  | lam (name : String) (clos : Closure)
+  | pi (name : String) (mode : Surface.Mode) (ty : Val) (clos : Closure)
+  | type
+  deriving Repr, Inhabited, BEq
 
 end
 
-instance : Coe String Val where
-  coe s := Val.rigid s (.mk #[])
+instance : Coe Nat Val where
+  coe x := Val.rigid (.lvl x) (.mk #[])
 
 @[reducible]
 abbrev VTy := Val
@@ -56,8 +62,10 @@ def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .some e => pure e
   | _ => throw "violet internal bug in meta context"
 
-def Env.extend (name : String) (v : Val) : Env → Env
-  | .mk vs => .mk <| (name, v) :: vs
+def Env.extend (v : Val) : Env → Env
+  | .mk vs => .mk <| v :: vs
+def Env.length : Env → Nat
+  | .mk vs => vs.length
 
 instance : Coe (Array Val) Spine := ⟨.mk⟩
 

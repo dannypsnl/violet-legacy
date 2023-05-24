@@ -11,6 +11,13 @@ def addPos [Monad m] [MonadExcept String m]
   tryCatch f
     fun ε => throw s!"{s.line}:{s.column}: {ε}"
 
+def go [Monad m] [MonadExcept String m]
+  (count : Nat) (x : String) : TypCtx → m (Core.Tm × VTy)
+  | [] => throw s!"no variable named `{x}`"
+  | (x', a) :: xs =>
+    if x == x' then return (.var (.ix count), a)
+    else go (count + 1) x xs
+
 mutual
 
 partial
@@ -18,10 +25,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) : m (Core.Tm × VTy) := do
   match tm with
   | .src startPos endPos tm => addPos startPos endPos (infer ctx tm)
-  | .var x =>
-    match ctx.typCtx.lookup x with
-    | .some a => return (.var x, a)
-    | .none => throw s!"no variable named `{x}`"
+  | .var x => go 0 x ctx.typCtx
   -- TODO: a good idea would be having two lambda forms
   -- 1. lam x => t
   -- 2. lam (x : T) => t
@@ -68,7 +72,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .src startPos endPos tm, ty => addPos startPos endPos (check ctx tm ty)
   -- TODO: insert implicit lambda for implicit pi
   | .lam x t, .pi _ _ a b =>
-    let t ← (ctx.bind x a).check t (← b.apply x)
+    let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
     return .lam x t
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
@@ -79,7 +83,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return .let x a t u
   | t, expected => do
     let (t, inferred) ← ctx.infer t
-    unify expected inferred
+    unify (ctx.lvl) expected inferred
     return t
 
 end

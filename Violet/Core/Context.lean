@@ -10,23 +10,29 @@ structure ElabContext where
   env : Env
   typCtx : TypCtx
   mctx : MetaCtx
+  lvl : Lvl
 
 def ElabContext.empty : ElabContext := {
     env := .mk []
     typCtx := []
     mctx := #[]
+    lvl := .lvl 0
   }
 
 def ElabContext.bind (ctx : ElabContext) (name : String) (ty : VTy)
   : ElabContext :=
+  let (.lvl curLvl) := ctx.lvl
   { ctx with
-    env := ctx.env.extend name name
+    lvl := .lvl <| curLvl + 1
+    env := ctx.env.extend curLvl
     typCtx := (name, ty) :: ctx.typCtx
   }
 def ElabContext.define (ctx : ElabContext) (name : String) (val : Val) (ty : VTy)
   : ElabContext :=
+  let (.lvl curLvl) := ctx.lvl
   { ctx with
-    env := ctx.env.extend name val
+    lvl := .lvl <| curLvl + 1
+    env := ctx.env.extend val
     typCtx := (name, ty) :: ctx.typCtx
   }
 

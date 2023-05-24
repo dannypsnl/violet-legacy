@@ -28,17 +28,16 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
     | .data startPos endPos dataName constructors =>
       -- the type name is the value of that type directly
       -- and this is an axiom, which means we cannot check it but just insert it
-      set <| (← get).define dataName (dataName) .type
+      set <| (← get).bind dataName .type
       for (name, tys) in constructors do
         let ty := tys.foldr (λ ty b => .pi .explicit "_" ty b) (.var dataName)
-        let ctx ← get
         let ty ← reduceCheck (.src startPos endPos ty) .type
         -- A constructor is just a rigid binding in the environment
         --
         -- e.g. `true` will have value `.rigid true`
         --
         -- so we use `coe` here for constructor name too
-        set <| ctx.define name name ty
+        set <| (← get).bind name ty
 
 end Violet.Core
 
