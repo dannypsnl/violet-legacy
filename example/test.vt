@@ -9,7 +9,7 @@ data Nat
 | suc Nat
 
 def trytry : {A : Type} -> (x : A) -> A =>
-  \A x => x
+  \x => x
 
 def id {A : Type} (x : A) : A => x
 
@@ -48,4 +48,4 @@ match day
 --| zero => m
 --| suc n => suc $ plus n m
 
-def main : Nat => id !! (suc zero)
+def main : Nat => id (suc zero)

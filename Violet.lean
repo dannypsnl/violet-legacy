@@ -20,7 +20,7 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
     match d with
     | .def startPos endPos name tele ret_ty body =>
       let ty : Surface.Typ := tele.foldr (λ (x, mode, a) b => .pi mode x a b) ret_ty
-      let val := tele.foldr (λ (x, _, _) body => .lam x body) body
+      let val := tele.foldr (λ (x, m, _) body => .lam m x body) body
       let ctx ← get
       let ty ← reduceCheck (.src startPos endPos ty) .type
       let val ← reduceCheck (.src startPos endPos val) ty

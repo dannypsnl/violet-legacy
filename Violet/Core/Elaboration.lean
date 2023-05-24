@@ -43,15 +43,24 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   --
   -- The first one cannot be inferred, but the second one can.
   | .lam .. => throw "cannot infer lambda without type annotation"
-  -- infer `t u`
-  -- TODO: create syntax to handle implicit application
-  | .app t u =>
-    let (t, ty) ← ctx.infer t
+  -- infer application like
+  -- 1. `t u` explicit
+  -- 2. `t {u}` implicit
+  | .app appMode t u =>
+    let (t', ty) ← ctx.infer t
     match ← force ty with
-    | .pi _x _ a b =>
-      let u ← ctx.check u a
-      return (.app t u, ← b.apply <| ← ctx.env.eval u)
-    | _ => throw "cannot apply non-function"
+    | .pi _ piMode a b =>
+      if appMode == piMode then
+        let u ← ctx.check u a
+        return (.app t' u, ← b.apply <| ← ctx.env.eval u)
+      -- In this case, appMode is explicit, we insert a hole for this application
+      else if piMode == .implicit then
+        ctx.infer <| .app appMode (.app .implicit t .hole) u
+      else
+        throw "bad mode"
+    | ty =>
+      let t ← quote ctx.lvl ty
+      throw s!"non appliable type `{ctx.showTm t}`"
   | .type => return (.type, .type)
   -- infer `(x : a) -> b`
   | .pi mode x a b =>
@@ -86,10 +95,15 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) (ty : VTy) : m Core.Tm := do
   match tm, ← force ty with
   | .src startPos endPos tm, ty => addPos startPos endPos (check ctx tm ty)
-  -- TODO: insert implicit lambda for implicit pi
-  | .lam x t, .pi _ _ a b =>
+  -- if lambda has same mode as pi type, then just check it
+  | .lam m@.implicit x t, .pi _ .implicit a b 
+  | .lam m@.explicit x t, .pi _ .explicit a b  =>
     let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
-    return .lam x t
+    return .lam x m t
+  -- otherwise if pi type is implicit, insert a new implicit lambda
+  | t, .pi x .implicit a b =>
+    let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
+    return .lam x .implicit t
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a
@@ -99,12 +113,13 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return .let x a t u
   | .hole, _ => freshMeta
   | t, expected => do
-    let report := do
-      let l ← quote ctx.lvl expected
-      throw s!"cannot unify `{l}` with `{t}`"
     let (t, inferred) ← ctx.infer t
+    let report msg := do
+      let e ← quote ctx.lvl expected
+      let i ← quote ctx.lvl inferred
+      throw s!"cannot unify `{ctx.showTm e}` with `{ctx.showTm i}`\n{msg}"
     try unify (ctx.lvl) expected inferred
-    catch _ => report
+    catch msg => report msg
     return t
 
 end

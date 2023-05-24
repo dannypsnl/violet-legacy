@@ -18,7 +18,7 @@ inductive Env
   deriving Repr, Inhabited, BEq
 
 inductive Spine
-  | mk : Array Val → Spine
+  | mk (vs : Array Val)
   deriving Repr, Inhabited, BEq
 
 inductive Closure
@@ -37,7 +37,7 @@ Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is 
 inductive Val
   | flex (head : MetaVar) (body : Spine)
   | rigid (head : Lvl) (body : Spine)
-  | lam (name : String) (clos : Closure)
+  | lam (name : String) (mode : Surface.Mode) (clos : Closure)
   | pi (name : String) (mode : Surface.Mode) (ty : Val) (clos : Closure)
   | type
   deriving Repr, Inhabited, BEq

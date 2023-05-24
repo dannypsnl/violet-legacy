@@ -19,7 +19,7 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match tm with
   | .var (Ix.ix x) => env.lookup x
   | .app t u => (← env.eval t).apply (← env.eval u)
-  | .lam x t => return .lam x (Closure.mk x env t)
+  | .lam x m t => return .lam x m (Closure.mk x env t)
   | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk x env b)
   | .let _ _ t u => (env.extend (← env.eval t)).eval u
   | .type => return .type
@@ -33,7 +33,7 @@ partial def Closure.apply
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) (u : Val) : m Val :=
   match t with
-  | .lam _ t    => t.apply u
+  | .lam _ _ t    => t.apply u
   | .flex  m sp => return .flex m  (sp.extend u)
   | .rigid x sp => return .rigid x (sp.extend u)
   | _           => throw "violet internal bug at value apply"
@@ -72,7 +72,7 @@ partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match ← force t with
   | .flex m sp => sp.quote lvl (Tm.meta m)
   | .rigid x sp => sp.quote lvl (Tm.var (lvl2Ix lvl x))
-  | .lam x t => return .lam x (← quote (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat))
+  | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat))
   | .pi x m a b => return .pi x m (← quote lvl a) (← quote lvl (← b.apply lvl.toNat))
   | .type => return  .type
 

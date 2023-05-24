@@ -66,7 +66,7 @@ mutual
     let names ← many1 identifier
     keyword "=>"
     let body ← term
-    return  names.foldr .lam body
+    return  names.foldr (.lam .explicit) body
 
   partial def parsePi (mode : Mode) (w : Parsec (String × Typ) → Parsec (String × Typ))
     : Parsec Tm := do
@@ -102,14 +102,14 @@ mutual
     repeat do
       match ← tryP atom with
       | .none => break
-      | .some r => l := .app l r
+      | .some r => l := .app .explicit l r
     return l
 
   partial def term : Parsec Tm :=
     spine
-    |> «mixfix» [keyword "$" *> return .app,
-                 keyword "<|" *> return .app,
-                 keyword "|>" *> return flip .app]
+    |> «mixfix» [keyword "$" *> return .app .explicit,
+                 keyword "<|" *> return .app .explicit,
+                 keyword "|>" *> return flip (.app .explicit)]
     |> «mixfix» [keyword "->" *> return .pi .explicit "_",
                  keyword "→" *> return .pi .explicit "_"]
     |> λ p => withPosition p .src

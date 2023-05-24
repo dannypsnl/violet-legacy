@@ -20,9 +20,9 @@ inductive Tm : Type
   | var (name : String)
   | «let» (name : String) (ty : Tm) (val : Tm) (body : Tm)
   | «match» (target : Tm) (cases : Array (Pattern × Tm))
-  | app (fn : Tm) (arg : Tm)
+  | app (mode : Mode) (fn : Tm) (arg : Tm)
   | pi (mode : Mode) (name : String) (ty : Tm) (body : Tm)
-  | lam (name : String) (body : Tm)
+  | lam (mode : Mode) (name : String) (body : Tm)
   | hole
   deriving Inhabited
 instance : Coe String Tm where
@@ -45,12 +45,14 @@ instance : ToString Pattern where
 
 partial def Tm.toString : Tm → String
   | .src _ _ tm => tm.toString
-  | .lam p body => s!"λ {p} => {body.toString}"
+  | .lam .implicit p body => "λ" ++ "{" ++ p ++ "}" ++ s!" => {body.toString}"
+  | .lam .explicit p body => s!"λ {p} => {body.toString}"
   | .pi .implicit p ty body =>
     "{" ++ p ++ " : " ++ ty.toString ++ "} → " ++ body.toString
   | .pi .explicit p ty body =>
     "(" ++ p ++ " : " ++ ty.toString ++ ") → " ++ body.toString
-  | .app t u => s!"{t.toString} {u.toString}"
+  | .app .implicit t u => s!"{t.toString} " ++ "{" ++ u.toString ++ "}"
+  | .app .explicit t u => s!"{t.toString} {u.toString}"
   | .var x => x
   | .let p ty val body =>
     s!"let {p} : {ty.toString} := {val.toString} in {body.toString}"

@@ -23,7 +23,7 @@ def invert [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return {dom, cod := gamma, ren}
   where
     go : List Val → m (Lvl × HashMap Nat Lvl)
-    | [] => return (.lvl 0, {})
+    | [] => return (.lvl 0, default)
     | t :: sp => do
       let (dom, ren) ← go sp
       match ← force t with
@@ -52,14 +52,17 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         match pren.ren.find? x with
         | .none => throw "scope error"
         | .some x' => goSp pren (.var (lvl2Ix pren.dom x')) sp
-      | .lam x t => .lam x <$> go pren.lift (← t.apply pren.cod.toNat)
-      | .pi x mode a b => .pi x mode <$> go pren a <*> go pren.lift (← b.apply pren.cod.toNat)
+      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply pren.cod.toNat)
+      | .pi x mode a b =>
+        .pi x mode
+          <$> go pren a
+          <*> go pren.lift (← b.apply pren.cod.toNat)
       | .type => return .type
-      
+
 def lams (l : Lvl) (t : Tm) : Tm := Id.run do
   let mut tm := t
   for i in [0:l.toNat] do
-    tm :=  .lam (s!"x{i+1}") tm
+    tm :=  .lam (s!"x{i+1}") .explicit tm
   return tm
 
 def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -72,24 +75,20 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (l r : Val) : m Unit := do
-  let report l r := do
-    let l ← quote lvl l
-    let r ← quote lvl r
-    throw s!"cannot unify `{l}` with `{r}`"
   match l, r with
   |  .pi _ i a b, .pi _ i' a' b' =>
-    if i != i' then report l r
+    if i != i' then throw "unify error"
     unify lvl a a'
     unify lvl (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
   | .type, .type => return ()
   -- for neutral
   | .rigid h (.mk sp), .rigid h' (.mk sp')
   | .flex h (.mk sp), .flex h' (.mk sp') =>
-    if h != h' then report l r
+    if h != h' then throw "unify error"
     for (v, v') in sp.zip sp' do
       unify lvl v v'
   -- meta head neutral can unify with something else
   | .flex h sp, t' | t', .flex h sp => solve lvl h sp t'
-  | _, _ => report l r
+  | _, _ => throw "unify error"
 
 end Violet.Core
