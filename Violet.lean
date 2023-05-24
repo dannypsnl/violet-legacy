@@ -16,7 +16,6 @@ def reduceCheck (tm : Surface.Tm) (vty : VTy) : ProgramM Val := do
 
 def checkDefinitions (p : Program) : ProgramM Unit := do
   for d in p.definitions do
-    IO.println s!"checking\n{d}"
     match d with
     | .def startPos endPos name tele ret_ty body =>
       let ty : Surface.Typ := tele.foldr (λ (x, mode, a) b => .pi mode x a b) ret_ty
@@ -42,11 +41,30 @@ end Violet.Core
 
 namespace Violet.Ast.Surface
 open Violet.Core
+open Violet.Parser
 
-def Program.check (p : Program) : IO Unit := do
+partial
+def repl : ProgramM Unit := do
+  let ctx ← get
+  let stdin ← IO.getStdin
+  let expression ← stdin.getLine
+  match term.run expression with
+  | .ok v =>
+    let (v, vty) ← ctx.infer v (m := ElabM)
+    let v ← ctx.env.eval v (m := ElabM)
+    let v ← quote ctx.lvl v (m := ElabM)
+    let vty ← quote ctx.lvl vty (m := ElabM)
+    IO.println s!"{ctx.showTm v} : {ctx.showTm vty}"
+    repl
+  | .error ε => IO.eprintln s!"{ε}"
+
+def Program.check (p : Program) (src : System.FilePath) : IO Unit := do
+  IO.println s!"checking {src} ..."
   let result ← (((checkDefinitions p).run ElabContext.empty).run default).run
   match result with
-  | Except.ok _ => IO.println "done"
-  | Except.error ε => IO.eprintln s!"fail, error:\n{ε}"
+  | Except.ok ((_, elabCtx), metaCtx) =>
+    IO.println s!"{src} checked successfully"
+    let _ ← ((repl.run elabCtx).run metaCtx).run
+  | Except.error ε => IO.eprintln s!"{src}:{ε}"
 
 end Violet.Ast.Surface
