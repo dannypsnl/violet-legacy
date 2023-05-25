@@ -24,3 +24,10 @@ def main := lspecIO $
       (term.run "a → b" == .ok (.pi .explicit "_" (.var "a") (.var "b")))
     $ test "test non-unicode"
       (term.run "(a : Type) -> Type" |> Except.isOk)
+  $ group "application" $
+    test "$ operator"
+      (term.run "a $ b c" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
+    $ test "<| operator"
+      (term.run "a <| b" == .ok (.app .explicit (.var "a") (.var "b")))
+    $ test "|> operator"
+      (term.run "b c |> a" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
