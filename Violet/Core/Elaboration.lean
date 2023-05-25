@@ -124,7 +124,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     catch msg =>
       let e ← quote ctx.lvl expected
       let i ← quote ctx.lvl inferred
-      throw s!"checking {t}¬  cannot unify `{ctx.showTm e}` with `{ctx.showTm i}`\n  {msg}"
+      throw s!"checking {t}\n  cannot unify `{ctx.showTm e}` with `{ctx.showTm i}`\n  {msg}"
     return t'
 
 end
