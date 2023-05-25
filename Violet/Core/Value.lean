@@ -24,7 +24,7 @@ inductive Spine
   deriving Repr, Inhabited, BEq
 
 inductive Closure
-  | mk (name : String) : Env → Tm → Closure
+  | mk (env : Env) (arg : Tm)
   deriving Repr, Inhabited, BEq
 
 /-- Val

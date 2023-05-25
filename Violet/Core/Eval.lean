@@ -19,8 +19,8 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match tm with
   | .var (Ix.ix x) => env.lookup x
   | .app t u => (← env.eval t).apply (← env.eval u)
-  | .lam x m t => return .lam x m (Closure.mk x env t)
-  | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk x env b)
+  | .lam x m t => return .lam x m (Closure.mk env t)
+  | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk env b)
   | .let _ _ t u => (env.extend (← env.eval t)).eval u
   | .type => return .type
   | .meta m => vMeta m
@@ -28,7 +28,7 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   : Closure → Val → m Val
-  | .mk _ env t, u => (env.extend u).eval t
+  | .mk env t, u => (env.extend u).eval t
 
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) (u : Val) : m Val :=
