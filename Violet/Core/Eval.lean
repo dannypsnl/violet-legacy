@@ -3,8 +3,8 @@ import Violet.Core.Value
 namespace Violet.Core
 open Violet.Ast.Core
 
-def Env.lookup [Monad m] [MonadExcept String m] (x : Nat) : Env → m Val
-  | .mk vs => return vs.get! x
+def Env.lookup [Monad m] [MonadExcept String m] : Ix → Env → m Val
+  | .ix x, .mk vs => return vs.get! x
 
 def vMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (v : MetaVar) : m Val := do
@@ -17,7 +17,7 @@ mutual
 partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (env : Env) (tm : Tm) : m Val := do
   match tm with
-  | .var (Ix.ix x) => env.lookup x
+  | .var x => env.lookup x
   | .app t u => (← env.eval t).apply (← env.eval u)
   | .lam x m t => return .lam x m (Closure.mk env t)
   | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk env b)
