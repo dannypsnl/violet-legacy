@@ -53,6 +53,7 @@ partial
 def repl : ProgramM Unit := do
   let ctx ← get
   let stdin ← IO.getStdin
+  IO.print "> "
   let expression ← stdin.getLine
   match term.run expression with
   | .ok v =>
