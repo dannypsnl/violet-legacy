@@ -6,6 +6,6 @@ data Nat
 
 data SomethingElse
 
-def id {A : U} (x : A) : A => x
+def id {A : Type} (x : A) : A => x
 
 def main : SomethingElse => id (suc zero)

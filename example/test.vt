@@ -48,4 +48,4 @@ match day
 --| zero => m
 --| suc n => suc $ plus n m
 
-def main : Nat => id (suc zero)
+def main : Nat => id <| id (suc zero)
