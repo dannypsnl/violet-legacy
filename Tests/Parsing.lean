@@ -28,6 +28,11 @@ def main := lspecIO $
     test "$ operator"
       (term.run "a $ b c" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
     $ test "<| operator"
-      (term.run "a <| b" == .ok (.app .explicit (.var "a") (.var "b")))
+      (term.run "a <| b <| c" == .ok (.app .explicit (.var "a")
+        (.app .explicit (.var "b") (.var "c"))))
     $ test "|> operator"
-      (term.run "b c |> a" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
+      (term.run "d |> b c |> a" == .ok (
+        .app .explicit (.var "a")
+          (.app .explicit
+            (.app .explicit (.var "b") (.var "c"))
+            (.var "d"))))
