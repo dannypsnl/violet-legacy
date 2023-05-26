@@ -77,7 +77,7 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (l r : Val) : m Unit := do
-  match l, r with
+  match ← force l, ← force r with
   | .lam _ _ t, .lam _ _ t' =>
     unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
   | .lam _ _ t', t | t, .lam _ _ t' =>

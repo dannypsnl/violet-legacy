@@ -49,8 +49,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         return (.app t' u, ← b.apply <| ← ctx.env.eval u)
       -- In this case, appMode is explicit, we insert a hole for this application
       else if piMode == .implicit then
-        let (t, ty) ← ctx.infer (.app appMode (.app .implicit t .hole) u)
-        return (t, ← force ty)
+        ctx.infer (.app appMode (.app .implicit t .hole) u)
       else
         throw s!"bad mode {t} {u}"
     | ty =>
