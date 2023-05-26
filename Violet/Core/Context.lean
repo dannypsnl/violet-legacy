@@ -36,7 +36,12 @@ def ElabContext.define (ctx : ElabContext) (name : String) (val : Val) (ty : VTy
     typCtx := (name, ty) :: ctx.typCtx
   }
 
-def ElabContext.showTm (ctx : ElabContext) : Tm → String
+
+partial def ElabContext.showPat (ctx : ElabContext) (pat : Pattern) : String :=
+  let (name, _) := ctx.typCtx.get! pat.ctor
+  name ++ " " ++ toString pat.vars
+
+partial def ElabContext.showTm (ctx : ElabContext) : Tm → String
   | .lam p .implicit body => "λ " ++ "{" ++ p ++ "}" ++ s!" => {ctx.showTm body}"
   | .lam p .explicit body => s!"λ {p} => {ctx.showTm body}"
   | .pi p .implicit ty body =>
@@ -48,6 +53,11 @@ def ElabContext.showTm (ctx : ElabContext) : Tm → String
   | .meta m => s!"?{m}"
   | .let p ty val body =>
     s!"let {p} : {ctx.showTm ty} := {ctx.showTm val} in {ctx.showTm body}"
+  | .match t cases => Id.run do
+    let mut s := s!"match {ctx.showTm t}"
+    for (p, body) in cases do
+      s := s ++ s!"| {ctx.showPat p} => {ctx.showTm body}"
+    return s
   | .type => "Type"
 
 end Violet.Core

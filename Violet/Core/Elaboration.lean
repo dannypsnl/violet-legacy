@@ -11,12 +11,19 @@ def addPos [Monad m] [MonadExcept String m]
   tryCatch f
     fun ε => throw s!"{s.line}:{s.column}: {ε}"
 
-def convertIx [Monad m] [MonadExcept String m]
+def nameToIndex [Monad m] [MonadExcept String m]
   (count : Nat) (x : String) : TypCtx → m (Core.Tm × VTy)
   | [] => throw s!"no variable named `{x}`"
   | (x', a) :: xs =>
     if x == x' then return (.var (.ix count), a)
-    else convertIx (count + 1) x xs
+    else nameToIndex (count + 1) x xs
+
+def nameToLevel [Monad m] [MonadExcept String m]
+  (x : String) : TypCtx → m Lvl
+  | [] => throw s!"no variable named `{x}`"
+  | (x', a) :: xs =>
+    if x == x' then return .lvl xs.length
+    else nameToLevel x xs
 
 def freshMeta [Monad m] [MonadState MetaCtx m]
   : m Core.Tm := do
@@ -36,7 +43,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (ctx : ElabContext) (tm : Surface.Tm) : m (Core.Tm × VTy) := do
   match tm with
   | .src startPos endPos tm => addPos startPos endPos (infer ctx tm)
-  | .var x => convertIx 0 x ctx.typCtx
+  | .var x => nameToIndex 0 x ctx.typCtx
   -- infer application like
   -- 1. `t u` explicit
   -- 2. `t {u}` implicit
@@ -115,8 +122,8 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
       -- then check body with this context has the expected type
       --
       -- TODO: bind pattern into check
+      let patLvl ← nameToLevel pat.ctor ctx.typCtx
       let body ← ctx.check body expected
-
     return sorry
   | t, expected => do
     let (t', inferred) ← ctx.infer t

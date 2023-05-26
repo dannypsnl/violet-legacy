@@ -14,6 +14,17 @@ def vMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 
 mutual
 
+partial def Env.matching? [Monad m] [MonadExcept String m]
+  (env : Env) (pat : Pattern) : Val → m (Env × Bool)
+  | .rigid h (.mk sp) => do
+    if h.toNat != pat.ctor || sp.size != pat.vars.size then
+      return (env, false)
+    let mut env' := env
+    for v in sp do
+      env' := env'.extend v
+    return (env', true)
+  | _ => throw "cannot match on non-rigid value"
+
 partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (env : Env) (tm : Tm) : m Val := do
   match tm with
@@ -24,6 +35,14 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .let _ _ t u => (env.extend (← env.eval t)).eval u
   | .type => return .type
   | .meta m => vMeta m
+  | .match target cases =>
+    let t ← env.eval target
+    for (pat, clause) in cases do
+      let (env', matched) ← env.matching? pat t
+      if matched then
+        return ← env'.eval clause
+      else continue
+    throw "no clause matched"
 
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
