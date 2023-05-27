@@ -44,7 +44,7 @@ elim n
 
 ### Develop
 
-You will need to install lean, via any package manager would be fine. Especially recommend vscode plugin (https://marketplace.visualstudio.com/items?itemName=jroesch.lean#review-details), install it and wait, it should install elan, lean, and lake for you.
+You will need to install lean, via any package manager would be fine. Especially recommend vscode plugin (https://marketplace.visualstudio.com/items?itemName=leanprover.lean4), install it and wait, it should install elan, lean, and lake for you.
 
 Build the project
 
