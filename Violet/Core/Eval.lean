@@ -19,10 +19,8 @@ partial def Env.matching? [Monad m] [MonadExcept String m]
   | .rigid h (.mk sp) => do
     if h.toNat != pat.ctor || sp.size != pat.vars.size then
       return (env, false)
-    let mut env' := env
-    for v in sp do
-      env' := env'.extend v
-    return (env', true)
+    else
+      return (sp.foldl (fun env v => env.extend v) env, true)
   | _ => throw "cannot match on non-rigid value"
 
 partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
