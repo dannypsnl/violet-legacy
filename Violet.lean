@@ -24,15 +24,18 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
       let val ← reduceCheck (.src startPos endPos val) ty
       set <| (← get).define name val ty
     | .data startPos endPos dataName constructors =>
-      -- the type name is the value of that type directly
-      -- and this is an axiom, which means we cannot check it but just insert it
+      -- A data type definition bind its name as type in context is an axiom,
+      -- which means we cannot check it but just insert it. Thus, the example
+      -- `data A ...` makes judgement:
+      --
+      -- -----------------
+      --    Γ, A : Type
       --
       -- TODO: for indexed data type, it will not be like current simple `Nat : Type`
       --       so we will need to change this line
       let ctx ← get
+      let dataTypeLvl := ctx.lvl
       set <| ctx.bind dataName .type
-      -- TODO: record constructors into ElabContext, maps dataTypeIndex to constructors
-      --let dataTypeIndex : Val := ctx.lvl.toNat
       for (name, tys) in constructors do
         let ty := tys.foldr (λ ty b => .pi .explicit "_" ty b) (.var dataName)
         let ty ← reduceCheck (.src startPos endPos ty) .type
@@ -41,7 +44,10 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
         -- e.g. `true` will have value `.rigid true`
         --
         -- so we use `coe` here for constructor name too
-        set <| (← get).bind name ty
+        let ctx ← get
+        -- record constructors into ElabContext, maps data type to constructors
+        let ctorLvl := ctx.lvl
+        set <| (ctx.bind name ty).addConstructor dataTypeLvl ctorLvl
 
 end Violet.Core
 

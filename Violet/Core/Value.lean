@@ -5,14 +5,6 @@ namespace Violet.Core
 open Violet.Ast.Core
 open Violet.Ast
 
-inductive Lvl
-  | lvl (v : Nat)
-  deriving Repr, Inhabited, BEq
-def Lvl.toNat : Lvl → Nat
-  | .lvl v => v
-instance : ToString Lvl where
-  toString | (.lvl x) => toString x
-
 mutual
 
 inductive Env

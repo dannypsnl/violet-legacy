@@ -1,7 +1,10 @@
 import Violet.Core.Value
+import Lean.Data.HashSet
 
 namespace Violet.Core
 open Violet.Ast.Core
+
+def lvl2Ix (l x : Lvl) : Ix := .ix (l.toNat - x.toNat - 1)
 
 @[reducible]
 abbrev TypCtx := List (String × VTy)
@@ -10,12 +13,14 @@ structure ElabContext where
   env : Env
   typCtx : TypCtx
   mctx : MetaCtx
+  dataTypeCtx : Lean.HashMap Lvl (Lean.HashSet Lvl)
   lvl : Lvl
 
 def ElabContext.empty : ElabContext := {
     env := .mk []
     typCtx := []
     mctx := default
+    dataTypeCtx := default
     lvl := .lvl 0
   }
 
@@ -35,10 +40,15 @@ def ElabContext.define (ctx : ElabContext) (name : String) (val : Val) (ty : VTy
     env := ctx.env.extend val
     typCtx := (name, ty) :: ctx.typCtx
   }
+def ElabContext.addConstructor (ctx : ElabContext) (dataType ctor : Lvl) : ElabContext :=
+  let ctors := ctx.dataTypeCtx.findD dataType Lean.HashSet.empty
+  { ctx with
+    dataTypeCtx := ctx.dataTypeCtx.insert dataType (ctors.insert ctor)
+  }
 
-
+-- misc: pretty print
 partial def ElabContext.showPat (ctx : ElabContext) (pat : Pattern) : String :=
-  let (name, _) := ctx.typCtx.get! pat.ctor
+  let (name, _) := ctx.typCtx.get! <| lvl2Ix ctx.lvl pat.ctor
   name ++ " " ++ toString pat.vars
 
 partial def ElabContext.showTm (ctx : ElabContext) : Tm → String

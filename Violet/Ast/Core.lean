@@ -12,9 +12,17 @@ inductive Ix
 instance : Coe Ix Nat where
   coe | .ix x => x
 
+inductive Lvl
+  | lvl (v : Nat)
+  deriving Repr, Inhabited, BEq, Hashable
+def Lvl.toNat : Lvl → Nat
+  | .lvl v => v
+instance : ToString Lvl where
+  toString | (.lvl x) => toString x
+
 structure Pattern where
   -- name of constructor
-  ctor : Ix
+  ctor : Lvl
   vars : Array String
 deriving Repr, BEq
 

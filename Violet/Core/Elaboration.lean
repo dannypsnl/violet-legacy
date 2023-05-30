@@ -5,6 +5,7 @@ import Violet.Ast.Surface
 namespace Violet.Core
 open Lean
 open Violet.Ast
+open Violet.Ast.Core
 
 def addPos [Monad m] [MonadExcept String m]
   (s e : Position) (f : m α) : m α := do
@@ -18,13 +19,6 @@ def nameToIndex [Monad m] [MonadExcept String m]
     if x == x' then return (.var (.ix count), a)
     else nameToIndex (count + 1) x xs
 
-def nameToLevel [Monad m] [MonadExcept String m]
-  (x : String) : TypCtx → m Lvl
-  | [] => throw s!"no variable named `{x}`"
-  | (x', a) :: xs =>
-    if x == x' then return .lvl xs.length
-    else nameToLevel x xs
-
 def freshMeta [Monad m] [MonadState MetaCtx m]
   : m Core.Tm := do
   let ctx ← get
@@ -35,6 +29,22 @@ def freshMeta [Monad m] [MonadState MetaCtx m]
       mapping := ctx.mapping.insert mvar .unsolved
     }
   return .meta mvar
+
+def nameToLevel [Monad m] [MonadExcept String m]
+  (x : String) : TypCtx → m (Lvl × VTy)
+  | [] => throw s!"no variable named `{x}`"
+  | (x', a) :: xs =>
+    if x == x' then return (.lvl xs.length, a)
+    else nameToLevel x xs
+
+partial def mkPatternCtx [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (patTy : Core.Tm) (ctx : ElabContext) : m ElabContext := do
+  match patTy with
+  | .pi name _ ty body =>
+    let ctx' := ctx.bind name (← ctx.env.eval ty)
+    mkPatternCtx (← quote ctx'.lvl (← ctx.env.eval body)) ctx'
+  | .var _ => return ctx
+  | _ => throw "bad pattern type"
 
 mutual
 
@@ -112,19 +122,28 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .hole, _ => freshMeta
   -- match at here should be desugared pattern matching
   | .match target cases, expected =>
-    -- TODO: using targetTy to find all data type's constructors
-    let (target, targetTy) ← ctx.infer target
-    -- TODO: intro pattern context
-    for (pat, body) in cases do
-      -- 1. pat has ctor name
-      -- 2. pat has variables
-      -- A context we should create here is a mapping from these variables to types
-      -- then check body with this context has the expected type
-      --
-      -- TODO: bind pattern into check
-      let patLvl ← nameToLevel pat.ctor ctx.typCtx
-      let body ← ctx.check body expected
-    return sorry
+    let (target, dataType) ← ctx.infer target
+    if let (Val.rigid dataTypeLvl _) := dataType then
+      let ctors := ctx.dataTypeCtx.find! dataTypeLvl
+      let mut coreCases := #[]
+      for (pat, body) in cases do
+        -- 1. pat has ctor name
+        -- 2. pat has variables
+        -- A context we should create here is a mapping from these variables to types
+        -- then check body with this context has the expected type
+        let (patLvl, patTy) ← nameToLevel pat.ctor ctx.typCtx
+        if !ctors.contains patLvl then
+          let dataType ← quote ctx.lvl dataType
+          let constructor ← quote ctx.lvl (.rigid patLvl (.mk #[]))
+          throw s!"data type `{ctx.showTm dataType}` has no constructor named `{ctx.showTm constructor}`"
+        let patTy ← quote ctx.lvl patTy
+        -- intro pattern context
+        let ctx' ← mkPatternCtx patTy ctx
+        let body ← ctx'.check body expected
+        coreCases := coreCases.push
+          ({ctor := patLvl, vars := pat.vars}, body)
+      return .match target coreCases
+    else throw "match target must has a rigid type"
   | t, expected => do
     let (t', inferred) ← ctx.infer t
     try unify ctx.lvl expected inferred

@@ -1,4 +1,5 @@
 import Violet.Core.Value
+import Violet.Core.Context
 
 namespace Violet.Core
 open Violet.Ast.Core
@@ -12,16 +13,16 @@ def vMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .solved t => return t
   | .unsolved => return .flex v (.mk #[])
 
-mutual
-
-partial def Env.matching? [Monad m] [MonadExcept String m]
+def Env.matching? [Monad m] [MonadExcept String m]
   (env : Env) (pat : Pattern) : Val → m (Env × Bool)
   | .rigid h (.mk sp) => do
-    if h.toNat != pat.ctor || sp.size != pat.vars.size then
+    if h.toNat != pat.ctor.toNat || sp.size != pat.vars.size then
       return (env, false)
     else
       return (sp.foldl (fun env v => env.extend v) env, true)
   | _ => throw "cannot match on non-rigid value"
+
+mutual
 
 partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (env : Env) (tm : Tm) : m Val := do
@@ -70,8 +71,6 @@ partial def force [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     | .solved t => force (← t.applySpine sp)
     | _ => return t
   | t => return t
-
-def lvl2Ix (l x : Lvl) : Ix := .ix (l.toNat - x.toNat - 1)
 
 mutual
 
