@@ -78,6 +78,8 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let a' ← ctx.check a .type
     let b' ← (ctx.bind x (← ctx.env.eval a')).check b .type
     return (.pi x mode a' b', .type)
+  -- infer `(x : a) × b`
+  | .sigma x a b => sorry
   | .let x a t u =>
     let a ← ctx.check a .type
     let va ← ctx.env.eval a
@@ -114,7 +116,8 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
     return .lam x .implicit t
   -- pair has a sigma type
-  | .pair fst snd, t => sorry
+  -- TODO: build sigma value & check pair with it
+  | .pair fst snd, T => sorry
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a

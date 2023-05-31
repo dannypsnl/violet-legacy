@@ -37,5 +37,10 @@ def main := lspecIO $
             (.app .explicit (.var "b") (.var "c"))
             (.var "d"))))
   $ group "pair" $
-    test "very simple case" $
+    test "base case"
       (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b")))
+  $ group "sigma type" $
+    test "base case"
+      (term.run "(x : A) × B" == .ok (.sigma "x" (.var "A") (.var "B")))
+    $ test "base case 2"
+      (term.run "(x : A) ** B" == .ok (.sigma "x" (.var "A") (.var "B")))

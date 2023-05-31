@@ -74,11 +74,17 @@ mutual
     keyword "->" <|> keyword "→"
     let body ← term
     return .pi mode name ty body
-    where
-      bind : Parsec $ String × Typ := do
-        let name : String ← identifier
-        keyword ":"; let ty : Typ ← term
-        return (name, ty)
+
+  partial def bind : Parsec $ String × Typ := do
+    let name : String ← identifier
+    keyword ":"; let ty : Typ ← term
+    return (name, ty)
+
+  partial def parseSigma : Parsec Tm := do
+    let (name, ty) ← parens bind
+    keyword "**" <|> keyword "×"
+    let body ← term
+    return .sigma name ty body
 
   partial def pair : Parsec Tm :=
     parens do
@@ -93,10 +99,11 @@ mutual
     <|> parsePi .implicit braces
     <|> (do
       let r ← tryP <| pair <|> parens term
-      match r with
+      if r.isSome then return r.get!
+      let r ← tryP parseSigma
+      if r.isSome then return r.get!
       -- if it's not a parenthesized term, try parsing a pi type
-      | .none => parsePi .explicit parens
-      | .some s => return s)
+      parsePi .explicit parens)
     where
       hole : Parsec Tm := do
         keyword "!!"
