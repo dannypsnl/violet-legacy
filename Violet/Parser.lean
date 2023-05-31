@@ -121,6 +121,7 @@ mutual
 
   partial def term : Parsec Tm :=
     spine
+    |> «mixfix» [keyword "×" *> return .sigma "_"]
     |> «mixfixR» [keyword "$" *> return .app .explicit,
                   keyword "<|" *> return .app .explicit]
     |> «mixfix» [keyword "|>" *> return flip (.app .explicit)]

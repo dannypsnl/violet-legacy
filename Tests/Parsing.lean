@@ -44,3 +44,5 @@ def main := lspecIO $
       (term.run "(x : A) × B" == .ok (.sigma "x" (.var "A") (.var "B")))
     $ test "base case 2"
       (term.run "(x : A) ** B" == .ok (.sigma "x" (.var "A") (.var "B")))
+    $ test "product type abbreviation"
+      (term.run "A × B" == .ok (.sigma "_" (.var "A") (.var "B")))
