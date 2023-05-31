@@ -80,12 +80,19 @@ mutual
         keyword ":"; let ty : Typ ← term
         return (name, ty)
 
+  partial def pair : Parsec Tm :=
+    parens do
+      let l ← term
+      keyword ","
+      let r ← term
+      return .pair l r
+
   partial def atom : Parsec Tm := do
     parseLam <|> parseLet <|> parseMatch
     <|> kwTyp <|> hole <|> var
     <|> parsePi .implicit braces
     <|> (do
-      let r ← tryP $ parens term
+      let r ← tryP <| pair <|> parens term
       match r with
       -- if it's not a parenthesized term, try parsing a pi type
       | .none => parsePi .explicit parens

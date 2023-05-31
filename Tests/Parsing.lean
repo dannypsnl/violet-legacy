@@ -36,3 +36,6 @@ def main := lspecIO $
           (.app .explicit
             (.app .explicit (.var "b") (.var "c"))
             (.var "d"))))
+  $ group "pair" $
+    test "very simple case" $
+      (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b")))

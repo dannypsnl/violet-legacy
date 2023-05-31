@@ -96,7 +96,8 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   --
   -- The first one cannot be inferred, but the second one can.
   | .lam .. => throw "cannot infer lambda without type annotation"
-  | .match _ _ => throw "cannot infer pattern matching"
+  | .pair .. => throw "cannot infer pair"
+  | .match .. => throw "cannot infer pattern matching"
 
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -112,6 +113,8 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | t, .pi x .implicit a b =>
     let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
     return .lam x .implicit t
+  -- pair has a sigma type
+  | .pair fst snd, t => sorry
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a

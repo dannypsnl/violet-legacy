@@ -23,6 +23,7 @@ inductive Tm : Type
   | app (mode : Mode) (fn : Tm) (arg : Tm)
   | pi (mode : Mode) (name : String) (ty : Tm) (body : Tm)
   | lam (mode : Mode) (name : String) (body : Tm)
+  | pair (fst snd : Tm)
   | hole
   deriving Inhabited
 instance : Coe String Tm where
@@ -45,6 +46,7 @@ instance : ToString Pattern where
 
 partial def Tm.toString : Tm → String
   | .src _ _ tm => tm.toString
+  | .pair fst snd => s!"({fst.toString}, {snd.toString})"
   | .lam .implicit p body => "λ" ++ "{" ++ p ++ "}" ++ s!" => {body.toString}"
   | .lam .explicit p body => s!"λ {p} => {body.toString}"
   | .pi .implicit p ty body =>
