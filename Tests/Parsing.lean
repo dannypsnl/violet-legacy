@@ -13,9 +13,9 @@ instance [BEq α] : BEq (Except ε α) where
   beq | .ok x, .ok y => x == y
       | _, _ => false
 
-def main := lspecIO $
-  test "identifier" (term.run "a" == .ok "a")
-  $ group "pi type" $
+def main : IO UInt32 := do
+  let _ ← lspecIO $ test "identifier" (term.run "a" == .ok "a")
+  let _ ← lspecIO $ group "pi type" $
     test "explicit"
       (term.run "(a : Type) → Type" == .ok (.pi .explicit "a" .type .type))
     $ test "implicit"
@@ -24,7 +24,7 @@ def main := lspecIO $
       (term.run "a → b" == .ok (.pi .explicit "_" (.var "a") (.var "b")))
     $ test "test non-unicode"
       (term.run "(a : Type) -> Type" |> Except.isOk)
-  $ group "application" $
+  let _ ← lspecIO $ group "application" $
     test "$ operator"
       (term.run "a $ b c" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
     $ test "<| operator"
@@ -36,10 +36,10 @@ def main := lspecIO $
           (.app .explicit
             (.app .explicit (.var "b") (.var "c"))
             (.var "d"))))
-  $ group "pair" $
+  let _ ← lspecIO $ group "pair" $
     test "base case"
       (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b")))
-  $ group "sigma type" $
+  lspecIO $ group "sigma type" $
     test "base case"
       (term.run "(x : A) × B" == .ok (.sigma "x" (.var "A") (.var "B")))
     $ test "base case 2"
