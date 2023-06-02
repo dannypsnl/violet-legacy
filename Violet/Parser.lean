@@ -74,22 +74,35 @@ mutual
     keyword "->" <|> keyword "→"
     let body ← term
     return .pi mode name ty body
-    where
-      bind : Parsec $ String × Typ := do
-        let name : String ← identifier
-        keyword ":"; let ty : Typ ← term
-        return (name, ty)
+
+  partial def bind : Parsec $ String × Typ := do
+    let name : String ← identifier
+    keyword ":"; let ty : Typ ← term
+    return (name, ty)
+
+  partial def parseSigma : Parsec Tm := do
+    let (name, ty) ← parens bind
+    keyword "**" <|> keyword "×"
+    let body ← term
+    return .sigma name ty body
+
+  partial def pair : Parsec Tm :=
+    parens do
+      let l ← term
+      keyword ","
+      let r ← term
+      return .pair l r
 
   partial def atom : Parsec Tm := do
     parseLam <|> parseLet <|> parseMatch
     <|> kwTyp <|> hole <|> var
     <|> parsePi .implicit braces
     <|> (do
-      let r ← tryP $ parens term
-      match r with
-      -- if it's not a parenthesized term, try parsing a pi type
-      | .none => parsePi .explicit parens
-      | .some s => return s)
+      let r ← tryP <| pair <|> parens term
+      if r.isSome then return r.get!
+      let r ← tryP parseSigma
+      if r.isSome then return r.get!
+      parsePi .explicit parens)
     where
       hole : Parsec Tm := do
         keyword "!!"
@@ -107,6 +120,7 @@ mutual
 
   partial def term : Parsec Tm :=
     spine
+    |> «mixfix» [keyword "×" *> return .sigma "_"]
     |> «mixfixR» [keyword "$" *> return .app .explicit,
                   keyword "<|" *> return .app .explicit]
     |> «mixfix» [keyword "|>" *> return flip (.app .explicit)]

@@ -36,5 +36,15 @@ def main : IO UInt32 :=
           .app .explicit (.var "a")
             (.app .explicit
               (.app .explicit (.var "b") (.var "c"))
-              (.var "d"))))
+              (.var "d")))),
+      ← lspecIO $ group "pair" $
+      test "base case"
+        (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b"))),
+    ← lspecIO $ group "sigma type" $
+      test "base case"
+        (term.run "(x : A) × B" == .ok (.sigma "x" (.var "A") (.var "B")))
+      $ test "base case 2"
+        (term.run "(x : A) ** B" == .ok (.sigma "x" (.var "A") (.var "B")))
+      $ test "product type abbreviation"
+        (term.run "A × B" == .ok (.sigma "_" (.var "A") (.var "B")))
   ].foldl (λ acc x => acc + x) 0
