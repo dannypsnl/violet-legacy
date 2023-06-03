@@ -13,13 +13,7 @@ A programming language focuses on
 
 ### Usage
 
-Type checking
-
-```shell
-violet check example/module.vt
-```
-
-Open REPL with module
+Load module into REPL
 
 ```
 violet example/module.vt
@@ -53,10 +47,12 @@ def t (x : Nat) : T => (x, zero? x)
 
 ### Develop
 
-You will need to install lean, via any package manager would be fine. Especially recommend vscode plugin (https://marketplace.visualstudio.com/items?itemName=leanprover.lean4), install it and wait, it should install elan, lean, and lake for you.
+You will need to install lean, via any package manager would be fine. Especially recommend vscode plugin (https://marketplace.visualstudio.com/items?itemName=leanprover.lean4), install it and wait, it should install `elan`, `lean`, and `lake` for you.
 
 Build the project
 
 ```shell
 lake build
 ```
+
+[^1]: https://dl.acm.org/doi/10.1145/3408983
