@@ -98,7 +98,9 @@ mutual
     <|> kwTyp <|> hole <|> var
     <|> parsePi .implicit braces
     <|> (do
-      let r ← tryP <| pair <|> parens term
+      let r ← tryP <| pair
+      if r.isSome then return r.get!
+      let r ← tryP <| parens term
       if r.isSome then return r.get!
       let r ← tryP parseSigma
       if r.isSome then return r.get!
