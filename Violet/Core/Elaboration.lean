@@ -79,7 +79,10 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let b' ← (ctx.bind x (← ctx.env.eval a')).check b .type
     return (.pi x mode a' b', .type)
   -- infer `(x : a) × b`
-  | .sigma x a b => sorry
+  | .sigma x a b =>
+    let a' ← ctx.check a .type 
+    let b' ← (ctx.bind x (← ctx.env.eval a')).check b .type
+    return (.sigma x a' b', .type)
   | .let x a t u =>
     let a ← ctx.check a .type
     let va ← ctx.env.eval a
