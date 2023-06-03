@@ -119,7 +119,10 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
     return .lam x .implicit t
   -- pair has a sigma type
-  | .pair fst snd, t => sorry
+  | .pair fst snd, .sigma _ a b =>
+    let fst' ← ctx.check fst a
+    let snd' ← ctx.check snd (← b.apply <| ← ctx.env.eval fst')
+    return .pair fst' snd'
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a
