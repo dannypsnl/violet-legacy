@@ -52,3 +52,11 @@ def main : NoB false => not <| zero? (suc zero)
 
 def test_pair : Nat × Nat => (zero, zero)
 def test_pair2 : Nat × Bool => (zero, false)
+
+record NatBool {
+  a : Nat,
+  b : Bool,
+  c : Bool,
+}
+
+def test_record : NatBool => (zero, (true, false))

@@ -9,6 +9,14 @@ open Violet.Ast.Surface (Program)
 abbrev ElabM := StateT MetaCtx (ExceptT String IO)
 abbrev ProgramM := StateT ElabContext (StateT MetaCtx (ExceptT String IO))
 
+def fieldsToSigma (fields : List (String × Surface.Typ)) (f : Surface.Typ → Surface.Typ) : Surface.Typ :=
+  match fields with
+  | [] => sorry
+  | [(_, ty)] => f ty
+  | (name, ty) :: fields =>
+    let cur := λ ty2 => f <| Surface.Tm.sigma name ty ty2
+    fieldsToSigma fields cur
+
 def reduceCheck (tm : Surface.Tm) (vty : VTy) : ProgramM Val := do
   let ctx ← get
   let tm ← ctx.check tm vty (m := ElabM)
@@ -48,6 +56,11 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
         -- record constructors into ElabContext, maps data type to constructors
         let ctorLvl := ctx.lvl
         set <| (ctx.bind name ty).addConstructor dataTypeLvl ctorLvl
+    | .record startPos endPos name fields =>
+      let ctx ← get
+      let v := fieldsToSigma fields.toList (λ ty => ty)
+      let v ← reduceCheck (.src startPos endPos v) .type
+      set <| ctx.define name v .type
 
 end Violet.Core
 

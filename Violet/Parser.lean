@@ -26,16 +26,17 @@ def keyword (s : String) : Parsec Unit := do
   (skipString s).orElse (fun _ => fail s!"expected: keyword `{s}`")
   whitespace
 def identifier : Parsec String := do
-  let r ← many1Chars <| satisfy valid?
-  if keyword? r then
-    fail s!"expected: identifier, got keyword `{r}`"
-  whitespace; return r
+  let name ← many1Chars <| satisfy valid?
+  if keyword? name then
+    fail s!"expected: identifier, got keyword `{name}`"
+  whitespace; return name
   where
     valid? : Char → Bool
     | '_' | '?' | '!' => true
     | c => c.isAlphanum
     keyword? : String → Bool
-    | "module" | "def" | "data" | "Type" => true
+    | "module" | "def" | "data" | "record"
+    | "Type" => true
     | _ => false
 
 mutual
@@ -178,10 +179,25 @@ def parseData : Parsec Definition := do
         | .some ty => tys := tys.push ty
       return ⟨ name, tys ⟩
 
+def parseRecord : Parsec Definition := do
+  let startPos ← getPosition
+  keyword "record"
+  let name ← identifier
+  let fs ← braces <| many field
+  let endPos ← getPosition
+  return .record startPos endPos name fs
+  where
+    field : Parsec <| String × Typ := do
+      let name ← identifier
+      keyword ":"
+      let ty ← typ
+      keyword ","
+      return ⟨ name, ty ⟩
+
 def parseFile : Parsec Program := do
   keyword "module"
   let name ← identifier
-  let defs ← many <| parseDef <|> parseData
+  let defs ← many <| parseDef <|> parseData <|> parseRecord
   eof
   return { name := name, definitions := defs }
 

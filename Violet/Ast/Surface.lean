@@ -37,6 +37,7 @@ abbrev Ctor := String × Array Typ
 inductive Definition
   | «def» (s e : Position) (name : String) (tele : Telescope) (ret_ty : Typ) (body : Tm)
   | data (s e : Position) (name : String) (constructors : Array Ctor)
+  | record (s e : Position) (name : String) (fields : Array <| String × Typ)
 
 structure Program where
   name : String
@@ -83,15 +84,5 @@ instance : ToString Telescope where
       | .explicit =>
         r := r ++ " (" ++ bind ++ ")"
     return r
-
-instance : ToString Definition where
-  toString
-  | .def _ _ x tele ret body =>
-    s!"def {x}{tele} : {ret} => {body}"
-  | .data _ _ n cs => Id.run do
-    let mut l := ""
-    for (name, typs) in cs do
-      l := l ++ s!"\n| {name} {typs}"
-    s!"data {n} {l}"
 
 end Violet.Ast.Surface
