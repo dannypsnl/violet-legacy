@@ -55,6 +55,18 @@ Build the project
 lake build
 ```
 
-- elaboration[^1]
+#### Theory
 
-[^1]: https://dl.acm.org/doi/10.1145/3408983
+Here are some related theories we already applied or going to use.
+
+- elaboration[^1]
+- universe polymorphism[^2] will try mugen
+- termination checker[^3] will use lexicographic recursion
+- type class[^4]
+- indexed data type[^5]
+
+[^1]: Elaboration with first-class implicit function types: https://dl.acm.org/doi/10.1145/3408983
+[^2]: An Order-Theoretic Analysis of Universe Polymorphism: https://favonia.org/files/mugen.pdf
+[^3]: foetus - Termination Checker for Simple Functional Programs: https://www2.tcs.ifi.lmu.de/~abel/foetus.pdf
+[^4]: Tabled Typeclass Resolution: https://arxiv.org/pdf/2001.04301.pdf
+[^5]: A SIMPLER ENCODING OF INDEXED TYPES: https://arxiv.org/pdf/2103.15408v4.pdf
