@@ -49,3 +49,6 @@ match b
 -- | suc n => suc $ plus n m
 
 def main : NoB false => not <| zero? (suc zero)
+
+def test_pair : Nat × Nat => (zero, zero)
+def test_pair2 : Nat × Bool => (zero, false)

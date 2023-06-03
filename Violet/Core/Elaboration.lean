@@ -78,6 +78,11 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let a' ← ctx.check a .type
     let b' ← (ctx.bind x (← ctx.env.eval a')).check b .type
     return (.pi x mode a' b', .type)
+  -- infer `(x : a) × b`
+  | .sigma x a b =>
+    let a' ← ctx.check a .type 
+    let b' ← (ctx.bind x (← ctx.env.eval a')).check b .type
+    return (.sigma x a' b', .type)
   | .let x a t u =>
     let a ← ctx.check a .type
     let va ← ctx.env.eval a
@@ -96,7 +101,8 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   --
   -- The first one cannot be inferred, but the second one can.
   | .lam .. => throw "cannot infer lambda without type annotation"
-  | .match _ _ => throw "cannot infer pattern matching"
+  | .pair .. => throw "cannot infer pair"
+  | .match .. => throw "cannot infer pattern matching"
 
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -112,6 +118,11 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | t, .pi x .implicit a b =>
     let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
     return .lam x .implicit t
+  -- pair has a sigma type
+  | .pair fst snd, .sigma _ a b =>
+    let fst' ← ctx.check fst a
+    let snd' ← ctx.check snd (← b.apply <| ← ctx.env.eval fst')
+    return .pair fst' snd'
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a

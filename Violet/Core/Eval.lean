@@ -29,6 +29,8 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match tm with
   | .var x => env.lookup x
   | .app t u => (← env.eval t).apply (← env.eval u)
+  | .pair fst snd => return .pair (← env.eval fst) (← env.eval snd)
+  | .sigma x a b => return .sigma x (← env.eval a) (Closure.mk env b)
   | .lam x m t => return .lam x m (Closure.mk env t)
   | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk env b)
   | .let _ _ t u => (env.extend (← env.eval t)).eval u
@@ -88,6 +90,8 @@ partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match ← force t with
   | .flex m sp => sp.quote lvl (Tm.meta m)
   | .rigid x sp => sp.quote lvl (Tm.var (lvl2Ix lvl x))
+  | .pair fst snd => return .pair (← quote lvl fst) (← quote lvl snd)
+  | .sigma x a b => return .sigma x (← quote lvl a) (← quote lvl (← b.apply lvl.toNat))
   | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat))
   | .pi x m a b => return .pi x m (← quote lvl a) (← quote lvl (← b.apply lvl.toNat))
   | .type => return  .type

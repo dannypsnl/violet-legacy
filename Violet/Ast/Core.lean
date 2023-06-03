@@ -30,10 +30,12 @@ inductive Tm
   | type
   | meta (mvar : MetaVar)
   | var (name : Ix)
-  | app (fn : Tm) (arg : Tm)
-  | pi (name : String) (mode : Surface.Mode) (ty : Tm) (body : Tm)
+  | app (fn arg : Tm)
+  | pi (name : String) (mode : Surface.Mode) (ty body : Tm)
   | lam (name : String) (mode : Surface.Mode) (body : Tm)
-  | «let» (name : String) (ty : Tm) (val : Tm) (body : Tm)
+  | sigma (name : String) (ty body : Tm)
+  | pair (fst snd : Tm)
+  | «let» (name : String) (ty val body : Tm)
   | «match» (target : Tm) (cases : Array (Pattern × Tm))
   deriving Repr, Inhabited, BEq
 abbrev Typ := Tm

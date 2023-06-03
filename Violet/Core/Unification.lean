@@ -55,6 +55,11 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         .pi x mode
           <$> go pren a
           <*> go pren.lift (← b.apply pren.cod.toNat)
+      | .pair a b => .pair <$> go pren a <*> go pren b
+      | .sigma x a b =>
+        .sigma x
+          <$> go pren a
+          <*> go pren.lift (← b.apply pren.cod.toNat)
       | .type => return .type
 
 def lams (l : Lvl) (t : Tm) : Tm := Id.run do
@@ -80,6 +85,12 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match ← force l, ← force r with
   | .lam _ _ t, .lam _ _ t' =>
     unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
+  | .pair a b, .pair a' b' =>
+    unify lvl a a'
+    unify lvl b b'
+  | .sigma _ a b, .sigma _ a' b' =>
+    unify lvl a a'
+    unify (.lvl <| lvl.toNat + 1) (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
   | .lam _ _ t', t | t, .lam _ _ t' =>
     unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
   | .pi _ mode a b, .pi _ mode' a' b' =>

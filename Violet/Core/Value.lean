@@ -31,6 +31,8 @@ Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is 
 inductive Val
   | flex (head : MetaVar) (body : Spine)
   | rigid (head : Lvl) (body : Spine)
+  | pair (fst snd : Val)
+  | sigma (name : String) (ty : Val) (clos : Closure)
   | lam (name : String) (mode : Surface.Mode) (clos : Closure)
   | pi (name : String) (mode : Surface.Mode) (ty : Val) (clos : Closure)
   | type
