@@ -1,5 +1,7 @@
 module Test
 
+data Unit | unit
+
 data Bool
 | true
 | false
@@ -60,3 +62,13 @@ record NatBool {
 }
 
 def test_record : NatBool => (zero, (true, false))
+
+record T {
+  a : Nat,
+  b : Bool,
+}
+
+def test_record2 (x : Nat) : T => (x, zero? x)
+
+record T2 {}
+def test_record3 : T2 => unit

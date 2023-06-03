@@ -28,6 +28,8 @@ violet example/module.vt
 #### Example
 
 ```
+data Unit | unit
+
 data Nat
 | zero
 | suc Nat
@@ -37,9 +39,16 @@ data Bool
 | false
 
 def zero? (n : Nat) : Bool =>
-elim n
+match n
 | zero => true
 | suc _ => false
+
+record T {
+  a : Nat,
+  b : Bool,
+}
+
+def t (x : Nat) : T => (x, zero? x)
 ```
 
 ### Develop

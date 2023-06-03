@@ -11,7 +11,7 @@ abbrev ProgramM := StateT ElabContext (StateT MetaCtx (ExceptT String IO))
 
 def fieldsToSigma (fields : List (String × Surface.Typ)) (f : Surface.Typ → Surface.Typ) : Surface.Typ :=
   match fields with
-  | [] => sorry
+  | [] => .var "Unit"
   | [(_, ty)] => f ty
   | (name, ty) :: fields =>
     let cur := λ ty2 => f <| Surface.Tm.sigma name ty ty2
