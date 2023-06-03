@@ -55,4 +55,6 @@ Build the project
 lake build
 ```
 
+- elaboration[^1]
+
 [^1]: https://dl.acm.org/doi/10.1145/3408983
