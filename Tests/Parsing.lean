@@ -13,38 +13,50 @@ instance [BEq α] : BEq (Except ε α) where
   beq | .ok x, .ok y => x == y
       | _, _ => false
 
+def testPiType :=
+  lspecIO $ group "pi type"
+  $ test "explicit"
+    (term.run "(a : Type) → Type" == .ok (.pi .explicit "a" .type .type))
+  $ test "implicit"
+    (term.run "{a : Type} → Nat" == .ok (.pi .implicit "a" .type (.var "Nat")))
+  $ test "non dependent"
+    (term.run "a → b" == .ok (.pi .explicit "_" (.var "a") (.var "b")))
+  $ test "test non-unicode"
+    (term.run "(a : Type) -> Type" |> Except.isOk)
+
+def testApp :=
+  lspecIO $ group "application"
+  $ test "$ operator"
+    (term.run "a $ b c" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
+  $ test "<| operator"
+    (term.run "a <| b <| c" == .ok (.app .explicit (.var "a")
+      (.app .explicit (.var "b") (.var "c"))))
+  $ test "|> operator"
+    (term.run "d |> b c |> a" == .ok (
+      .app .explicit (.var "a")
+        (.app .explicit
+          (.app .explicit (.var "b") (.var "c"))
+          (.var "d"))))
+
+def testPair :=
+  lspecIO $ group "pair"
+  $ test "base case"
+    (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b")))
+
+def testSigmaType :=
+  lspecIO $ group "sigma type"
+  $ test "base case"
+    (term.run "(x : A) × B" == .ok (.sigma "x" (.var "A") (.var "B")))
+  $ test "base case 2"
+    (term.run "(x : A) ** B" == .ok (.sigma "x" (.var "A") (.var "B")))
+  $ test "product type abbreviation"
+    (term.run "A × B" == .ok (.sigma "_" (.var "A") (.var "B")))
+
 def main : IO UInt32 :=
   return [
     ← lspecIO $ test "identifier" (term.run "a" == .ok "a"),
-    ← lspecIO $ group "pi type" $
-      test "explicit"
-        (term.run "(a : Type) → Type" == .ok (.pi .explicit "a" .type .type))
-      $ test "implicit"
-        (term.run "{a : Type} → Nat" == .ok (.pi .implicit "a" .type (.var "Nat")))
-      $ test "non dependent"
-        (term.run "a → b" == .ok (.pi .explicit "_" (.var "a") (.var "b")))
-      $ test "test non-unicode"
-        (term.run "(a : Type) -> Type" |> Except.isOk),
-    ← lspecIO $ group "application" $
-      test "$ operator"
-        (term.run "a $ b c" == .ok (.app .explicit (.var "a") (.app .explicit (.var "b") (.var "c"))))
-      $ test "<| operator"
-        (term.run "a <| b <| c" == .ok (.app .explicit (.var "a")
-          (.app .explicit (.var "b") (.var "c"))))
-      $ test "|> operator"
-        (term.run "d |> b c |> a" == .ok (
-          .app .explicit (.var "a")
-            (.app .explicit
-              (.app .explicit (.var "b") (.var "c"))
-              (.var "d")))),
-      ← lspecIO $ group "pair" $
-      test "base case"
-        (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b"))),
-    ← lspecIO $ group "sigma type" $
-      test "base case"
-        (term.run "(x : A) × B" == .ok (.sigma "x" (.var "A") (.var "B")))
-      $ test "base case 2"
-        (term.run "(x : A) ** B" == .ok (.sigma "x" (.var "A") (.var "B")))
-      $ test "product type abbreviation"
-        (term.run "A × B" == .ok (.sigma "_" (.var "A") (.var "B")))
+    ← testPiType,
+    ← testApp,
+    ← testPair,
+    ← testSigmaType
   ].foldl (λ acc x => acc + x) 0
