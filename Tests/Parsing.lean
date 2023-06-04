@@ -59,4 +59,4 @@ def main : IO UInt32 :=
     ← testApp,
     ← testPair,
     ← testSigmaType
-  ].foldl (λ acc x => acc + x) 0
+  ].foldl (· + ·) 0
