@@ -27,10 +27,15 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
     match d with
     | .def startPos endPos name tele ret_ty body =>
       let ty : Surface.Typ := tele.foldr (λ (x, mode, a) b => .pi mode x a b) ret_ty
-      let val := tele.foldr (λ (x, mode, _) body => .lam mode x body) body
       let ty ← reduceCheck (.src startPos endPos ty) .type
+      set <| (← get).bind name ty
+      let val := tele.foldr (λ (x, mode, _) body => .lam mode x body) body
       let val ← reduceCheck (.src startPos endPos val) ty
-      set <| (← get).define name val ty
+      modify <| (fun ctx =>
+        let (.mk mappings) := ctx.env
+        match mappings with
+        | [] => ctx
+        | _ :: m => { ctx with env := .mk (val :: m) })
     | .data startPos endPos dataName constructors =>
       -- A data type definition bind its name as type in context is an axiom,
       -- which means we cannot check it but just insert it. Thus, the example
