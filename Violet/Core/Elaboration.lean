@@ -38,13 +38,15 @@ def nameToLevel [Monad m] [MonadExcept String m]
     else nameToLevel x xs
 
 partial def mkPatternCtx [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (patTy : Core.Tm) (ctx : ElabContext) : m ElabContext := do
-  match patTy with
-  | .pi name _ ty body =>
+  (patTy : Core.Tm) (patVars : List String) (ctx : ElabContext) : m ElabContext := do
+  match patTy, patVars with
+  | .pi _ _ ty body, name :: rest =>
     let ctx' := ctx.bind name (← ctx.env.eval ty)
-    mkPatternCtx (← quote ctx'.lvl (← ctx.env.eval body)) ctx'
-  | .var _ => return ctx
-  | _ => throw "bad pattern type"
+    mkPatternCtx (← quote ctx'.lvl (← ctx.env.eval body))
+      rest
+      ctx'
+  | .var _, _ => return ctx
+  | _, _ => throw "bad pattern type"
 
 mutual
 
@@ -149,7 +151,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
           throw s!"data type `{ctx.showTm dataType}` has no constructor named `{ctx.showTm constructor}`"
         let patTy ← quote ctx.lvl patTy
         -- intro pattern context
-        let ctx' ← mkPatternCtx patTy ctx
+        let ctx' ← mkPatternCtx patTy pat.vars.toList ctx
         let body ← ctx'.check body expected
         coreCases := coreCases.push
           ({ctor := patLvl, vars := pat.vars}, body)
