@@ -6,6 +6,7 @@ import Violet.Ast.Surface
 namespace Violet.Parser
 open Lean
 open Lean.Parsec
+open Violet.Ast
 open Violet.Ast.Surface
 
 def whitespace : Parsec Unit := do

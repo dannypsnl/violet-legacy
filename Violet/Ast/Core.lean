@@ -1,4 +1,4 @@
-import Violet.Ast.Surface
+import Violet.Ast.Common
 
 namespace Violet.Ast.Core
 
@@ -31,8 +31,8 @@ inductive Tm
   | meta (mvar : MetaVar)
   | var (name : Ix)
   | app (fn arg : Tm)
-  | pi (name : String) (mode : Surface.Mode) (ty body : Tm)
-  | lam (name : String) (mode : Surface.Mode) (body : Tm)
+  | pi (name : String) (mode : Mode) (ty body : Tm)
+  | lam (name : String) (mode : Mode) (body : Tm)
   | sigma (name : String) (ty body : Tm)
   | pair (fst snd : Tm)
   | «let» (name : String) (ty val body : Tm)

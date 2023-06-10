@@ -25,8 +25,8 @@ inductive Val
   | rigid (head : Lvl) (spine : Array Val)
   | pair (fst snd : Val)
   | sigma (name : String) (ty : Val) (clos : Closure)
-  | lam (name : String) (mode : Surface.Mode) (clos : Closure)
-  | pi (name : String) (mode : Surface.Mode) (ty : Val) (clos : Closure)
+  | lam (name : String) (mode : Mode) (clos : Closure)
+  | pi (name : String) (mode : Mode) (ty : Val) (clos : Closure)
   | type
   deriving Repr, Inhabited, BEq
 

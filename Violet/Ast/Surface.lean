@@ -1,12 +1,8 @@
 import Lean.Data.Position
+import Violet.Ast.Common
 
 namespace Violet.Ast.Surface
 open Lean
-
-inductive Mode
-  | implicit
-  | explicit
-deriving Repr, BEq
 
 structure Pattern where
   -- name of constructor
