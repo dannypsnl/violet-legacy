@@ -71,9 +71,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         ctx.infer (.app appMode (.app .implicit t .hole) u)
       else
         throw s!"bad mode {t} {u}"
-    | ty =>
-      let t ← quote ctx.lvl ty
-      throw s!"non appliable type `{ctx.showTm t}`"
+    | ty => throw s!"non appliable type `{← ctx.showVal ty}`"
   | .type => return (.type, .type)
   -- infer `(x : a) -> b`
   | .pi mode x a b =>
@@ -146,9 +144,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         -- then check body with this context has the expected type
         let (patLvl, patTy) ← nameToLevel pat.ctor ctx.typCtx
         if !ctors.contains patLvl then
-          let dataType ← quote ctx.lvl dataType
-          let constructor ← quote ctx.lvl (.rigid patLvl #[])
-          throw s!"data type `{ctx.showTm dataType}` has no constructor named `{ctx.showTm constructor}`"
+          throw s!"data type `{← ctx.showVal dataType}` has no constructor named `{← ctx.showVal (.rigid patLvl #[])}`"
         let patTy ← quote ctx.lvl patTy
         -- intro pattern context
         let ctx' ← mkPatternCtx patTy pat.vars.toList ctx
@@ -161,9 +157,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let (t', inferred) ← ctx.infer t
     try unify ctx.lvl expected inferred
     catch msg =>
-      let e ← quote ctx.lvl expected
-      let i ← quote ctx.lvl inferred
-      throw s!"checking {t}\n  cannot unify `{ctx.showTm e}` with `{ctx.showTm i}`\n  {msg}"
+      throw s!"checking {t}\n  cannot unify `{← ctx.showVal expected}` with `{← ctx.showVal inferred}`\n  {msg}"
     return t'
 
 end

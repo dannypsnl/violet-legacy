@@ -1,17 +1,9 @@
-import Violet.Core.Value
+import Violet.Core.Eval
+import Violet.Core.DBI
 import Lean.Data.HashSet
 
 namespace Violet.Core
 open Violet.Ast.Core
-
--- 1. lvl `l` is how deep the current context/environment is
--- 2. lvl `x` is how deep the old context/environment is (when we define the value, how deep it is)
--- 3. Then `l - x - 1` will be the index to the value, from current environment
---
--- computed index
--- ---------> target value <----------------- old level
--- <------------------------------ current level
-def lvl2Ix (l x : Lvl) : Ix := .ix (l.toNat - x.toNat - 1)
 
 @[reducible]
 abbrev TypCtx := List (String × VTy)
@@ -78,5 +70,11 @@ partial def ElabContext.showTm (ctx : ElabContext) : Tm → String
       s := s ++ s!"| {ctx.showPat p} => {ctx.showTm body}"
     return s
   | .type => "Type"
+
+def ElabContext.showVal
+  [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (ctx : ElabContext) (val : Val) : m String := do
+  let tm ← quote ctx.lvl val
+  return ctx.showTm tm
 
 end Violet.Core

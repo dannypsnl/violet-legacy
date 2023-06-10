@@ -82,9 +82,7 @@ def repl : ProgramM Unit := do
   | .ok v =>
     let (v, vty) ← ctx.infer v (m := ElabM)
     let v ← ctx.env.eval v (m := ElabM)
-    let v ← quote ctx.lvl v (m := ElabM)
-    let vty ← quote ctx.lvl vty (m := ElabM)
-    IO.println s!"{ctx.showTm v} : {ctx.showTm vty}"
+    IO.println s!"{← ctx.showVal v (m := ElabM)} : {← ctx.showVal vty (m := ElabM)}"
     repl
   | .error ε => IO.eprintln s!"{ε}"
 
