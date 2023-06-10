@@ -7,16 +7,8 @@ open Violet.Ast
 
 mutual
 
-inductive Env
-  | mk (mapping : List Val)
-  deriving Repr, Inhabited, BEq
-
-inductive Spine
-  | mk (vs : Array Val)
-  deriving Repr, Inhabited, BEq
-
 inductive Closure
-  | mk (env : Env) (arg : Tm)
+  | mk (env : List Val) (arg : Tm)
   deriving Repr, Inhabited, BEq
 
 /-- Val
@@ -29,8 +21,8 @@ inductive Closure
 Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is flex where `{a : Nat → Nat}`
 -/
 inductive Val
-  | flex (head : MetaVar) (body : Spine)
-  | rigid (head : Lvl) (body : Spine)
+  | flex (head : MetaVar) (spine : Array Val)
+  | rigid (head : Lvl) (spine : Array Val)
   | pair (fst snd : Val)
   | sigma (name : String) (ty : Val) (clos : Closure)
   | lam (name : String) (mode : Surface.Mode) (clos : Closure)
@@ -41,7 +33,7 @@ inductive Val
 end
 
 instance : Coe Nat Val where
-  coe x := Val.rigid (.lvl x) (.mk #[])
+  coe x := Val.rigid (.lvl x) #[]
 
 @[reducible]
 abbrev VTy := Val
@@ -62,16 +54,12 @@ def lookupMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .some e => pure e
   | _ => throw "violet internal bug in meta context"
 
-def Env.extend (v : Val) : Env → Env
-  | .mk vs => .mk <| v :: vs
-def Env.length : Env → Nat
-  | .mk vs => vs.length
+@[reducible]
+abbrev Env := List Val
+def Env.extend (v : Val) (vs : Env) : Env := v :: vs
 
-instance : Coe (Array Val) Spine := ⟨.mk⟩
-
-def Spine.extend (v : Val) : Spine → Spine
-  | .mk vs => vs.push v
-def Spine.size : Spine → Nat
-  | .mk vs => vs.size
+@[reducible]
+abbrev Spine := Array Val
+def Spine.extend (v : Val) (vs : Spine) : Spine := vs.push v
 
 end Violet.Core

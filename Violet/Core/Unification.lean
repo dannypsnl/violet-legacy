@@ -17,10 +17,9 @@ def PartialRenaming.lift (pren : PartialRenaming) : PartialRenaming :=
   }
 
 def invert [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
-  (gamma : Lvl) : Spine → m PartialRenaming
-  | .mk sp => do
-    let (dom, ren) ← go sp.reverse.toList
-    return {dom, cod := gamma, ren}
+  (gamma : Lvl) (sp : Spine) : m PartialRenaming := do
+  let (dom, ren) ← go sp.reverse.toList
+  return {dom, cod := gamma, ren}
   where
     go : List Val → m (Lvl × HashMap Nat Lvl)
     | [] => return (.lvl 0, default)
@@ -75,7 +74,7 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return
   let pren ← invert gamma sp
   let rhs ← rename mvar pren rhs
-  let solution ← (Env.mk []).eval <| lams pren.dom rhs
+  let solution ← (default : Env).eval <| lams pren.dom rhs
   modify <| fun mctx => { mctx with
     mapping := mctx.mapping.insert mvar (.solved solution)
   }
@@ -99,8 +98,8 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     unify (.lvl <| lvl.toNat + 1) (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
   | .type, .type => return ()
   -- for neutral
-  | .rigid h (.mk sp), .rigid h' (.mk sp')
-  | .flex h (.mk sp), .flex h' (.mk sp') =>
+  | .rigid h sp, .rigid h' sp'
+  | .flex h sp, .flex h' sp' =>
     if h != h' || sp.size != sp'.size then throw "unify error"
     for (t, t') in sp.zip sp' do
       unify lvl t t'

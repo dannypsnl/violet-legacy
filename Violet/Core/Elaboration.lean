@@ -147,7 +147,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         let (patLvl, patTy) ← nameToLevel pat.ctor ctx.typCtx
         if !ctors.contains patLvl then
           let dataType ← quote ctx.lvl dataType
-          let constructor ← quote ctx.lvl (.rigid patLvl (.mk #[]))
+          let constructor ← quote ctx.lvl (.rigid patLvl #[])
           throw s!"data type `{ctx.showTm dataType}` has no constructor named `{ctx.showTm constructor}`"
         let patTy ← quote ctx.lvl patTy
         -- intro pattern context

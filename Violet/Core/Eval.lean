@@ -4,18 +4,18 @@ import Violet.Core.Context
 namespace Violet.Core
 open Violet.Ast.Core
 
-def Env.lookup [Monad m] [MonadExcept String m] : Ix → Env → m Val
-  | .ix x, .mk vs => return vs.get! x
+def Env.lookup [Monad m] [MonadExcept String m] (vs : Env) : Ix → m Val
+  | .ix x => return vs.get! x
 
 def vMeta [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (v : MetaVar) : m Val := do
   match ← lookupMeta v with
   | .solved t => return t
-  | .unsolved => return .flex v (.mk #[])
+  | .unsolved => return .flex v #[]
 
 def Env.matching? [Monad m] [MonadExcept String m]
   (env : Env) (pat : Pattern) : Val → m (Env × Bool)
-  | .rigid h (.mk sp) => do
+  | .rigid h sp => do
     if h.toNat != pat.ctor.toNat || sp.size != pat.vars.size then
       return (env, false)
     else
@@ -48,14 +48,14 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   : Closure → Val → m Val
-  | .mk env t, u => (env.extend u).eval t
+  | .mk (env : Env) t, u => (env.extend u).eval t
 
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) (u : Val) : m Val :=
   match t with
   | .lam _ _ t    => t.apply u
-  | .flex  m sp => return .flex m  (sp.extend u)
-  | .rigid x sp => return .rigid x (sp.extend u)
+  | .flex  m (sp : Spine) => return .flex m  (sp.extend u)
+  | .rigid x (sp : Spine) => return .rigid x (sp.extend u)
   | _           => throw "violet internal bug at value apply"
 
 end
@@ -88,8 +88,8 @@ partial def Spine.quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (t : Val) : m Tm := do
   match ← force t with
-  | .flex m sp => sp.quote lvl (Tm.meta m)
-  | .rigid x sp => sp.quote lvl (Tm.var (lvl2Ix lvl x))
+  | .flex m (sp : Spine) => sp.quote lvl (Tm.meta m)
+  | .rigid x (sp : Spine) => sp.quote lvl (Tm.var (lvl2Ix lvl x))
   | .pair fst snd => return .pair (← quote lvl fst) (← quote lvl snd)
   | .sigma x a b => return .sigma x (← quote lvl a) (← quote lvl (← b.apply lvl.toNat))
   | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat))
