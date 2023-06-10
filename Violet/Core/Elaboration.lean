@@ -135,30 +135,38 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .match target cases, expected =>
     let (target, dataType) ← ctx.infer target
     if let (Val.rigid dataTypeLvl _) := dataType then
-      let ctors := ctx.dataTypeCtx.find! dataTypeLvl
-      let mut coreCases := #[]
-      for (pat, body) in cases do
-        -- 1. pat has ctor name
-        -- 2. pat has variables
-        -- A context we should create here is a mapping from these variables to types
-        -- then check body with this context has the expected type
-        let (patLvl, patTy) ← nameToLevel pat.ctor ctx.typCtx
-        if !ctors.contains patLvl then
-          throw s!"data type `{← ctx.showVal dataType}` has no constructor named `{← ctx.showVal (.rigid patLvl #[])}`"
-        let patTy ← quote ctx.lvl patTy
-        -- intro pattern context
-        let ctx' ← mkPatternCtx patTy pat.vars.toList ctx
-        let body ← ctx'.check body expected
-        coreCases := coreCases.push
-          ({ctor := patLvl, vars := pat.vars}, body)
-      return .match target coreCases
+      ctx.checkMatch dataType dataTypeLvl target cases expected
     else throw "match target must has a rigid type"
   | t, expected => do
     let (t', inferred) ← ctx.infer t
     try unify ctx.lvl expected inferred
     catch msg =>
-      throw s!"checking {t}\n  cannot unify `{← ctx.showVal expected}` with `{← ctx.showVal inferred}`\n  {msg}"
+      throw s!"checking {t}\n  expected `{← ctx.showVal expected}`, got `{← ctx.showVal inferred}`\n  {msg}"
     return t'
+
+partial def ElabContext.checkMatch [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (ctx : ElabContext)
+  (dataType : VTy) (dataTypeLvl : Lvl)
+  (target : Tm) (cases : Array (Surface.Pattern × Surface.Tm))
+  (expected : VTy)
+  : m Tm := do
+  let ctors := ctx.dataTypeCtx.find! dataTypeLvl
+  let mut coreCases := #[]
+  for (pat, body) in cases do
+    -- 1. pat has ctor name
+    -- 2. pat has variables
+    -- A context we should create here is a mapping from these variables to types
+    -- then check body with this context has the expected type
+    let (patLvl, patTy) ← nameToLevel pat.ctor ctx.typCtx
+    if !ctors.contains patLvl then
+      throw s!"data type `{← ctx.showVal dataType}` has no constructor named `{← ctx.showVal (.rigid patLvl #[])}`"
+    let patTy ← quote ctx.lvl patTy
+    -- intro pattern context
+    let ctx' ← mkPatternCtx patTy pat.vars.toList ctx
+    let body ← ctx'.check body expected
+    coreCases := coreCases.push
+      ({ctor := patLvl, vars := pat.vars}, body)
+  return .match target coreCases
 
 end
 
