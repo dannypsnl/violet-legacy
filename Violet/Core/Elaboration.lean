@@ -16,7 +16,7 @@ def nameToIndex [Monad m] [MonadExcept String m]
   (count : Nat) (x : String) : TypCtx → m (Core.Tm × VTy)
   | [] => throw s!"no variable named `{x}`"
   | (x', a) :: xs =>
-    if x == x' then return (.var (.ix count), a)
+    if x == x' then return (.var x (.ix count), a)
     else nameToIndex (count + 1) x xs
 
 def freshMeta [Monad m] [MonadState MetaCtx m]
@@ -45,7 +45,7 @@ partial def mkPatternCtx [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     mkPatternCtx (← quote ctx'.lvl (← ctx.env.eval body))
       rest
       ctx'
-  | .var _, _ => return ctx
+  | .var .., _ => return ctx
   | _, _ => throw "bad pattern type"
 
 mutual
@@ -112,11 +112,11 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- if lambda has same mode as pi type, then just check it
   | .lam m@.implicit x t, .pi _ .implicit a b 
   | .lam m@.explicit x t, .pi _ .explicit a b  =>
-    let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
+    let t ← (ctx.bind x a).check t (← b.apply (.rigid x ctx.lvl #[]))
     return .lam x m t
   -- otherwise if pi type is implicit, insert a new implicit lambda
   | t, .pi x .implicit a b =>
-    let t ← (ctx.bind x a).check t (← b.apply ctx.lvl.toNat)
+    let t ← (ctx.bind x a).check t (← b.apply (.rigid x ctx.lvl #[]))
     return .lam x .implicit t
   -- pair has a sigma type
   | .pair fst snd, .sigma _ a b =>
@@ -134,7 +134,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- match at here should be desugared pattern matching
   | .match target cases, expected =>
     let (target, dataType) ← ctx.infer target
-    if let (Val.rigid dataTypeLvl _) := dataType then
+    if let (Val.rigid _ dataTypeLvl _) := dataType then
       ctx.checkMatch dataType dataTypeLvl target cases expected
     else throw "match target must has a rigid type"
   | t, expected => do
@@ -159,7 +159,7 @@ partial def ElabContext.checkMatch [Monad m] [MonadState MetaCtx m] [MonadExcept
     -- then check body with this context has the expected type
     let (patLvl, patTy) ← nameToLevel pat.ctor ctx.typCtx
     if !ctors.contains patLvl then
-      throw s!"data type `{← ctx.showVal dataType}` has no constructor named `{← ctx.showVal (.rigid patLvl #[])}`"
+      throw s!"data type `{← ctx.showVal dataType}` has no constructor named `{pat.ctor}`"
     let patTy ← quote ctx.lvl patTy
     -- intro pattern context
     let ctx' ← mkPatternCtx patTy pat.vars.toList ctx

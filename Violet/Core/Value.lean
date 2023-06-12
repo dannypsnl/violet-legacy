@@ -22,7 +22,7 @@ Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is 
 -/
 inductive Val
   | flex (head : MetaVar) (spine : Array Val)
-  | rigid (head : Lvl) (spine : Array Val)
+  | rigid (name : String) (head : Lvl) (spine : Array Val)
   | pair (fst snd : Val)
   | sigma (name : String) (ty : Val) (clos : Closure)
   | lam (name : String) (mode : Mode) (clos : Closure)
@@ -31,9 +31,6 @@ inductive Val
   deriving Repr, Inhabited, BEq
 
 end
-
-instance : Coe Nat Val where
-  coe x := Val.rigid (.lvl x) #[]
 
 @[reducible]
 abbrev VTy := Val

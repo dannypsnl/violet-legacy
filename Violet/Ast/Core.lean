@@ -29,7 +29,7 @@ deriving Repr, BEq
 inductive Tm
   | type
   | meta (mvar : MetaVar)
-  | var (name : Ix)
+  | var (name : String) (ix : Ix)
   | app (fn arg : Tm)
   | pi (name : String) (mode : Mode) (ty body : Tm)
   | lam (name : String) (mode : Mode) (body : Tm)

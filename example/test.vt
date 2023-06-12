@@ -54,8 +54,10 @@ match b
 
 def main : NoB false => not <| zero? (suc zero)
 
-def test_pair : Nat × Nat => (zero, zero)
+def test_pair : Nat × Nat => (zero, suc zero)
 def test_pair2 : Nat × Bool => (zero, false)
+def test_pair3 : (x : Bool) × NoB x => (true, zero)
+def test_pair4 : (x : Bool) × NoB x => (false, true)
 
 record NatBool {
   a : Nat,

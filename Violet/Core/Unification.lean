@@ -26,7 +26,7 @@ def invert [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     | t :: sp => do
       let (dom, ren) ← go sp
       match ← force t with
-      | .rigid (.lvl x) _ =>
+      | .rigid _ (.lvl x) _ =>
         if (ren.find? x).isNone then
           return (.lvl <| dom.toNat + 1, ren.insert x dom)
         else throw "cannot unify"
@@ -45,20 +45,20 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
       | .flex mvar' sp =>
         if mvar == mvar' then throw "occurs check"
         else goSp pren (.meta mvar') sp
-      | .rigid (.lvl x) sp =>
+      | .rigid name (.lvl x) sp =>
         match pren.ren.find? x with
         | .none => throw s!"scope error {pren.ren.toList}"
-        | .some x' => goSp pren (.var (lvl2Ix pren.dom x')) sp
-      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply pren.cod.toNat)
+        | .some x' => goSp pren (.var name (lvl2Ix pren.dom x')) sp
+      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply (.rigid x pren.cod #[]))
       | .pi x mode a b =>
         .pi x mode
           <$> go pren a
-          <*> go pren.lift (← b.apply pren.cod.toNat)
+          <*> go pren.lift (← b.apply (.rigid x pren.cod #[]))
       | .pair a b => .pair <$> go pren a <*> go pren b
       | .sigma x a b =>
         .sigma x
           <$> go pren a
-          <*> go pren.lift (← b.apply pren.cod.toNat)
+          <*> go pren.lift (← b.apply (.rigid x pren.cod #[]))
       | .type => return .type
 
 def lams (l : Lvl) (t : Tm) : Tm := Id.run do
@@ -82,23 +82,26 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (l r : Val) : m Unit := do
   match ← force l, ← force r with
-  | .lam _ _ t, .lam _ _ t' =>
-    unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
+  | .lam x _ t, .lam _ _ t' =>
+    unify (.lvl <| lvl.toNat + 1) (← t.apply (.rigid x lvl #[])) (← t'.apply (.rigid x lvl #[]))
   | .pair a b, .pair a' b' =>
     unify lvl a a'
     unify lvl b b'
-  | .sigma _ a b, .sigma _ a' b' =>
+  | .sigma x a b, .sigma _ a' b' =>
     unify lvl a a'
-    unify (.lvl <| lvl.toNat + 1) (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
-  | .lam _ _ t', t | t, .lam _ _ t' =>
-    unify (.lvl <| lvl.toNat + 1) (← t.apply lvl.toNat) (← t'.apply lvl.toNat)
-  | .pi _ mode a b, .pi _ mode' a' b' =>
+    unify (.lvl <| lvl.toNat + 1) (← b.apply (.rigid x lvl #[])) (← b'.apply (.rigid x lvl #[]))
+  | .lam x _ t', t | t, .lam x _ t' =>
+    unify (.lvl <| lvl.toNat + 1) (← t.apply (.rigid x lvl #[])) (← t'.apply (.rigid x lvl #[]))
+  | .pi x mode a b, .pi _ mode' a' b' =>
     if mode != mode' then throw "unify error"
     unify lvl a a'
-    unify (.lvl <| lvl.toNat + 1) (← b.apply lvl.toNat) (← b'.apply lvl.toNat)
+    unify (.lvl <| lvl.toNat + 1) (← b.apply (.rigid x lvl #[])) (← b'.apply (.rigid x lvl #[]))
   | .type, .type => return ()
   -- for neutral
-  | .rigid h sp, .rigid h' sp'
+  | .rigid n h sp, .rigid n' h' sp' =>
+    if h != h' || sp.size != sp'.size then throw s!"unify error, {n} {n'}"
+    for (t, t') in sp.zip sp' do
+      unify lvl t t'
   | .flex h sp, .flex h' sp' =>
     if h != h' || sp.size != sp'.size then throw "unify error"
     for (t, t') in sp.zip sp' do

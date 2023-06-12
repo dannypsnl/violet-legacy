@@ -28,7 +28,7 @@ def ElabContext.bind (ctx : ElabContext) (name : String) (ty : VTy)
   let (.lvl curLvl) := ctx.lvl
   { ctx with
     lvl := .lvl <| curLvl + 1
-    env := ctx.env.extend curLvl
+    env := ctx.env.extend (.rigid name ctx.lvl #[])
     typCtx := (name, ty) :: ctx.typCtx
   }
 def ElabContext.define (ctx : ElabContext) (name : String) (val : Val) (ty : VTy)
@@ -60,7 +60,7 @@ partial def ElabContext.showTm (ctx : ElabContext) : Tm → String
   | .pi p .explicit ty body =>
     "(" ++ p ++ " : " ++ ctx.showTm ty ++ ") → " ++ ctx.showTm body
   | .app t u => s!"{ctx.showTm t} {ctx.showTm u}"
-  | .var (.ix x) => let (name, _) := ctx.typCtx.get! x; name
+  | .var name .. => name
   | .meta m => s!"?{m}"
   | .let p ty val body =>
     s!"let {p} : {ctx.showTm ty} := {ctx.showTm val} in {ctx.showTm body}"
