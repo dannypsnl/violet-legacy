@@ -83,13 +83,13 @@ mutual
     return (name, ty)
 
   partial def parseSigma : Parsec Tm := do
-    let (name, ty) ← parens bind
+    let (name, ty) ← (parens (user_ws := whitespace)) bind
     keyword "**" <|> keyword "×"
     let body ← term
     return .sigma name ty body
 
   partial def pair : Parsec Tm :=
-    parens do
+    (parens (user_ws := whitespace)) do
       let l ← term
       keyword ","
       let r ← term
@@ -98,15 +98,15 @@ mutual
   partial def atom : Parsec Tm := do
     parseLam <|> parseLet <|> parseMatch
     <|> kwTyp <|> hole <|> var
-    <|> parsePi .implicit braces
+    <|> parsePi .implicit (braces (user_ws := whitespace))
     <|> (do
       let r ← tryP <| pair
       if r.isSome then return r.get!
-      let r ← tryP <| parens term
+      let r ← tryP <| (parens (user_ws := whitespace)) term
       if r.isSome then return r.get!
       let r ← tryP parseSigma
       if r.isSome then return r.get!
-      parsePi .explicit parens)
+      parsePi .explicit (parens (user_ws := whitespace)))
     where
       hole : Parsec Tm := do
         keyword "!!"
@@ -141,8 +141,8 @@ def telescope : Parsec Telescope := do
   where
     bindGroup (mode : Mode) :=
       let wrapper := match mode with
-        | .implicit => braces
-        | .explicit => parens
+        | .implicit => braces (user_ws := whitespace)
+        | .explicit => parens (user_ws := whitespace)
       wrapper $ do
         let names ← many1 identifier
         keyword ":"
@@ -184,7 +184,7 @@ def parseRecord : Parsec Definition := do
   let startPos ← getPosition
   keyword "record"
   let name ← identifier
-  let fs ← braces <| many field
+  let fs ← (braces (user_ws := whitespace)) <| many field
   let endPos ← getPosition
   return .record startPos endPos name fs
   where

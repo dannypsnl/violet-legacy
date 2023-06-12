@@ -10,7 +10,9 @@ data Nat
 | zero
 | suc Nat
 
-def trytry : {A : Type} -> (x : A) -> A =>
+def trytry : {A : Type}
+  ---------------------
+  -> (x : A) -> A =>
   \x => x
 
 def id {A : Type} (x : A) : A => x
