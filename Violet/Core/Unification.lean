@@ -49,16 +49,16 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         match pren.ren.find? x with
         | .none => throw s!"scope error {pren.ren.toList}"
         | .some x' => goSp pren (.var name (lvl2Ix pren.dom x')) sp
-      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply (.rigid x pren.cod #[]))
+      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply (vvar x pren.cod))
       | .pi x mode a b =>
         .pi x mode
           <$> go pren a
-          <*> go pren.lift (← b.apply (.rigid x pren.cod #[]))
+          <*> go pren.lift (← b.apply (vvar x pren.cod))
       | .pair a b => .pair <$> go pren a <*> go pren b
       | .sigma x a b =>
         .sigma x
           <$> go pren a
-          <*> go pren.lift (← b.apply (.rigid x pren.cod #[]))
+          <*> go pren.lift (← b.apply (vvar x pren.cod))
       | .type => return .type
 
 def lams (l : Lvl) (t : Tm) : Tm := Id.run do
@@ -83,19 +83,19 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (l r : Val) : m Unit := do
   match ← force l, ← force r with
   | .lam x _ t, .lam _ _ t' =>
-    unify (.lvl <| lvl.toNat + 1) (← t.apply (.rigid x lvl #[])) (← t'.apply (.rigid x lvl #[]))
+    unify (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)) (← t'.apply (vvar x lvl))
   | .pair a b, .pair a' b' =>
     unify lvl a a'
     unify lvl b b'
   | .sigma x a b, .sigma _ a' b' =>
     unify lvl a a'
-    unify (.lvl <| lvl.toNat + 1) (← b.apply (.rigid x lvl #[])) (← b'.apply (.rigid x lvl #[]))
+    unify (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)) (← b'.apply (vvar x lvl))
   | .lam x _ t', t | t, .lam x _ t' =>
-    unify (.lvl <| lvl.toNat + 1) (← t.apply (.rigid x lvl #[])) (← t'.apply (.rigid x lvl #[]))
+    unify (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)) (← t'.apply (vvar x lvl))
   | .pi x mode a b, .pi _ mode' a' b' =>
     if mode != mode' then throw "unify error"
     unify lvl a a'
-    unify (.lvl <| lvl.toNat + 1) (← b.apply (.rigid x lvl #[])) (← b'.apply (.rigid x lvl #[]))
+    unify (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)) (← b'.apply (vvar x lvl))
   | .type, .type => return ()
   -- for neutral
   | .rigid n h sp, .rigid n' h' sp' =>

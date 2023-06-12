@@ -91,9 +91,9 @@ partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .flex m (sp : Spine) => sp.quote lvl (Tm.meta m)
   | .rigid name x (sp : Spine) => sp.quote lvl (Tm.var name (lvl2Ix lvl x))
   | .pair fst snd => return .pair (← quote lvl fst) (← quote lvl snd)
-  | .sigma x a b => return .sigma x (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (.rigid x lvl #[])))
-  | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply (.rigid x lvl #[])))
-  | .pi x m a b => return .pi x m (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (.rigid x lvl #[])))
+  | .sigma x a b => return .sigma x (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)))
+  | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)))
+  | .pi x m a b => return .pi x m (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)))
   | .type => return  .type
 
 end

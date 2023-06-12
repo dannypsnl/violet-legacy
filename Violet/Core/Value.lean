@@ -35,6 +35,8 @@ end
 @[reducible]
 abbrev VTy := Val
 
+def vvar (name : String) (lvl : Lvl) : Val := Val.rigid name lvl #[]
+
 inductive MetaEntry
   | solved (v : Val)
   | unsolved

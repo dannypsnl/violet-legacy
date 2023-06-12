@@ -112,11 +112,11 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- if lambda has same mode as pi type, then just check it
   | .lam m@.implicit x t, .pi _ .implicit a b 
   | .lam m@.explicit x t, .pi _ .explicit a b  =>
-    let t ← (ctx.bind x a).check t (← b.apply (.rigid x ctx.lvl #[]))
+    let t ← (ctx.bind x a).check t (← b.apply (vvar x ctx.lvl))
     return .lam x m t
   -- otherwise if pi type is implicit, insert a new implicit lambda
   | t, .pi x .implicit a b =>
-    let t ← (ctx.bind x a).check t (← b.apply (.rigid x ctx.lvl #[]))
+    let t ← (ctx.bind x a).check t (← b.apply (vvar x ctx.lvl))
     return .lam x .implicit t
   -- pair has a sigma type
   | .pair fst snd, .sigma _ a b =>
