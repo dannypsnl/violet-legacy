@@ -3,12 +3,12 @@ module Test
 data Unit | unit
 
 data Bool
-| true
-| false
+  | true
+  | false
 
 data Nat
-| zero
-| suc Nat
+  | zero
+  | suc Nat
 
 def trytry : {A : Type}
   ---------------------
@@ -17,24 +17,31 @@ def trytry : {A : Type}
 
 def id {A : Type} (x : A) : A => x
 
+def plus (n m : Nat) : Nat =>
+  match n
+  | zero => m
+  | suc n => suc <| plus n m
+
+def example : Nat => plus (suc (suc (suc zero))) (suc (suc zero))
+
 def zero? (n : Nat) : Bool =>
-match n
-| zero => true
-| suc _ => false
+  match n
+  | zero => true
+  | suc _ => false
 
 def not (b : Bool) : Bool =>
-match b
-| true => false
-| false => true
+  match b
+  | true => false
+  | false => true
 
 data Weekday
-| monday
-| tuesday
-| wednesday
-| thursday
-| friday
-| saturday
-| sunday
+  | monday
+  | tuesday
+  | wednesday
+  | thursday
+  | friday
+  | saturday
+  | sunday
 
 -- def weekend? (day : Weekday) : Bool =>
 -- match day
@@ -43,14 +50,9 @@ data Weekday
 -- | _ => false
 
 def NoB (b : Bool) : Type =>
-match b
-| true => Nat
-| false => Bool
-
--- def plus (n m : Nat) : Nat =>
--- match n
--- | zero => m
--- | suc n => suc $ plus n m
+  match b
+  | true => Nat
+  | false => Bool
 
 def main : NoB false => not <| zero? (suc zero)
 
