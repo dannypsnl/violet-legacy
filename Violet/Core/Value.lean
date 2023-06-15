@@ -21,6 +21,7 @@ inductive Closure
 Let's say we have usual `Nat` definition, then `suc n` is `rigid`, but `a n` is flex where `{a : Nat → Nat}`
 -/
 inductive Val
+  | recur (name : String) (head : Lvl)
   | flex (head : MetaVar) (spine : Array Val)
   | rigid (name : String) (head : Lvl) (spine : Array Val)
   | pair (fst snd : Val)

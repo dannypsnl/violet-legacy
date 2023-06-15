@@ -53,10 +53,14 @@ partial def Closure.apply
 partial def Val.apply [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (t : Val) (u : Val) : m Val :=
   match t with
-  | .lam _ _ t    => t.apply u
-  | .flex  m (sp : Spine) => return .flex m  (sp.extend u)
+  | .lam x m (.mk (.recur _ lvl :: (env : Env)) t) =>
+    ((env.extend (.lam x m (.mk (.recur x lvl :: env) t))).extend u).eval t
+  | .lam _ _ t => t.apply u
+  | .flex  m (sp : Spine) => return .flex m (sp.extend u)
   | .rigid n x (sp : Spine) => return .rigid n x (sp.extend u)
-  | _           => throw "violet internal bug at value apply"
+  -- recur will only get applied in check phase
+  | .recur n lvl => return .rigid n lvl #[u]
+  | _ => throw "violet internal bug at value apply"
 
 end
 
@@ -88,8 +92,9 @@ partial def Spine.quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (lvl : Lvl) (t : Val) : m Tm := do
   match ← force t with
-  | .flex m (sp : Spine) => sp.quote lvl (Tm.meta m)
-  | .rigid name x (sp : Spine) => sp.quote lvl (Tm.var name (lvl2Ix lvl x))
+  | .recur name x => return .var name (lvl2Ix lvl x)
+  | .flex m (sp : Spine) => sp.quote lvl (.meta m)
+  | .rigid name x (sp : Spine) => sp.quote lvl (.var name (lvl2Ix lvl x))
   | .pair fst snd => return .pair (← quote lvl fst) (← quote lvl snd)
   | .sigma x a b => return .sigma x (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)))
   | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)))

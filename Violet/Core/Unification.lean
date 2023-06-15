@@ -42,6 +42,7 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
 
     go (pren : PartialRenaming) (t : Val) : m Tm := do
       match ← force t with
+      | .recur name .. => throw s!"recursive point `{name}` should be replaced with rigid in this case"
       | .flex mvar' sp =>
         if mvar == mvar' then throw "occurs check"
         else goSp pren (.meta mvar') sp
@@ -99,7 +100,7 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .type, .type => return ()
   -- for neutral
   | .rigid n h sp, .rigid n' h' sp' =>
-    if h != h' || sp.size != sp'.size then throw s!"unify error, {n} {n'}"
+    if h != h' || sp.size != sp'.size then throw s!"unify error, `{n}` and `{n'}`"
     for (t, t') in sp.zip sp' do
       unify lvl t t'
   | .flex h sp, .flex h' sp' =>
