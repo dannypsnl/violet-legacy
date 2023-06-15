@@ -47,10 +47,11 @@ match b
 | true => Nat
 | false => Bool
 
--- def plus (n m : Nat) : Nat =>
--- match n
--- | zero => m
--- | suc n => suc $ plus n m
+def plus (n m : Nat) : Nat =>
+match n
+| zero => m
+| suc n => suc <| plus n m
+def example : Nat => plus (suc (suc zero)) (suc zero)
 
 def main : NoB false => not <| zero? (suc zero)
 

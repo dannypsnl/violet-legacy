@@ -31,10 +31,15 @@ def checkDefinitions (p : Program) : ProgramM Unit := do
       set <| (← get).bind name ty
       let val := tele.foldr (λ (x, mode, _) body => .lam mode x body) body
       let val ← reduceCheck (.src startPos endPos val) ty
-      modify <| (fun ctx =>
-        match ctx.env with
-        | [] => ctx
-        | _ :: m => { ctx with env := val :: m })
+      let ctx ← get
+      if let (_ :: prev_env) := ctx.env then
+        let new_env := val :: prev_env
+        let val : Val := match val with
+          | .lam x m (.mk _ t) => .lam x m (.mk new_env t)
+          | val => val
+        set <| { ctx with env := val :: prev_env }
+      else
+        throw "impossible: empty environment"
     | .data startPos endPos dataName constructors =>
       -- A data type definition bind its name as type in context is an axiom,
       -- which means we cannot check it but just insert it. Thus, the example
