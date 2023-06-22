@@ -2,6 +2,7 @@ import Lake
 open Lake DSL
 
 require «parsec-extra» from git "https://github.com/dannypsnl/parsec-extra" @ "main"
+require «graph» from git "https://github.com/PeterKementzey/graph-library-for-lean4" @ "master"
 
 package «violet» {
   -- add package configuration options here

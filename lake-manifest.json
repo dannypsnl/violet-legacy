@@ -8,8 +8,20 @@
     "name": "lspec",
     "inputRev?": "main"}},
   {"git":
+   {"url": "https://github.com/PeterKementzey/graph-library-for-lean4",
+    "subDir?": null,
+    "rev": "414cdbe1603340a54133edf9b07985f94ceeb26a",
+    "name": "graph",
+    "inputRev?": "master"}},
+  {"git":
    {"url": "https://github.com/dannypsnl/parsec-extra",
     "subDir?": null,
     "rev": "e80d80e693be127a5e0bd520554a60401f8dc4db",
     "name": "parsec-extra",
+    "inputRev?": "main"}},
+  {"git":
+   {"url": "https://github.com/leanprover/std4",
+    "subDir?": null,
+    "rev": "e68aa8f5fe47aad78987df45f99094afbcb5e936",
+    "name": "std",
     "inputRev?": "main"}}]}
