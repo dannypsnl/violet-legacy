@@ -100,9 +100,8 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- 2. lam (x : T) => t
   --
   -- The first one cannot be inferred, but the second one can.
-  | .lam .. => throw "cannot infer lambda without type annotation"
-  | .pair .. => throw "cannot infer pair"
-  | .match .. => throw "cannot infer pattern matching"
+  | .lam .. | .pair .. | .match .. | .proj .. =>
+    throw s!"cannot infer {tm}"
 
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -123,6 +122,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let fst' ← ctx.check fst a
     let snd' ← ctx.check snd (← b.apply <| ← ctx.env.eval fst')
     return .pair fst' snd'
+  | .proj idx tm, ty => sorry
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a
