@@ -37,10 +37,9 @@ match n
 | zero => true
 | suc _ => false
 
-record T {
-  a : Nat,
-  b : Bool,
-}
+record T where
+  a : Nat;
+  b : Bool;
 
 def t (x : Nat) : T => (x, zero? x)
 ```
