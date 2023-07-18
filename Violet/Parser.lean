@@ -184,15 +184,22 @@ def parseRecord : Parsec Definition := do
   let startPos ← getPosition
   keyword "record"
   let name ← identifier
-  let fs ← (braces (user_ws := whitespace)) <| many field
+  keyword "where"
+  let mut fs := #[]
+
+  repeat do
+    match ← tryP field with
+    | .none => break
+    | .some f => fs := fs.push f
+
   let endPos ← getPosition
   return .record startPos endPos name fs
   where
-    field : Parsec <| String × Typ := do
+    field : (Parsec <| String × Typ) := do
       let name ← identifier
       keyword ":"
       let ty ← typ
-      keyword ","
+      keyword ";"
       return ⟨ name, ty ⟩
 
 def parseFile : Parsec Program := do

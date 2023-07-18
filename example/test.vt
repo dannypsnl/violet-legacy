@@ -61,20 +61,25 @@ def test_pair2 : Nat × Bool => (zero, false)
 def test_pair3 : (x : Bool) × NoB x => (true, zero)
 def test_pair4 : (x : Bool) × NoB x => (false, true)
 
-record NatBool {
-  a : Nat,
-  b : Bool,
-  c : Bool,
-}
+record NatBool where
+  a : Nat;
+  b : Bool;
+  c : Bool;
 
 def test_record : NatBool => (zero, (true, false))
 
-record T {
-  a : Nat,
-  b : Bool,
-}
+record T where
+  a : Nat;
+  b : Bool;
 
 def test_record2 (x : Nat) : T => (x, zero? x)
 
-record T2 {}
+record T2 where
+
 def test_record3 : T2 => unit
+
+record T3 where
+  a : Nat;
+  b : Bool;
+
+def test_record4 (x : Nat) (y : Bool) : T3 => (x, y)
