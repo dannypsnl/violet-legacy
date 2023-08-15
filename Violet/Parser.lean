@@ -189,7 +189,6 @@ def parseRecord : Parsec Definition := do
   let startPos ← getPosition
   keyword "record"
   let name ← identifier
-  keyword "where"
   let mut fs := #[]
 
   repeat do
@@ -201,10 +200,10 @@ def parseRecord : Parsec Definition := do
   return .record startPos endPos name fs
   where
     field : (Parsec <| String × Typ) := do
+      keyword "|"
       let name ← identifier
       keyword ":"
       let ty ← typ
-      keyword ";"
       return ⟨ name, ty ⟩
 
 def parseFile : Parsec Program := do
