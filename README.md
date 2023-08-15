@@ -25,21 +25,21 @@ violet example/module.vt
 data Unit | unit
 
 data Nat
-| zero
-| suc Nat
+  | zero
+  | suc Nat
 
 data Bool
-| true
-| false
+  | true
+  | false
 
 def zero? (n : Nat) : Bool =>
-match n
-| zero => true
-| suc _ => false
+  match n
+  | zero => true
+  | suc _ => false
 
-record T where
-  a : Nat;
-  b : Bool;
+record T
+  | a : Nat
+  | b : Bool
 
 def t (x : Nat) : T => (x, zero? x)
 ```
