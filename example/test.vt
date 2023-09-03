@@ -61,6 +61,11 @@ def test_pair2 : Nat × Bool => (zero, false)
 def test_pair3 : (x : Bool) × NoB x => (true, zero)
 def test_pair4 : (x : Bool) × NoB x => (false, true)
 
+def test_proj : Nat => test_pair.0
+def test_proj2 : Nat => test_pair.1
+def test_proj3 : Bool => test_pair4.0
+def test_proj4 : Bool => test_pair4.1
+
 record NatBool
   | a : Nat
   | b : Bool
