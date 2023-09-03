@@ -25,6 +25,8 @@ inductive Val
   | flex (head : MetaVar) (spine : Array Val)
   | rigid (name : String) (head : Lvl) (spine : Array Val)
   | pair (fst snd : Val)
+  | fst (v : Val)
+  | snd (v : Val)
   | sigma (name : String) (ty : Val) (clos : Closure)
   | lam (name : String) (mode : Mode) (clos : Closure)
   | pi (name : String) (mode : Mode) (ty : Val) (clos : Closure)

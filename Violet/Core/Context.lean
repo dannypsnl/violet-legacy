@@ -53,6 +53,8 @@ partial def ElabContext.showPat (ctx : ElabContext) (pat : Pattern) : String :=
 partial def ElabContext.showTm (ctx : ElabContext) : Tm → String
   | .sigma x a b => s!"({x} : {ctx.showTm a}) × {ctx.showTm b}"
   | .pair fst snd => s!"({ctx.showTm fst}, {ctx.showTm snd})"
+  | .fst t => s!"{ctx.showTm t}.0"
+  | .snd t => s!"{ctx.showTm t}.1"
   | .lam p .implicit body => "λ " ++ "{" ++ p ++ "}" ++ s!" => {ctx.showTm body}"
   | .lam p .explicit body => s!"λ {p} => {ctx.showTm body}"
   | .pi p .implicit ty body =>

@@ -95,12 +95,17 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let a ← ctx.env.eval meta
     let t ← freshMeta
     return (t, a)
+  | .pair fst snd =>
+    let (fst', fstTy) ← ctx.infer fst
+    let (snd', sndTy) ← ctx.infer snd
+    let sndTy := Closure.mk ctx.env (← quote ctx.lvl sndTy)
+    return (.pair fst' snd', .sigma "_" fstTy sndTy)
   -- TODO: a good idea would be having two lambda forms
   -- 1. lam x => t
   -- 2. lam (x : T) => t
   --
   -- The first one cannot be inferred, but the second one can.
-  | .lam .. | .pair .. | .match .. | .proj .. =>
+  | .lam .. | .match .. | .proj .. =>
     throw s!"cannot infer {tm}"
 
 partial
@@ -122,7 +127,21 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let fst' ← ctx.check fst a
     let snd' ← ctx.check snd (← b.apply <| ← ctx.env.eval fst')
     return .pair fst' snd'
-  | .proj idx tm, ty => sorry
+  | .proj idx tm, ty =>
+    let (tm', ty') ← ctx.infer tm
+    match ← force ty' with
+    | .sigma _ a b =>
+      if idx == 0 then
+        unify ctx.lvl a ty
+        return .fst tm'
+      else if idx == 1 then
+        let b ← b.apply (← ctx.env.eval (.fst tm'))
+        unify ctx.lvl b ty
+        return .snd tm'
+      else
+        -- TODO: `proj idx tm` should expand to `proj (idx-1) (proj 1 tm)`
+        throw s!"bad projection index {idx}"
+    | ty => throw s!"cannot project from non-sigma type `{← ctx.showVal ty}`"
   | .let x a t u, a' =>
     let a ← ctx.check a .type 
     let va ← ctx.env.eval a

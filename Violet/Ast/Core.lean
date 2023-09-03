@@ -35,6 +35,8 @@ inductive Tm
   | lam (name : String) (mode : Mode) (body : Tm)
   | sigma (name : String) (ty body : Tm)
   | pair (fst snd : Tm)
+  | fst (pair : Tm)
+  | snd (pair : Tm)
   | «let» (name : String) (ty val body : Tm)
   | «match» (target : Tm) (cases : Array (Pattern × Tm))
   deriving Repr, Inhabited, BEq
