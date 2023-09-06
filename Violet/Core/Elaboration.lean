@@ -95,14 +95,30 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let a ← ctx.env.eval meta
     let t ← freshMeta
     return (t, a)
+  | .pair fst snd =>
+    let (fst', fstTy) ← ctx.infer fst
+    let (snd', sndTy) ← ctx.infer snd
+    let sndTy := Closure.mk ctx.env (← quote ctx.lvl sndTy)
+    return (.pair fst' snd', .sigma "_" fstTy sndTy)
+  | .proj idx p =>
+    let (p', pTy) ← ctx.infer p
+    match ← force pTy with
+    | .sigma _ a b =>
+      if idx == 0 then
+        return (.fst p', a)
+      else if idx == 1 then
+        let b ← b.apply (← ctx.env.eval (.fst p'))
+        return (.snd p', b)
+      else
+        throw s!"bad projection index {idx}"
+    | ty => throw s!"cannot project from non-sigma type `{← ctx.showVal ty}`"
   -- TODO: a good idea would be having two lambda forms
   -- 1. lam x => t
   -- 2. lam (x : T) => t
   --
   -- The first one cannot be inferred, but the second one can.
-  | .lam .. => throw "cannot infer lambda without type annotation"
-  | .pair .. => throw "cannot infer pair"
-  | .match .. => throw "cannot infer pattern matching"
+  | .lam .. | .match .. =>
+    throw s!"cannot infer {tm}"
 
 partial
 def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]

@@ -30,6 +30,8 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .var _ x => env.lookup x
   | .app t u => (← env.eval t).apply (← env.eval u)
   | .pair fst snd => return .pair (← env.eval fst) (← env.eval snd)
+  | .fst p => (← env.eval p).proj₁
+  | .snd p => (← env.eval p).proj₂
   | .sigma x a b => return .sigma x (← env.eval a) (Closure.mk env b)
   | .lam x m t => return .lam x m (Closure.mk env t)
   | .pi x m a b => return .pi x m (← env.eval a) (Closure.mk env b)
@@ -44,6 +46,17 @@ partial def Env.eval [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         return ← env'.eval clause
       else continue
     throw "no clause matched"
+
+partial def Val.proj₁ [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (self : Val) : m Val :=
+  match self with
+  | .pair fst _ => return fst
+  | p => return .fst p
+partial def Val.proj₂ [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
+  (self : Val) : m Val :=
+  match self with
+  | .pair _ snd => return snd
+  | p => return .snd p
 
 partial def Closure.apply
   [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
@@ -96,6 +109,8 @@ partial def quote [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .flex m (sp : Spine) => sp.quote lvl (.meta m)
   | .rigid name x (sp : Spine) => sp.quote lvl (.var name (lvl2Ix lvl x))
   | .pair fst snd => return .pair (← quote lvl fst) (← quote lvl snd)
+  | .fst p => return .fst (← quote lvl p)
+  | .snd p => return .fst (← quote lvl p)
   | .sigma x a b => return .sigma x (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)))
   | .lam x m t => return .lam x m (← quote (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)))
   | .pi x m a b => return .pi x m (← quote lvl a) (← quote (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)))

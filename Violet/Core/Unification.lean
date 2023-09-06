@@ -56,6 +56,8 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
           <$> go pren a
           <*> go pren.lift (← b.apply (vvar x pren.cod))
       | .pair a b => .pair <$> go pren a <*> go pren b
+      | .fst p => .fst <$> go pren p
+      | .snd p => .snd <$> go pren p
       | .sigma x a b =>
         .sigma x
           <$> go pren a
@@ -85,6 +87,8 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match ← force l, ← force r with
   | .lam x _ t, .lam _ _ t' =>
     unify (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)) (← t'.apply (vvar x lvl))
+  | .fst p, .fst p' | .snd p, .snd p' =>
+    unify lvl p p'
   | .pair a b, .pair a' b' =>
     unify lvl a a'
     unify lvl b b'
@@ -94,7 +98,7 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   | .lam x _ t', t | t, .lam x _ t' =>
     unify (.lvl <| lvl.toNat + 1) (← t.apply (vvar x lvl)) (← t'.apply (vvar x lvl))
   | .pi x mode a b, .pi _ mode' a' b' =>
-    if mode != mode' then throw "unify error"
+    if mode != mode' then throw "unify error, Π mode mismatched"
     unify lvl a a'
     unify (.lvl <| lvl.toNat + 1) (← b.apply (vvar x lvl)) (← b'.apply (vvar x lvl))
   | .type, .type => return ()
@@ -104,7 +108,7 @@ partial def unify [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     for (t, t') in sp.zip sp' do
       unify lvl t t'
   | .flex h sp, .flex h' sp' =>
-    if h != h' || sp.size != sp'.size then throw "unify error"
+    if h != h' || sp.size != sp'.size then throw "unify error, flex"
     for (t, t') in sp.zip sp' do
       unify lvl t t'
   -- meta head neutral can unify with something else
