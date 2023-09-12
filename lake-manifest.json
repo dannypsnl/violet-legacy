@@ -4,7 +4,7 @@
  [{"git":
    {"url": "https://github.com/lurk-lab/LSpec",
     "subDir?": null,
-    "rev": "88f7d23e56a061d32c7173cea5befa4b2c248b41",
+    "rev": "3b6023654b917c8641ec5e626724a43380cff8f0",
     "opts": {},
     "name": "lspec",
     "inputRev?": "main",
