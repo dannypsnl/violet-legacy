@@ -12,7 +12,7 @@
   {"git":
    {"url": "https://github.com/dannypsnl/parsec-extra",
     "subDir?": null,
-    "rev": "59eb86e75272f89467b9cc909ee2239ad7cbc5df",
+    "rev": "461855767cc0e51206ed992c419515ef5c987458",
     "opts": {},
     "name": "«parsec-extra»",
     "inputRev?": "main",
