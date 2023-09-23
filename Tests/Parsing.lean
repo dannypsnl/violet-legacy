@@ -52,7 +52,7 @@ def testApp :=
           (.var "d"))))
 
 def testPair :=
-  lspecIO $ group "pair"
+  lspecIO $ group "pair & projection"
   $ test "base case"
     (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b")))
   $ test "fst"
@@ -61,8 +61,10 @@ def testPair :=
     (term.run "(a, b).0" == .ok (.proj 0 (.pair (.var "a") (.var "b"))))
   $ test "snd"
     (term.run "a.1" == .ok (.proj 1 (.var "a")))
-  $ test "random N projection"
+  $ test "big number projection"
     (term.run "a.30" == .ok (.proj 30 (.var "a")))
+  $ test "nested projection"
+    (term.run "(a.0).1" == .ok (.proj 1 (.proj 0 (.var "a"))))
 
 def testSigmaType :=
   lspecIO $ group "sigma type"

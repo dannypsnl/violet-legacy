@@ -26,7 +26,7 @@ def whitespace : Parsec Unit := do
 def keyword (s : String) : Parsec Unit := do
   (skipString s).orElse (fun _ => fail s!"expected: keyword `{s}`")
   whitespace
-def integer : Parsec Nat := do
+def natural : Parsec Nat := do
   let s ← many1Chars <| satisfy Char.isDigit
   whitespace
   return s.toNat!
@@ -128,7 +128,7 @@ mutual
 
   partial def term : Parsec Tm :=
     spine
-    |> «postfix» [keyword "." *> .proj <$> integer]
+    |> «postfix» [keyword "." *> .proj <$> natural]
     |> «infixL» [keyword "×" *> return .sigma "_"]
     |> «infixR» [keyword "$" *> return .app .explicit,
                   keyword "<|" *> return .app .explicit]
