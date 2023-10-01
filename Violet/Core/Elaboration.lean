@@ -100,7 +100,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let (snd', sndTy) ← ctx.infer snd
     let sndTy := Closure.mk ctx.env (← quote ctx.lvl sndTy)
     return (.pair fst' snd', .sigma "_" fstTy sndTy)
-  | .proj idx p =>
+  | .proj raw idx p => 
     let (p', pTy) ← ctx.infer p
     match ← force pTy with
     | .sigma _ a b =>
@@ -108,9 +108,14 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
       | 0 => return (.fst p', a)
       | 1 =>
         let b ← b.apply (← ctx.env.eval (.fst p'))
-        return (.snd p', b)
-      | n => ctx.infer (.proj (n - 1) (.proj 1 p))
-    | ty => throw s!"cannot project from non-sigma type `{← ctx.showVal ty}`"
+        if !raw then
+          return (.snd p', b)
+        else
+          match b with
+          | .sigma _ b _ => return (.fst (.snd p'), b)
+          | b => return (.snd p', b)
+      | n => ctx.infer (.proj true (n - 1) (.proj false 1 p))
+    | ty => throw s!"cannot do projection on non-sigma type `{← ctx.showVal ty}`"
   -- TODO: a good idea would be having two lambda forms
   -- 1. lam x => t
   -- 2. lam (x : T) => t

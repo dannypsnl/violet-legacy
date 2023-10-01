@@ -128,7 +128,7 @@ mutual
 
   partial def term : Parsec Tm :=
     spine
-    |> «postfix» [keyword "." *> .proj <$> natural]
+    |> «postfix» [keyword "." *> .proj true <$> natural]
     |> «infixL» [keyword "×" *> return .sigma "_"]
     |> «infixR» [keyword "$" *> return .app .explicit,
                   keyword "<|" *> return .app .explicit]

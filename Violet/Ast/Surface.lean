@@ -21,7 +21,12 @@ inductive Tm : Type
   | lam (mode : Mode) (name : String) (body : Tm)
   | sigma (name : String) (ty : Tm) (body : Tm)
   | pair (fst snd : Tm)
-  | proj (index : Nat) (tm : Tm)
+  -- The `raw` flag is prepared for internal distinction between the projection is generated from where, if user write `x.1` then `raw` is `true`, otherwise `raw` is `false`.
+  -- This gets used on n-tuples, when the projection is raw, then
+  -- 1. If the type of `x.1` is `(x : A) x B` then we actually return `x.1.0 : A`
+  -- 2. If the type of `x.1` is not sigma type, then we return `x.1 : T` as usual
+  -- If the projection is not raw, then we always return `x.1 : T`
+  | proj (raw : Bool) (index : Nat) (tm : Tm)
   | hole
   deriving Inhabited
 instance : Coe String Tm where
@@ -45,7 +50,7 @@ instance : ToString Pattern where
 
 partial def Tm.toString : Tm → String
   | .src _ _ tm => tm.toString
-  | .proj i tm => s!"{tm.toString}.{i}"
+  | .proj _ i tm => s!"{tm.toString}.{i}"
   | .pair fst snd => s!"({fst.toString}, {snd.toString})"
   | .sigma name ty body => s!"({name} : {ty.toString}) × {body.toString}"
   | .lam .implicit p body => "λ" ++ "{" ++ p ++ "}" ++ s!" => {body.toString}"
