@@ -56,15 +56,15 @@ def testPair :=
   $ test "base case"
     (term.run "(a, b)" == .ok (.pair (.var "a") (.var "b")))
   $ test "fst"
-    (term.run "a.0" == .ok (.proj 0 (.var "a")))
+    (term.run "a.0" == .ok (.proj true 0 (.var "a")))
   $ test "fst"
-    (term.run "(a, b).0" == .ok (.proj 0 (.pair (.var "a") (.var "b"))))
+    (term.run "(a, b).0" == .ok (.proj true 0 (.pair (.var "a") (.var "b"))))
   $ test "snd"
-    (term.run "a.1" == .ok (.proj 1 (.var "a")))
+    (term.run "a.1" == .ok (.proj true 1 (.var "a")))
   $ test "big number projection"
-    (term.run "a.30" == .ok (.proj 30 (.var "a")))
+    (term.run "a.30" == .ok (.proj true 30 (.var "a")))
   $ test "nested projection"
-    (term.run "(a.0).1" == .ok (.proj 1 (.proj 0 (.var "a"))))
+    (term.run "(a.0).1" == .ok (.proj true 1 (.proj true 0 (.var "a"))))
 
 def testSigmaType :=
   lspecIO $ group "sigma type"
