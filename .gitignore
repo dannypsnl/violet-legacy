@@ -1,12 +1,3 @@
-*.ibc
-*.ttc
-*.ttm
-build/
-
-*.swp
-# nix
-.direnv/
-result
 /build
 /lake-packages/*
 lakefile.olean
