@@ -1,19 +1,20 @@
-{"version": 5,
+{"version": 6,
  "packagesDir": "lake-packages",
  "packages":
  [{"git":
+   {"url": "https://git.sr.ht/~dannypsnl/parsec-extra",
+    "subDir?": null,
+    "rev": "0e481b39c36bac31366fedc72470d75aec8baf73",
+    "opts": {},
+    "name": "«parsec-extra»",
+    "inputRev?": "main",
+    "inherited": false}},
+  {"git":
    {"url": "https://github.com/lurk-lab/LSpec",
     "subDir?": null,
     "rev": "3b6023654b917c8641ec5e626724a43380cff8f0",
     "opts": {},
     "name": "lspec",
     "inputRev?": "main",
-    "inherited": false}},
-  {"git":
-   {"url": "https://github.com/dannypsnl/parsec-extra",
-    "subDir?": null,
-    "rev": "461855767cc0e51206ed992c419515ef5c987458",
-    "opts": {},
-    "name": "«parsec-extra»",
-    "inputRev?": "main",
-    "inherited": false}}]}
+    "inherited": false}}],
+ "name": "violet"}
