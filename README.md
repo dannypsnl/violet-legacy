@@ -1,5 +1,7 @@
 # violet
 
+[![builds.sr.ht status](https://builds.sr.ht/~dannypsnl/violet.svg)](https://builds.sr.ht/~dannypsnl/violet?)
+
 > **Warning** The project still in early stage.
 
 A programming language focuses on
