@@ -27,6 +27,7 @@ inductive Tm : Type
   -- 2. If the type of `x.1` is not sigma type, then we return `x.1 : T` as usual
   -- If the projection is not raw, then we always return `x.1 : T`
   | proj (raw : Bool) (index : Nat) (tm : Tm)
+  | record (fields : Array (String × Tm))
   | hole
   deriving Inhabited
 instance : Coe String Tm where
@@ -51,6 +52,12 @@ instance : ToString Pattern where
 partial def Tm.toString : Tm → String
   | .src _ _ tm => tm.toString
   | .proj _ i tm => s!"{tm.toString}.{i}"
+  | .record fields => Id.run $ do
+    let mut result := "{ "
+    for (name, term) in fields do
+      result := result ++ s!"| {name} => {term.toString}"
+    result := result ++ " }"
+    return result
   | .pair fst snd => s!"({fst.toString}, {snd.toString})"
   | .sigma name ty body => s!"({name} : {ty.toString}) × {body.toString}"
   | .lam .implicit p body => "λ" ++ "{" ++ p ++ "}" ++ s!" => {body.toString}"

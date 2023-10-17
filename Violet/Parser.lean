@@ -99,10 +99,25 @@ mutual
       let r ← term
       return .pair l r
 
+  partial def parseRecordTm : Parsec Tm := do
+    let fs ← braces (many field)
+    return .record fs
+    where
+      field : Parsec (String × Tm) := do
+        keyword "|"
+        whitespace
+        let name ← identifier
+        keyword "=>" <|> keyword "⇒"
+        let t ← term
+        return (name, t)
+
   partial def atom : Parsec Tm := do
     parseLam <|> parseLet <|> parseMatch
     <|> kwTyp <|> hole <|> var
-    <|> parsePi .implicit (braces (user_ws := whitespace))
+    <|> (do
+      let r ← tryP <| parseRecordTm
+      if r.isSome then return r.get!
+      parsePi .implicit (braces (user_ws := whitespace)))
     <|> (do
       let r ← tryP <| pair
       if r.isSome then return r.get!

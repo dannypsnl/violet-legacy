@@ -75,6 +75,14 @@ def testSigmaType :=
   $ test "product type abbreviation"
     (term.run "A × B" == .ok (.sigma "_" (.var "A") (.var "B")))
 
+def testRecordTerm :=
+  lspecIO $ group "record forms"
+  $ test "no field"
+    (term.run "{}" == .ok (.record #[]))
+  $ test "simple case"
+    (term.run "{ | a => t | b => u }" == .ok
+    (.record #[("a", .var "t"), ("b", .var "u")]))
+
 def testRecordDefinition :=
   lspecIO $ group "record definition"
   $ test "no field"
@@ -89,5 +97,6 @@ def main : IO UInt32 :=
     ← testApp,
     ← testPair,
     ← testSigmaType,
+    ← testRecordTerm,
     ← testRecordDefinition
   ].foldl (· + ·) 0
