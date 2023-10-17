@@ -121,7 +121,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   -- 2. lam (x : T) => t
   --
   -- The first one cannot be inferred, but the second one can.
-  | .lam .. | .match .. =>
+  | .lam .. | .match .. | .record .. =>
     throw s!"cannot infer {tm}"
 
 partial
@@ -157,6 +157,8 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     if let (Val.rigid _ dataTypeLvl _) := dataType then
       ctx.checkMatch dataType dataTypeLvl target cases expected
     else throw "match target must has a rigid type"
+  | .record fields, t => do
+    throw s!"TODO record term"
   | t, expected => do
     let (t', inferred) ← ctx.infer t
     try unify ctx.lvl expected inferred
