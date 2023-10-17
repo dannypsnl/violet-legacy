@@ -4,7 +4,7 @@
  [{"git":
    {"url": "https://git.sr.ht/~dannypsnl/parsec-extra",
     "subDir?": null,
-    "rev": "0e481b39c36bac31366fedc72470d75aec8baf73",
+    "rev": "c8ac57143628b87fd418b04d3d1c59ceea978fd0",
     "opts": {},
     "name": "«parsec-extra»",
     "inputRev?": "main",
