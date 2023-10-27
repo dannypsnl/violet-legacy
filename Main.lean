@@ -10,10 +10,9 @@ register_option violet.verbose : Bool := {
   descr := "provide verbose output to help debugging"
 }
 
-def readFileTo (f : Program → FilePath → Violet.CmdM Unit)
-  (src : FilePath) :
+def readFileTo (f : Program → FilePath → Violet.CmdM Unit) (src : FilePath) :
   Violet.CmdM Unit := do
-  let content ← IO.toEIO Violet.Exception.io <| IO.FS.readFile src
+  let content ← IO.FS.readFile src
   match parseFile.runFilename src content with
     | .error ε => throw <| .tmp ε
     | .ok prog => f prog src
@@ -40,15 +39,11 @@ def check_cmd : Violet.CmdM Unit := do
 
 unsafe def main (args : List String) : IO UInt32 := do
   enableInitializersExecution
-  let (ctx, args) := ←makeContext.run args
+  let (ctx, args) ← makeContext.run args
 
   match args[0]? with
-    | .some "check" =>
-      EIO.toIO (λ ε => ε.toIO)
-        (check_cmd.run ctx)
-      return 0
-    | .some file =>
-      EIO.toIO (λ ε => ε.toIO)
-        ((readFileTo Program.load file).run ctx)
-      return 0
+    | .some "check" => check_cmd.liftIO ctx
+    | .some file => (readFileTo Program.load file).liftIO ctx
     | .none => IO.eprintln "Expected command"; return 1
+
+  return 0

@@ -31,7 +31,10 @@ abbrev CmdM := ReaderT Context (EIO Exception)
 instance : MonadOptions CmdM where
   getOptions := return (← read).options
 
-instance : MonadLiftT IO Violet.CmdM where
+instance : MonadLiftT IO CmdM where
   monadLift k := λ _ => IO.toEIO Exception.io k
+
+def CmdM.liftIO (k : CmdM α) (ctx : Context) : IO α :=
+  EIO.toIO Exception.toIO (k.run ctx)
 
 end Violet
