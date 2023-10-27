@@ -1,6 +1,8 @@
+import Lean.Elab.Command
 import Violet.Ast.Surface
 import Violet.Parser
 import Violet.Core.Elaboration
+open Lean Meta Elab Command
 
 namespace Violet.Core
 open Violet.Ast
@@ -70,8 +72,7 @@ namespace Violet.Ast.Surface
 open Violet.Core
 open Violet.Parser
 
-partial
-def repl : ProgramM Unit := do
+partial def repl : ProgramM Unit := do
   let ctx ← get
   let stdin ← IO.getStdin
   IO.print "> "
@@ -84,11 +85,21 @@ def repl : ProgramM Unit := do
     repl
   | .error ε => IO.eprintln s!"{ε}"
 
-def Program.check (p : Program) (src : System.FilePath) : IO Unit := do
+def Program.checkAux (opts : Options) (p : Program) (src : System.FilePath) : IO (Except String (ElabContext × MetaCtx)) := do
+  let verbose? := opts.getBool `violet.verbose
+  -- TODO: let checkDefinition use this information to change log level
   IO.println s!"checking {src} ..."
-  let result ← (((checkDefinitions p).run ElabContext.empty).run default).run
-  match result with
-  | Except.ok ((_, elabCtx), metaCtx) =>
+  match ← (((checkDefinitions p).run ElabContext.empty).run default).run with
+    | Except.ok ((_, elabCtx), metaCtx) => return Except.ok (elabCtx, metaCtx)
+    | Except.error ε => return Except.error ε
+
+def Program.check (opts : Options) (p : Program) (src : System.FilePath) : IO Unit := do
+  match ←p.checkAux opts src with
+  | Except.ok .. => IO.println s!"{src} ok"
+  | Except.error ε => IO.eprintln s!"{src}:{ε}"
+def Program.load (opts : Options) (p : Program) (src : System.FilePath) : IO Unit := do
+  match ←p.checkAux opts src with
+  | Except.ok (elabCtx, metaCtx) =>
     IO.println s!"{src} checked successfully"
     let _ ← ((repl.run elabCtx).run metaCtx).run
   | Except.error ε => IO.eprintln s!"{src}:{ε}"
