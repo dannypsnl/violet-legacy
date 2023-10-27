@@ -1,9 +1,7 @@
 import Violet
 import Violet.CLI
-open System
-open Lean Meta Elab Command
-open Violet.Parser (parseFile)
-open Violet.Ast.Surface
+open Lean System
+open Violet Ast.Surface Parser
 
 register_option violet.verbose : Bool := {
   defValue := false

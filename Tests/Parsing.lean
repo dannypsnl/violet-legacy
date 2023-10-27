@@ -2,7 +2,7 @@ import LSpec
 import Violet.Parser
 
 open LSpec
-open Violet.Parser Violet.Ast.Surface
+open Violet Parser Ast.Surface
 
 def dummyPos : Lean.Position := { line := 0, column := 0 }
 

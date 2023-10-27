@@ -2,8 +2,7 @@ import Lean.Data.HashMap
 import Violet.Ast.Core
 
 namespace Violet.Core
-open Violet.Ast.Core
-open Violet.Ast
+open Violet.Ast Core
 
 mutual
 

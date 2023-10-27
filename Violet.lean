@@ -1,13 +1,10 @@
-import Lean.Elab.Command
 import Violet.CliContext
 import Violet.Ast.Surface
 import Violet.Parser
 import Violet.Core.Elaboration
-open Lean Meta Elab Command
 
 namespace Violet.Core
-open Violet.Ast
-open Violet.Ast.Surface (Program)
+open Violet Ast Surface
 
 abbrev ElabM := StateT MetaCtx (ExceptT String IO)
 abbrev ProgramM := StateT ElabContext (StateT MetaCtx (ExceptT String IO))
@@ -87,7 +84,6 @@ partial def repl : ProgramM Unit := do
     IO.println s!"{tm} : {ty}"
     repl
   | .error ε => throw ε
-
 
 def Program.checkAux (p : Program) (src : System.FilePath)
   : CmdM (ElabContext × MetaCtx) := do

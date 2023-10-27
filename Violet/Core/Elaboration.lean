@@ -4,8 +4,7 @@ import Violet.Ast.Surface
 
 namespace Violet.Core
 open Lean
-open Violet.Ast
-open Violet.Ast.Core
+open Violet.Ast Core
 
 def addPos [Monad m] [MonadExcept String m]
   (s e : Position) (f : m α) : m α := do
@@ -80,7 +79,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return (.pi x mode a' b', .type)
   -- infer `(x : a) × b`
   | .sigma x a b =>
-    let a' ← ctx.check a .type 
+    let a' ← ctx.check a .type
     let b' ← (ctx.bind x (← ctx.env.eval a')).check b .type
     return (.sigma x a' b', .type)
   | .let x a t u =>
@@ -100,7 +99,7 @@ def ElabContext.infer [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let (snd', sndTy) ← ctx.infer snd
     let sndTy := Closure.mk ctx.env (← quote ctx.lvl sndTy)
     return (.pair fst' snd', .sigma "_" fstTy sndTy)
-  | .proj raw idx p => 
+  | .proj raw idx p =>
     let (p', pTy) ← ctx.infer p
     match ← force pTy with
     | .sigma _ a b =>
@@ -130,7 +129,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   match tm, ← force ty with
   | .src startPos endPos tm, ty => addPos startPos endPos (check ctx tm ty)
   -- if lambda has same mode as pi type, then just check it
-  | .lam m@.implicit x t, .pi _ .implicit a b 
+  | .lam m@.implicit x t, .pi _ .implicit a b
   | .lam m@.explicit x t, .pi _ .explicit a b  =>
     let t ← (ctx.bind x a).check t (← b.apply (vvar x ctx.lvl))
     return .lam x m t
@@ -144,7 +143,7 @@ def ElabContext.check [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     let snd' ← ctx.check snd (← b.apply <| ← ctx.env.eval fst')
     return .pair fst' snd'
   | .let x a t u, a' =>
-    let a ← ctx.check a .type 
+    let a ← ctx.check a .type
     let va ← ctx.env.eval a
     let t ← ctx.check t va
     let vt ← ctx.env.eval t
