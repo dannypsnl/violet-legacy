@@ -22,6 +22,8 @@ def ElabContext.empty : ElabContext := {
     dataTypeCtx := default
     lvl := .lvl 0
   }
+instance : Inhabited ElabContext where
+  default := ElabContext.empty
 
 def ElabContext.bind (ctx : ElabContext) (name : String) (ty : VTy)
   : ElabContext :=

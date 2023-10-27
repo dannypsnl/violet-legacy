@@ -1,4 +1,5 @@
 import Lean.Elab.Command
+import Violet.CliContext
 import Violet.Ast.Surface
 import Violet.Parser
 import Violet.Core.Elaboration
@@ -81,27 +82,34 @@ partial def repl : ProgramM Unit := do
   | .ok v =>
     let (v, vty) ← ctx.infer v (m := ElabM)
     let v ← ctx.env.eval v (m := ElabM)
-    IO.println s!"{← ctx.showVal v (m := ElabM)} : {← ctx.showVal vty (m := ElabM)}"
+    let tm ← ctx.showVal v (m := ElabM)
+    let ty ← ctx.showVal vty (m := ElabM)
+    IO.println s!"{tm} : {ty}"
     repl
-  | .error ε => IO.eprintln s!"{ε}"
+  | .error ε => throw ε
 
-def Program.checkAux (opts : Options) (p : Program) (src : System.FilePath) : IO (Except String (ElabContext × MetaCtx)) := do
+
+def Program.checkAux (p : Program) (src : System.FilePath)
+  : CmdM (ElabContext × MetaCtx) := do
+  let opts := (← read).options
   let verbose? := opts.getBool `violet.verbose
   -- TODO: let checkDefinition use this information to change log level
   IO.println s!"checking {src} ..."
-  match ← (((checkDefinitions p).run ElabContext.empty).run default).run with
-    | Except.ok ((_, elabCtx), metaCtx) => return Except.ok (elabCtx, metaCtx)
-    | Except.error ε => return Except.error ε
+  match ← liftM $ (((checkDefinitions p).run default).run default).run with
+    | .error ε => throw $ .tmp ε
+    | .ok ((_, elabCtx), metaCtx) => return (elabCtx, metaCtx)
 
-def Program.check (opts : Options) (p : Program) (src : System.FilePath) : IO Unit := do
-  match ←p.checkAux opts src with
-  | Except.ok .. => IO.println s!"{src} ok"
-  | Except.error ε => IO.eprintln s!"{src}:{ε}"
-def Program.load (opts : Options) (p : Program) (src : System.FilePath) : IO Unit := do
-  match ←p.checkAux opts src with
-  | Except.ok (elabCtx, metaCtx) =>
-    IO.println s!"{src} checked successfully"
-    let _ ← ((repl.run elabCtx).run metaCtx).run
-  | Except.error ε => IO.eprintln s!"{src}:{ε}"
+def Program.check (p : Program) (src : System.FilePath)
+  : CmdM Unit := do
+  let _ ← p.checkAux src
+  IO.println s!"{src} ok"
+
+def Program.load (p : Program) (src : System.FilePath)
+  : CmdM Unit := do
+  let (elabCtx, metaCtx) ← p.checkAux src
+  IO.println s!"{src} checked successfully"
+  match ← liftM $ ((repl.run elabCtx).run metaCtx).run with
+    | .error ε => throw $ .tmp ε
+    | .ok .. => return
 
 end Violet.Ast.Surface

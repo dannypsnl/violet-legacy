@@ -1,4 +1,4 @@
-def List.has (args : List String) (name : String) : Bool × List String :=
+private def List.has (args : List String) (name : String) : Bool × List String :=
   match args with
     | [] => ⟨false, []⟩
     | x :: xs =>
@@ -6,7 +6,7 @@ def List.has (args : List String) (name : String) : Bool × List String :=
       else
         let (b, rest) := xs.has name
         ⟨b, x :: rest⟩
-def List.hasOr (args : List String) (names : List String) : Bool × List String := Id.run do
+private def List.hasOr (args : List String) (names : List String) : Bool × List String := Id.run do
   for n in names do
     let (b, rest) := args.has n
     if b then
