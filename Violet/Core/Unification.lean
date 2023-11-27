@@ -5,30 +5,30 @@ open Lean
 open Violet.Ast.Core
 
 structure PartialRenaming where
-  dom : Lvl                -- size of Γ
-  cod : Lvl                -- size of Δ
-  ren : HashMap Nat Lvl    -- mapping from Δ vars to Γ vars
+  domain : Lvl                -- size of Γ
+  codomain : Lvl              -- size of Δ
+  rename : HashMap Nat Lvl    -- mapping from Δ vars to Γ vars
 
 def PartialRenaming.lift (pren : PartialRenaming) : PartialRenaming :=
   { pren with
-    dom := .lvl <| pren.dom.toNat + 1
-    cod := .lvl <| pren.cod.toNat + 1
-    ren := pren.ren.insert pren.cod.toNat pren.dom
+    domain := .lvl <| pren.domain.toNat + 1
+    codomain := .lvl <| pren.codomain.toNat + 1
+    rename := pren.rename.insert pren.codomain.toNat pren.domain
   }
 
 def invert [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
   (gamma : Lvl) (sp : Spine) : m PartialRenaming := do
-  let (dom, ren) ← go sp.reverse.toList
-  return {dom, cod := gamma, ren}
+  let (domain, rename) ← go sp.reverse.toList
+  return {domain, codomain := gamma, rename}
   where
     go : List Val → m (Lvl × HashMap Nat Lvl)
     | [] => return (.lvl 0, default)
     | t :: sp => do
-      let (dom, ren) ← go sp
+      let (domain, rename) ← go sp
       match ← force t with
       | .rigid _ (.lvl x) _ =>
-        if (ren.find? x).isNone then
-          return (.lvl <| dom.toNat + 1, ren.insert x dom)
+        if (rename.find? x).isNone then
+          return (.lvl <| domain.toNat + 1, rename.insert x domain)
         else throw "cannot unify"
       | _ => throw "cannot unify"
 
@@ -47,21 +47,21 @@ def rename [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
         if mvar == mvar' then throw "occurs check"
         else goSp pren (.meta mvar') sp
       | .rigid name (.lvl x) sp =>
-        match pren.ren.find? x with
-        | .none => throw s!"scope error {pren.ren.toList}"
-        | .some x' => goSp pren (.var name (lvl2Ix pren.dom x')) sp
-      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply (vvar x pren.cod))
+        match pren.rename.find? x with
+        | .none => throw s!"scope error {pren.rename.toList}"
+        | .some x' => goSp pren (.var name (lvl2Ix pren.domain x')) sp
+      | .lam x mode t => .lam x mode <$> go pren.lift (← t.apply (vvar x pren.codomain))
       | .pi x mode a b =>
         .pi x mode
           <$> go pren a
-          <*> go pren.lift (← b.apply (vvar x pren.cod))
+          <*> go pren.lift (← b.apply (vvar x pren.codomain))
       | .pair a b => .pair <$> go pren a <*> go pren b
       | .fst p => .fst <$> go pren p
       | .snd p => .snd <$> go pren p
       | .sigma x a b =>
         .sigma x
           <$> go pren a
-          <*> go pren.lift (← b.apply (vvar x pren.cod))
+          <*> go pren.lift (← b.apply (vvar x pren.codomain))
       | .type => return .type
 
 def lams (l : Lvl) (t : Tm) : Tm := Id.run do
@@ -77,7 +77,7 @@ def solve [Monad m] [MonadState MetaCtx m] [MonadExcept String m]
     return
   let pren ← invert gamma sp
   let rhs ← rename mvar pren rhs
-  let solution ← (default : Env).eval <| lams pren.dom rhs
+  let solution ← (default : Env).eval <| lams pren.domain rhs
   modify <| fun mctx => { mctx with
     mapping := mctx.mapping.insert mvar (.solved solution)
   }
